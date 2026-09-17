@@ -14,7 +14,9 @@
     "deploy": "node src/deploy-commands.js",
     "test": "node tests/smoke.js",
     "test:watch": "node --watch tests/smoke.js",
-    "check:site": "node tools/site-check.js"
+    "check:site": "node tools/site-check.js",
+    "deploy:railway": "bash deploy-railway.sh",
+    "link:public": "node tools/public-link.js"
   },
   "keywords": [
     "discord",

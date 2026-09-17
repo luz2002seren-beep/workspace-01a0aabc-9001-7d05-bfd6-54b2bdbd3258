@@ -624,6 +624,46 @@ console.log('[نجاح] كل الاختبارات نجحت!');
   console.log('  [تم] /help بزر يعمل + تأكيد دخول + رول 1549364852433354792 (صفحة منع كاملة)');
   }
 
+ console.log('[اختبار] اختبار 23: جاهزية النشر (رابط يفتح من أي جهاز)');
+  {
+    const fs8 = require('node:fs');
+    const path8 = require('node:path');
+    const root8 = path8.join(__dirname, '..');
+    const read8 = (f) => fs8.readFileSync(path8.join(root8, f), 'utf8');
+
+    // ١) إعداد Railway: صحة الخدمة + إعادة التشغيل
+    const rj = JSON.parse(read8('railway.json'));
+    assert.strictEqual(rj.deploy.healthcheckPath, '/healthz', 'مسار فحص الصحة في railway.json غير مطابق');
+    assert.ok(rj.build.builder === 'DOCKERFILE', 'بنّاء Railway ليس Dockerfile');
+    assert.ok(read8('Dockerfile').includes('src/index.js'), 'Dockerfile لا يشغّل المشروع');
+    assert.ok(read8('.dockerignore').includes('.env'), 'ملف .env غير مستثنى من الصورة');
+
+    // ٢) مسار الصحة عام وبلا بيانات حساسة
+    const srv8 = read8(path8.join('src', 'web', 'server.js'));
+    assert.ok(srv8.includes("'/healthz'"), 'مسار /healthz ناقص من الخادم');
+    assert.ok(srv8.includes('https:'), 'الكوكي الآمن التلقائي عند https ناقص');
+
+    // ٣) تشغيل مرن للنشر: الموقع بدون توكن
+    const idx8 = read8(path8.join('src', 'index.js'));
+    assert.ok(idx8.includes('RUN_BOT') && idx8.includes('RUN_WEB'), 'التحكم بمتغيّرات RUN_BOT/RUN_WEB ناقص');
+
+    // ٤) أدوات الرابط العام والفحص
+    for (const f of ['tools/site-check.js', 'tools/public-link.js', 'deploy-railway.sh']) {
+      assert.ok(fs8.existsSync(path8.join(root8, f)), `${f} ناقص`);
+    }
+    const pk = JSON.parse(read8('package.json'));
+    for (const script of ['check:site', 'deploy:railway', 'link:public']) {
+      assert.ok(!!pk.scripts[script], `أمر npm ${script} ناقص`);
+    }
+
+    // ٥) الرابط العام يُحدَّد تلقائيًا (وما يبقى مكسورًا)
+    const cfg8 = require('../src/config');
+    assert.ok(/^https?:\/\//.test(cfg8.web.url), 'الرابط العام غير صالح');
+    assert.ok(!/\/$/.test(cfg8.web.url), 'الرابط العام ينتهي بشرطة مائلة');
+
+  console.log(`  [تم] Railway (Dockerfile + /healthz) + فحص الموقع + رابط عام تلقائي (${cfg8.web.url.replace(/^https?:\/\//, '')})`);
+  }
+
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');
 
   process.exit(0);

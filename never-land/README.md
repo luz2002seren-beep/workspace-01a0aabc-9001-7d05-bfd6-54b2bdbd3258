@@ -428,6 +428,33 @@ never-land/
 
 ---
 
+## 🌍 نشْر الموقع — رابط يفتح من أي جهاز (جوال/كمبيوتر)
+
+`localhost` يفتح فقط على الجهاز الذي يشغّل المشروع. لرابط يعمل من أي مكان:
+
+### أ) رابط فوري مؤقت (بلا حساب، ثوانٍ)
+```bash
+npm run web                 # نافذة أولى: الموقع
+npm run link:public         # نافذة ثانية: يطبع رابط https عام
+# أو احفظه تلقائيًا في .env ليستخدمه /help:
+npm run link:public -- --save
+```
+- يطبع مثلًا: `https://xxxx-yyyy.trycloudflare.com` — افتحه من الجوال مباشرة.
+- **مؤقت**: يعيش ما دام الأمر شغّالًا، ويتغيّر في كل تشغيل.
+
+### ب) رابط دائم (Railway — موصى به)
+```bash
+npm run deploy:railway      # يثبّت CLI + يسجّل دخولك + ينشئ مشروعًا ويرفعه
+```
+الملفات جاهزة للنشر مسبقًا: `Dockerfile` • `railway.json` (ويستخدم مسار الصحة **`/healthz`**) • `.dockerignore` • وتشغيل مرن بمتغيّرات `RUN_BOT` / `RUN_WEB`.
+في لوحة Railway أضف:
+1. **Volume** واربطه بـ `/data` ثم ضع `DATABASE_PATH=/data/neverland.db` — لتبقى بياناتك محفوظة.
+2. **Variables**: `DISCORD_TOKEN` • `CLIENT_ID` • `CLIENT_SECRET` • `DEMO_MODE=false` • `RUN_BOT=true` (وبدونها الموقع يشتغل عادي، البوت فقط لا يعمل).
+3. **Domain**: أنشئ نطاقًا عامًا، واجعله نفسه في `DASHBOARD_URL` وفي Developer Portal → OAuth2 → Redirects:
+   `https://نطاقك/auth/callback`
+
+> للتحقق بعد النشر: `https://نطاقك/healthz` يرجّع `{"ok":true,...}` • و`npm run check:site` يفحص كل شيء محليًا.
+
 ## 🚢 النشر على سيرفر
 
 ### خيار 1: PM2 (الأسهل)
@@ -469,6 +496,7 @@ npm start
 | لا تظهر السيرفرات في اللوحة | تأكد أنك تملك صلاحية **إدارة السيرفر** وأن البوت مُضاف |
 | زر «افتح الموقع» في `/help` يطلع `ERR_CONNECTION_REFUSED` | الموقع مو شغّال أو الرابط محلي على جهاز غير جهازك — شغّل `npm start` وشغّل `npm run check:site`، أو انشر الموقع وضع رابطه في `DASHBOARD_URL` |
 | رابط الموقع توقّف بعد فترة (بيئة معاينة) | روابط المعاينة تتغيّر كل جلسة — البرنامج يكتشف الجديد تلقائيًا، وللاستقرار انشر على Railway وضع `DASHBOARD_URL` ثابتًا |
+| الموقع يفتح عندي بس ما يفتح عند غيري | `localhost` محلي — انشر الموقع (`npm run deploy:railway`) أو افتح نفقًا (`npm run link:public`) ثم اضبط `DASHBOARD_URL` |
 
 ---
 

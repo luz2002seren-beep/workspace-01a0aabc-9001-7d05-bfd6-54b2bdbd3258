@@ -37,7 +37,8 @@ function createApp() {
       cookie: {
         httpOnly: true,
         sameSite: 'lax',
-        secure: false, // اجعلها true عند النشر خلف HTTPS
+        // كوكي آمن تلقائيًا عندما يكون الرابط العام https (Railway/نطاقك)
+        secure: /^https:/i.test(config.web.url),
         maxAge: 7 * 24 * 60 * 60 * 1000,
       },
     }),
@@ -45,6 +46,16 @@ function createApp() {
 
   // الملفات الثابتة (CSS/JS)
   app.use(express.static(path.join(__dirname, 'public')));
+
+  // فحص صحة عام (للنشر: Railway/Render/Docker) — بلا تسجيل دخول وبلا بيانات حساسة
+  app.get('/healthz', (_req, res) => {
+    res.status(200).json({
+      ok: true,
+      site: config.web.siteName,
+      uptime: Math.round(process.uptime()),
+      time: new Date().toISOString(),
+    });
+  });
 
   // بيانات تجريبية عند تفعيل وضع المعاينة
   if (config.web.demoMode) {

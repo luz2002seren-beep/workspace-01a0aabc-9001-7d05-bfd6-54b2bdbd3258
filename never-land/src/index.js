@@ -8,6 +8,7 @@
  *   node src/index.js            (البوت + اللوحة)
  *   node src/index.js --no-web   (البوت فقط)
  *   node src/index.js --no-bot   (اللوحة فقط)
+ *   RUN_BOT=false / RUN_WEB=false عبر متغيّرات البيئة (نفس التأثير — للنشر)
  * -------------------------------------------------------------
  */
 
@@ -19,8 +20,11 @@ const { loadEvents } = require('./handlers/events');
 const { deployCommands } = require('./deploy-commands');
 
 const args = process.argv.slice(2);
-const runBot = !args.includes('--no-bot');
-const runWeb = !args.includes('--no-web') && config.web.enabled;
+const off = (v) => String(v ?? '').trim().toLowerCase() === 'false';
+/* يمكن التحكم من متغيّرات البيئة أيضًا (مفيد على Railway/Render):
+   RUN_BOT=false لتشغيل الموقع فقط • RUN_WEB=false لتشغيل البوت فقط */
+const runBot = !args.includes('--no-bot') && !off(process.env.RUN_BOT);
+const runWeb = !args.includes('--no-web') && config.web.enabled && !off(process.env.RUN_WEB);
 
 /* ------------------------- حماية من الأخطاء غير المتوقّعة ------------------------- */
 process.on('unhandledRejection', (err) => {
