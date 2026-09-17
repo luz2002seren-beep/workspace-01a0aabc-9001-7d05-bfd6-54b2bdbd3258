@@ -25,7 +25,7 @@ async function deployCommands(client, { global = false } = {}) {
 
   if (isGlobal) {
     const data = await rest.put(Routes.applicationCommands(config.bot.clientId), { body: commands });
-    console.log(`🌐 تم تسجيل ${data.length} أمر عالمي (قد يستغرق حتى ساعة للظهور).`);
+  console.log(`[الويب] تم تسجيل ${data.length} أمر عالمي (قد يستغرق حتى ساعة للظهور).`);
     return data;
   }
 
@@ -36,10 +36,10 @@ async function deployCommands(client, { global = false } = {}) {
       const data = await rest.put(Routes.applicationGuildCommands(config.bot.clientId, guild.id), { body: commands });
       total += data.length;
     } catch (err) {
-      console.warn(`   ⚠️ فشل التسجيل في ${guild.name}: ${err.message}`);
+   console.warn(`  [تنبيه] فشل التسجيل في ${guild.name}: ${err.message}`);
     }
   }
-  console.log(`✅ تم تسجيل ${commands.length} أمر في ${client.guilds.cache.size} سيرفر (ظهور فوري).`);
+ console.log(`[تم] تم تسجيل ${commands.length} أمر في ${client.guilds.cache.size} سيرفر (ظهور فوري).`);
   return total;
 }
 
@@ -48,7 +48,7 @@ if (require.main === module) {
   (async () => {
     const problems = config.validate();
     if (problems.length) {
-      console.error('❌ إعدادات ناقصة:');
+   console.error('[خطأ] إعدادات ناقصة:');
       problems.forEach((p) => console.error(`   • ${p}`));
       process.exit(1);
     }
@@ -63,7 +63,7 @@ if (require.main === module) {
 
     if (process.argv.includes('--global')) {
       const data = await rest.put(Routes.applicationCommands(config.bot.clientId), { body: commands });
-      console.log(`🌐 تم تسجيل ${data.length} أمر عالمي.`);
+   console.log(`[الويب] تم تسجيل ${data.length} أمر عالمي.`);
       process.exit(0);
     }
 
@@ -73,9 +73,9 @@ if (require.main === module) {
       for (const guild of guilds) {
         await rest.put(Routes.applicationGuildCommands(config.bot.clientId, guild.id), { body: commands });
       }
-      console.log(`✅ تم تسجيل ${commands.length} أمر في ${guilds.length} سيرفر.`);
+   console.log(`[تم] تم تسجيل ${commands.length} أمر في ${guilds.length} سيرفر.`);
     } catch (err) {
-      console.error('❌ فشل التسجيل:', err.message);
+   console.error('[خطأ] فشل التسجيل:', err.message);
       process.exit(1);
     }
     process.exit(0);

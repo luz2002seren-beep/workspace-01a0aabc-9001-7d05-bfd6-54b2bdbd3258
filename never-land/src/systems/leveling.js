@@ -60,7 +60,7 @@ async function addXp(client, member, amount, { bypassCooldown = false } = {}) {
     }
     return { leveledUp: false, level: after.level, xp };
   } catch (err) {
-    console.error('⚠️ خطأ نظام المستويات:', err.message);
+  console.error('[تنبيه] خطأ نظام المستويات:', err.message);
     return null;
   }
 }
@@ -133,7 +133,7 @@ async function tickVoiceXp(client) {
       }
     }
   } catch (err) {
-    console.error('⚠️ خطأ XP الصوتي:', err.message);
+  console.error('[تنبيه] خطأ XP الصوتي:', err.message);
   }
 }
 

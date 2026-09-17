@@ -76,7 +76,7 @@ function createApp() {
 
   // معالج الأخطاء
   app.use((err, req, res, _next) => {
-    console.error('❌ خطأ في لوحة التحكم:', err);
+  console.error('[خطأ] خطأ في لوحة التحكم:', err);
     if (req.path.startsWith('/api/')) return res.status(500).json({ error: 'server_error', message: err.message });
     return res.status(500).send('خطأ داخلي في الخادم');
   });
@@ -90,18 +90,18 @@ function startServer() {
   const { port } = config.web;
 
   server = app.listen(port, '0.0.0.0', () => {
-    console.log(`🌐 لوحة التحكم شغّالة على: ${config.web.url}`);
+  console.log(`[الويب] لوحة التحكم شغّالة على: ${config.web.url}`);
     console.log(`   (الدخول من المتصفح: http://localhost:${port})`);
     if (!config.web.demoMode && !config.bot.clientSecret) {
-      console.warn('⚠️  CLIENT_SECRET غير موجود — تسجيل الدخول لن يعمل. أضف DEMO_MODE=true للمعاينة.');
+   console.warn('[تنبيه] CLIENT_SECRET غير موجود — تسجيل الدخول لن يعمل. أضف DEMO_MODE=true للمعاينة.');
     }
   });
 
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
-      console.error(`❌ المنفذ ${port} مستخدم بالفعل. غيّر DASHBOARD_PORT في .env`);
+   console.error(`[خطأ] المنفذ ${port} مستخدم بالفعل. غيّر DASHBOARD_PORT في .env`);
     } else {
-      console.error('❌ خطأ في خادم اللوحة:', err.message);
+   console.error('[خطأ] خطأ في خادم اللوحة:', err.message);
     }
   });
 

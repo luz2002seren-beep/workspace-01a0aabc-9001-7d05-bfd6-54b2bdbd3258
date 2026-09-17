@@ -27,7 +27,7 @@ async function sendTo(client, guild, channelId, payload, autoDeleteAfter = 0) {
   if (me && !channel.permissionsFor(me)?.has(PermissionFlagsBits.SendMessages)) return null;
 
   const message = await channel.send(payload).catch((err) => {
-    console.error('⚠️ فشل إرسال رسالة الترحيب:', err.message);
+  console.error('[تنبيه] فشل إرسال رسالة الترحيب:', err.message);
     return null;
   });
   if (message && autoDeleteAfter > 0) {

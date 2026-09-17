@@ -49,9 +49,9 @@ function loadCommands(client) {
     }
   }
 
-  console.log(`📦 تم تحميل ${loaded} أمر من ${files.length} ملف`);
+ console.log(`[الأوامر] تم تحميل ${loaded} أمر من ${files.length} ملف`);
   if (problems.length) {
-    console.warn('⚠️  ملفات أوامر بها مشاكل:');
+  console.warn('[تنبيه] ملفات أوامر بها مشاكل:');
     problems.forEach((p) => console.warn(`   • ${p}`));
   }
   return { loaded, problems };

@@ -25,13 +25,13 @@ const { loadCommands, walk } = require('../src/handlers/commands');
 
 const fakeClient = { commands: new Map(), guilds: { cache: new Map() }, on() {}, once() {} };
 
-console.log('🧪 اختبار 1: تحميل الأوامر');
+console.log('[اختبار] اختبار 1: تحميل الأوامر');
 const { loaded, problems } = loadCommands(fakeClient);
 assert.ok(loaded >= 20, `يجب تحميل 20 أمرًا على الأقل، تم تحميل ${loaded}`);
 assert.deepStrictEqual(problems, [], `مشاكل في الأوامر: ${problems.join(', ')}`);
-console.log(`   ✅ ${loaded} أمر`);
+console.log(`  [تم] ${loaded} أمر`);
 
-console.log('🧪 اختبار 2: صحة بيانات الأوامر');
+console.log('[اختبار] اختبار 2: صحة بيانات الأوامر');
 for (const command of fakeClient.commands.values()) {
   const json = command.data.toJSON();
   assert.ok(json.name && json.name === json.name.toLowerCase(), `اسم غير صالح: ${json.name}`);
@@ -44,9 +44,9 @@ for (const command of fakeClient.commands.values()) {
     }
   }
 }
-console.log('   ✅ كل الأوامر صحيحة');
+console.log('  [تم] كل الأوامر صحيحة');
 
-console.log('🧪 اختبار 3: تحميل الأحداث');
+console.log('[اختبار] اختبار 3: تحميل الأحداث');
 const eventFiles = walk(path.join(__dirname, '..', 'src', 'events'));
 assert.ok(eventFiles.length >= 6, 'يجب وجود ملفات أحداث');
 let eventsCount = 0;
@@ -59,9 +59,9 @@ for (const file of eventFiles) {
     eventsCount += 1;
   }
 }
-console.log(`   ✅ ${eventsCount} حدث`);
+console.log(`  [تم] ${eventsCount} حدث`);
 
-console.log('🧪 اختبار 4: قاعدة البيانات');
+console.log('[اختبار] اختبار 4: قاعدة البيانات');
 db.init();
 const guild = db.getGuild('999999999999999999');
 assert.ok(guild.settings.automod.enabled !== undefined, 'الإعدادات الافتراضية ناقصة');
@@ -83,9 +83,9 @@ assert.strictEqual(leaderboard.length, 1, 'فشل نظام المستويات');
 db.updateGuildSettings('999999999999999999', { welcome: { enabled: true, channelId: '555' } });
 assert.strictEqual(db.getGuildSettings('999999999999999999').welcome.enabled, true, 'فشل تحديث الإعدادات');
 assert.strictEqual(db.getGuildSettings('999999999999999999').automod.enabled, true, 'فُقدت الإعدادات الافتراضية بعد التحديث!');
-console.log('   ✅ قاعدة البيانات تعمل بشكل صحيح');
+console.log('  [تم] قاعدة البيانات تعمل بشكل صحيح');
 
-console.log('🧪 اختبار 5: أدوات مساعدة');
+console.log('[اختبار] اختبار 5: أدوات مساعدة');
 const utils = require('../src/lib/utils');
 const levels = require('../src/lib/levels');
 const i18n = require('../src/lib/i18n');
@@ -97,9 +97,9 @@ assert.strictEqual(levels.levelFromXp(0).level, 0);
 assert.ok(levels.levelFromXp(100000).level > 10);
 assert.strictEqual(i18n.t('ar', 'mod.banned', { user: 'X', reason: 'Y', caseId: 1 }).includes('X'), true);
 assert.strictEqual(i18n.t('en', 'common.noPermission').startsWith('❌'), true);
-console.log('   ✅ الأدوات تعمل');
+console.log('  [تم] الأدوات تعمل');
 
-console.log('🧪 اختبار 6: نظام الحماية');
+console.log('[اختبار] اختبار 6: نظام الحماية');
 const automod = require('../src/systems/automod');
 const settings = { automod: { ...db.getGuildSettings('999999999999999999').automod } };
 const fakeMessage = {
@@ -115,19 +115,19 @@ const violations = automod.collectViolations({ cache: new Map(), spamTracker: ne
 assert.ok(violations.some((v) => v.key === 'link'), 'لم يُرصد الرابط');
 assert.ok(violations.some((v) => v.key === 'bannedWord'), 'لم تُرصد الكلمة الممنوعة');
 assert.strictEqual(automod.normalizeArabic('أَهْـلًا'), 'اهلا');
-console.log('   ✅ الحماية التلقائية تعمل');
+console.log('  [تم] الحماية التلقائية تعمل');
 
 function assertEquals(actual, expected, message) {
   assert.strictEqual(actual, expected, message);
 }
 
 console.log('');
-console.log('🎉 كل الاختبارات نجحت!');
+console.log('[نجاح] كل الاختبارات نجحت!');
 
 /* ------------------------- اختبارات متقدّمة (7 → 15) ------------------------- */
 (async () => {
 
-  console.log('🧪 اختبار 7: تطابق مفاتيح الترجمة (ar ↔ en)');
+ console.log('[اختبار] اختبار 7: تطابق مفاتيح الترجمة (ar en)');
   const { strings } = require('../src/lib/i18n');
   const flatten = (obj, prefix = '') =>
     Object.entries(obj).flatMap(([key, value]) =>
@@ -138,9 +138,9 @@ console.log('🎉 كل الاختبارات نجحت!');
   const missingAr = [...enKeys].filter((k) => !arKeys.has(k));
   assert.deepStrictEqual(missingEn, [], `مفاتيح ناقصة في الإنجليزية: ${missingEn.join(', ')}`);
   assert.deepStrictEqual(missingAr, [], `مفاتيح ناقصة في العربية: ${missingAr.join(', ')}`);
-  console.log(`   ✅ ${arKeys.size} مفتاح متطابق في اللغتين`);
+ console.log(`  [تم] ${arKeys.size} مفتاح متطابق في اللغتين`);
 
-  console.log('🧪 اختبار 8: بناء اللوحات (بدون اتصال بديسكورد)');
+ console.log('[اختبار] اختبار 8: بناء اللوحات (بدون اتصال بديسكورد)');
   const settings = db.getGuildSettings('999999999999999999');
   const setupWizard = require('../src/systems/setupWizard');
   const panel = setupWizard.mainPanel(settings);
@@ -157,9 +157,9 @@ console.log('🎉 كل الاختبارات نجحت!');
     controlCount > 0 && (firstControl.options?.length > 0 || firstControl.data?.custom_id?.startsWith('ticket:open:')),
     'عناصر فتح التذاكر ناقصة',
   );
-  console.log('   ✅ لوحات الإعداد والتذاكر سليمة');
+ console.log('  [تم] لوحات الإعداد والتذاكر سليمة');
 
-  console.log('🧪 اختبار 9: اللوقات والحماية (مسارات آمنة)');
+ console.log('[اختبار] اختبار 9: اللوقات والحماية (مسارات آمنة)');
   const logging = require('../src/systems/logging');
   const result = await logging.send({ guilds: { cache: new Map() } }, { id: '1' }, 'messageDelete', { title: 'اختبار' });
   assert.strictEqual(result, null, 'يجب أن يعود null عند تعطيل اللوقات');
@@ -169,22 +169,22 @@ console.log('🎉 كل الاختبارات نجحت!');
     { id: 5, user_id: '1', type: 'general', created_at: Date.now() },
   );
   assert.ok(transcript.includes('مرحبا') && transcript.includes('#5'), 'الأرشيف النصي خطأ');
-  console.log('   ✅ اللوقات والأرشيف سليمة');
+ console.log('  [تم] اللوقات والأرشيف سليمة');
 
-  console.log('🧪 اختبار 10: أوامر السلاش قابلة للتسلسل إلى JSON');
+ console.log('[اختبار] اختبار 10: أوامر السلاش قابلة للتسلسل إلى JSON');
   for (const command of fakeClient.commands.values()) {
     const json = command.data.toJSON();
     assert.ok(json.name, 'فشل التسلسل');
     JSON.stringify(json);
   }
-  console.log(`   ✅ ${fakeClient.commands.size} أمر جاهز للتسجيل في ديسكورد`);
+ console.log(`  [تم] ${fakeClient.commands.size} أمر جاهز للتسجيل في ديسكورد`);
 
   console.log('');
-  console.log('🎉 جميع الاختبارات الإضافية نجحت!');
+ console.log('[نجاح] جميع الاختبارات الإضافية نجحت!');
 
 
   console.log('');
-  console.log('🧪 اختبار 11: دعم الإيموجيات الخارجية');
+ console.log('[اختبار] اختبار 11: دعم الإيموجيات الخارجية');
   const emojis = require('../src/lib/emojis');
   assert.deepStrictEqual(emojis.parseEmoji('<:fire:123456789012345678>'), { id: '123456789012345678', animated: false });
   assert.deepStrictEqual(emojis.parseEmoji('<a:party:987654321098765432>'), { id: '987654321098765432', animated: true });
@@ -192,9 +192,9 @@ console.log('🎉 كل الاختبارات نجحت!');
   assert.strictEqual(emojis.parseEmoji('نص طويل ليس إيموجي'), null);
   assert.ok(emojis.customEmojiUrl('<a:party:987654321098765432>').includes('.gif'));
   assert.ok(emojis.extractCustomEmojis('مرحبا <:ok:123456789012345678> و<:no:987654321098765432>').length === 2);
-  console.log('   ✅ الإيموجيات الخارجية تعمل');
+ console.log('  [تم] الإيموجيات الخارجية تعمل');
 
-  console.log('🧪 اختبار 12: بطاقة الترحيب (Canvas)');
+ console.log('[اختبار] اختبار 12: بطاقة الترحيب (Canvas)');
   const welcomeCard = require('../src/lib/welcomeCard');
   assert.ok(welcomeCard.available(), 'مولّد البطاقات غير متاح');
   const fakeUser = {
@@ -209,9 +209,9 @@ console.log('🎉 كل الاختبارات نجحت!');
   });
   assert.ok(cardBuffer && cardBuffer.length > 5000, 'فشل توليد البطاقة');
   assert.strictEqual(cardBuffer.slice(1, 4).toString(), 'PNG', 'الناتج ليس PNG');
-  console.log(`   ✅ تم توليد بطاقة ترحيب (${Math.round(cardBuffer.length / 1024)}KB)`);
+ console.log(`  [تم] تم توليد بطاقة ترحيب (${Math.round(cardBuffer.length / 1024)}KB)`);
 
-  console.log('🧪 اختبار 13: لوحة التذاكر (أزرار + قائمة + 4 أنواع)');
+ console.log('[اختبار] اختبار 13: لوحة التذاكر (أزرار + قائمة + 4 أنواع)');
   const ticketsSystem = require('../src/systems/tickets');
   const tSettings = db.getGuildSettings('999999999999999999');
   const payloads = ticketsSystem.buildPanelPayloads(tSettings, { id: '1', iconURL: () => null }, null);
@@ -229,18 +229,18 @@ console.log('🎉 كل الاختبارات نجحت!');
   // وضع القائمة المنسدلة
   const selectPayload = ticketsSystem.buildPanelPayloads({ ...tSettings, tickets: { ...tSettings.tickets, panelMode: 'select' } }, {}).pop();
   assert.strictEqual(selectPayload.components[0].components[0].options.length, 4, 'القائمة المنسدلة لا تحتوي 4 أنواع');
-  console.log('   ✅ اللوحة تعمل بالأزرار والقائمة مع 4 أنواع');
+ console.log('  [تم] اللوحة تعمل بالأزرار والقائمة مع 4 أنواع');
 
-  console.log('🧪 اختبار 14: الخط الفاصل والتفاعلات التلقائية');
+ console.log('[اختبار] اختبار 14: الخط الفاصل والتفاعلات التلقائية');
   const autolineSystem = require('../src/systems/autoline');
   const lineContent = autolineSystem.buildLineContent({ autoline: { line: '─'.repeat(10), color: null } });
   assert.ok(lineContent.content.includes('─'));
   const autoreactSystem = require('../src/systems/autoreact');
   const tValues = autoreactSystem.toReactionValues(['👍', '<:fire:123456789012345678>', 'نص ليس إيموجي طويل here']);
   assert.strictEqual(tValues.length, 2, 'تحويل الإيموجيات خطأ');
-  console.log('   ✅ AutoLine و AutoReaction يعملان');
+ console.log('  [تم] AutoLine و AutoReaction يعملان');
 
-  console.log('🧪 اختبار 15: أحداث اللوقات الشاملة');
+ console.log('[اختبار] اختبار 15: أحداث اللوقات الشاملة');
   const loggingSystem = require('../src/systems/logging');
   const tTotal = Object.keys(loggingSystem.EVENT_META).length;
   assert.ok(tTotal >= 38, `عدد الأحداث ${tTotal} أقل من المطلوب`);
@@ -251,11 +251,11 @@ console.log('🎉 كل الاختبارات نجحت!');
   }
   const tSettings15 = db.getGuildSettings('999999999999999999');
   assert.strictEqual(Object.keys(tSettings15.logs.events).length, tTotal, 'أحداث الإعدادات لا تطابق الأحداث المتاحة');
-  console.log(`   ✅ ${tTotal} حدثًا في ${Object.keys(tGroups).length} مجموعات`);
+ console.log(`  [تم] ${tTotal} حدثًا في ${Object.keys(tGroups).length} مجموعات`);
 
   console.log('');
 
-  console.log('🧪 اختبار 16: نظام تقديم الإدارة (نموذج 5 خانات + قبول/رفض)');
+ console.log('[اختبار] اختبار 16: نظام تقديم الإدارة (نموذج 5 خانات + قبول/رفض)');
   {
     const applications = require('../src/systems/applications');
     const GUILD16 = '100000000000000001';
@@ -372,10 +372,10 @@ console.log('🎉 كل الاختبارات نجحت!');
     assert.strictEqual(rejected.decision, 'reject');
     assert.ok(rejectDm?.title?.includes('رفض'), 'لم تُرسل رسالة رفض على الخاص');
     assert.ok(rejectDm?.fields?.some((f) => f.value.includes('تحتاج خبرة أكبر')), 'سبب الرفض غير مذكور في الخاص');
-    console.log('   ✅ النموذج 5 خانات + القبول (تسمية/ترقيم/نقل/رتبة/خاص) + الرفض بالسبب');
+  console.log('  [تم] النموذج 5 خانات + القبول (تسمية/ترقيم/نقل/رتبة/خاص) + الرفض بالسبب');
   }
 
-  console.log('🧪 اختبار 17: لوحة التحكم الجديدة');
+ console.log('[اختبار] اختبار 17: لوحة التحكم الجديدة');
   {
     const fs2 = require('node:fs');
     const path2 = require('node:path');
@@ -424,10 +424,10 @@ console.log('🎉 كل الاختبارات نجحت!');
     // نقطة الإجراءات التجريبية موجودة في الـ API
     const apiSource = fs2.readFileSync(path2.join(__dirname, '..', 'src', 'web', 'routes', 'api.js'), 'utf8');
     assert.ok(apiSource.includes("actions/:action"), 'نقطة الإجراءات التجريبية ناقصة');
-    console.log(`   ✅ ${expectedSections.length} قسمًا • ${uniquePaths.length} مسار إعداد متطابق • dash.css محمّل • الإجراءات التجريبية جاهزة`);
+  console.log(`  [تم] ${expectedSections.length} قسمًا • ${uniquePaths.length} مسار إعداد متطابق • dash.css محمّل • الإجراءات التجريبية جاهزة`);
   }
 
-  console.log('🧪 اختبار 18: صفحات الموقع + الوضع الليلي/النهاري');
+ console.log('[اختبار] اختبار 18: صفحات الموقع + الوضع الليلي/النهاري');
   {
     const fs3 = require('node:fs');
     const path3 = require('node:path');
@@ -462,10 +462,10 @@ console.log('🎉 كل الاختبارات نجحت!');
 
     // رابط إضافة البوت يُبنى تلقائيًا
     assert.ok(/inviteUrl/.test(fs3.readFileSync(path3.join(__dirname, '..', 'src', 'config.js'), 'utf8')), 'inviteUrl ناقص من الإعدادات');
-    console.log(`   ✅ الرئيسية + السيرفرات + الوضع الليلي/النهاري (${dashVars} رمزًا في dash.css)`);
+  console.log(`  [تم] الرئيسية + السيرفرات + الوضع الليلي/النهاري (${dashVars} رمزًا في dash.css)`);
   }
 
-  console.log('🧪 اختبار 19: واجهة رسمية بأيقونات SVG (بدون إيموجيات)');
+ console.log('[اختبار] اختبار 19: واجهة رسمية بأيقونات SVG (بدون إيموجيات)');
   {
     const fs4 = require('node:fs');
     const path4 = require('node:path');
@@ -505,9 +505,9 @@ console.log('🎉 كل الاختبارات نجحت!');
     const dashCss2 = fs4.readFileSync(path4.join(webPublic, 'dash.css'), 'utf8');
     assert.ok(styleSrc2.includes('.brand-logo svg'), 'أنماط أيقونات الموقع ناقصة');
     assert.ok(dashCss2.includes('.d-nav-item .ico svg'), 'أنماط أيقونات اللوحة ناقصة');
-    console.log(`   ✅ ${iconCount} أيقونة SVG • صفر إيموجي في واجهة الموقع واللوحة`);
+  console.log(`  [تم] ${iconCount} أيقونة SVG • صفر إيموجي في واجهة الموقع واللوحة`);
   }
-  console.log('🧪 اختبار 20: هوية الموقع (Never Land) + كونه موقعًا حقيقيًا لا نسخة ثابتة');
+ console.log('[اختبار] اختبار 20: هوية الموقع (Never Land) + كونه موقعًا حقيقيًا لا نسخة ثابتة');
   {
     const fs5 = require('node:fs');
     const path5 = require('node:path');
@@ -532,10 +532,10 @@ console.log('🎉 كل الاختبارات نجحت!');
 
     const pkg5 = require('../package.json');
     assert.strictEqual(pkg5.name, 'never-land', 'اسم الحزمة غير محدّث');
-    console.log(`   ✅ الاسم: ${cfg.web.siteName} • أيقونة + مانيفست + robots + sitemap + 404 بقالب الموقع`);
+  console.log(`  [تم] الاسم: ${cfg.web.siteName} • أيقونة + مانيفست + robots + sitemap + 404 بقالب الموقع`);
   }
 
-  console.log('🧪 اختبار 21: الوصول العام (كل يفوت) + التكيّف مع الشاشات والأجهزة');
+ console.log('[اختبار] اختبار 21: الوصول العام (كل يفوت) + التكيّف مع الشاشات والأجهزة');
   {
     const fs6 = require('node:fs');
     const path6 = require('node:path');
@@ -572,10 +572,10 @@ console.log('🎉 كل الاختبارات نجحت!');
     assert.ok(style6.includes('prefers-reduced-motion'), 'احترام تقليل الحركة ناقص');
     assert.ok(dash6.includes('.d-shell.readonly'), 'أنماط وضع القراءة فقط ناقصة');
     assert.ok(dash6.includes('max-width: 700px'), 'تكيّف اللوحة مع الجوال ناقص');
-    console.log(`   ✅ وصول عام للقراءة + ${mqStyle + mqDash} نقطة تكيّف (جوال/تابلت/شاشة كبيرة) + سمة تتبع الجهاز`);
+  console.log(`  [تم] وصول عام للقراءة + ${mqStyle + mqDash} نقطة تكيّف (جوال/تابلت/شاشة كبيرة) + سمة تتبع الجهاز`);
   }
 
-  console.log('🧪 اختبار 22: زر /help يفتح الموقع + تأكيد الدخول والرول المطلوب');
+ console.log('[اختبار] اختبار 22: زر /help يفتح الموقع + تأكيد الدخول والرول المطلوب');
   {
     const { execFileSync } = require('node:child_process');
     const path7 = require('node:path');
@@ -600,10 +600,10 @@ console.log('🎉 كل الاختبارات نجحت!');
     assert.ok(outGate.includes('302 /auth/login'), 'الزائر لا يُحوَّل لتسجيل الدخول');
     assert.ok(outGate.includes('role_required'), 'حماية الـAPI بالرول ناقصة');
     assert.ok(outGate.includes('الوصول مقيّد'), 'صفحة الوصول مقيّد ناقصة');
-    console.log('   ✅ /help بزر يعمل + تأكيد دخول + رول 1549364852433354792 (صفحة منع كاملة)');
+  console.log('  [تم] /help بزر يعمل + تأكيد دخول + رول 1549364852433354792 (صفحة منع كاملة)');
   }
 
-  console.log('🎉 جميع اختبارات الميزات الجديدة نجحت!');
+ console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');
 
   process.exit(0);
 })();

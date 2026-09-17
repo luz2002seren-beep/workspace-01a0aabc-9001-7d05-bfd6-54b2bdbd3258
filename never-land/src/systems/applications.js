@@ -285,7 +285,7 @@ async function submitApplication(client, interaction, ticket) {
   if (!target) target = interaction.channel; // احتياط: يبقى الطلب داخل التذكرة
 
   const sent = await target.send(payload).catch((err) => {
-    console.error('⚠️ فشل إرسال طلب التقديم لقناة المراجعة:', err.message);
+  console.error('[تنبيه] فشل إرسال طلب التقديم لقناة المراجعة:', err.message);
     return null;
   });
   if (!sent) return { ok: false, reason: 'sendFailed' };

@@ -30,13 +30,13 @@ function init() {
     try {
       driver = require('./sqlite');
     } catch (err) {
-      console.warn('⚠️  تعذّر تحميل better-sqlite3، سيتم استخدام مشغّل JSON:', err.message);
+   console.warn('[تنبيه] تعذّر تحميل better-sqlite3، سيتم استخدام مشغّل JSON:', err.message);
       driver = require('./json');
     }
   }
 
   driver.init(config);
-  console.log(`🗄️  قاعدة البيانات جاهزة (المشغّل: ${driver.name})`);
+ console.log(`[قاعدة البيانات] قاعدة البيانات جاهزة (المشغّل: ${driver.name})`);
   return driver;
 }
 

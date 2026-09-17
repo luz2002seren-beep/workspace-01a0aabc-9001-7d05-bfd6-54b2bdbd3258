@@ -248,7 +248,7 @@ async function applyPunishment(client, message, settings, violations) {
       ],
     });
   } catch (err) {
-    console.error('⚠️ فشل تطبيق عقوبة الحماية التلقائية:', err.message);
+  console.error('[تنبيه] فشل تطبيق عقوبة الحماية التلقائية:', err.message);
   }
 
   return result;
@@ -278,7 +278,7 @@ async function handleMessage(client, message) {
     await applyPunishment(client, message, settings, violations);
     return true;
   } catch (err) {
-    console.error('⚠️ خطأ في الحماية التلقائية:', err.message);
+  console.error('[تنبيه] خطأ في الحماية التلقائية:', err.message);
     return false;
   }
 }
@@ -319,9 +319,9 @@ async function handleMemberJoin(client, member) {
       const { base } = require('../lib/embeds');
       await logChannel.send({ embeds: [base({ color: 0xed4245, ...alert })] }).catch(() => {});
     }
-    console.warn(`🚨 هجوم محتمل في ${member.guild.name} (${list.length} انضمام/دقيقة)`);
+  console.warn(`[إنذار] هجوم محتمل في ${member.guild.name} (${list.length} انضمام/دقيقة)`);
   } catch (err) {
-    console.error('⚠️ خطأ في Anti-Raid:', err.message);
+  console.error('[تنبيه] خطأ في Anti-Raid:', err.message);
   }
 }
 

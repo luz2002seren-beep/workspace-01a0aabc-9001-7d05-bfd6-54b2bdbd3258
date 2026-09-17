@@ -54,7 +54,7 @@ async function handleMessage(client, message) {
 
     return reacted;
   } catch (err) {
-    console.error('⚠️ خطأ في AutoReaction:', err.message);
+  console.error('[تنبيه] خطأ في AutoReaction:', err.message);
     return false;
   }
 }

@@ -82,7 +82,7 @@ async function handleMessage(client, message) {
 
     return true;
   } catch (err) {
-    console.error('⚠️ خطأ في AutoLine:', err.message);
+  console.error('[تنبيه] خطأ في AutoLine:', err.message);
     return false;
   }
 }

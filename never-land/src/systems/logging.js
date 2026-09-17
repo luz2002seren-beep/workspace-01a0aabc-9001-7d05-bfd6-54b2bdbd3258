@@ -158,7 +158,7 @@ async function send(client, guild, eventKey, data = {}) {
 
     return await channel.send({ embeds: [embed], files: data.files, components: data.components });
   } catch (err) {
-    console.error('⚠️ فشل إرسال اللوق:', err.message);
+  console.error('[تنبيه] فشل إرسال اللوق:', err.message);
     return null;
   }
 }

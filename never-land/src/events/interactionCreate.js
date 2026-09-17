@@ -110,7 +110,7 @@ module.exports = {
           }
         }
 
-        console.log(`▶️  ${interaction.user.tag} استخدم /${interaction.commandName} في ${interaction.guild?.name ?? 'الخاص'}`);
+    console.log(`[تنفيذ] ${interaction.user.tag} استخدم /${interaction.commandName} في ${interaction.guild?.name ?? 'الخاص'}`);
         await command.run(client, interaction, lang);
         return;
       }
@@ -384,7 +384,7 @@ module.exports = {
       }
     } catch (err) {
       client.errorCount += 1;
-      console.error('❌ خطأ في معالجة التفاعل:', err);
+   console.error('[خطأ] خطأ في معالجة التفاعل:', err);
       await safeReply(interaction, {
         content: '❌ صار خطأ غير متوقع أثناء تنفيذ الأمر. تم تسجيله في السجلات.',
         flags: MessageFlags.Ephemeral,

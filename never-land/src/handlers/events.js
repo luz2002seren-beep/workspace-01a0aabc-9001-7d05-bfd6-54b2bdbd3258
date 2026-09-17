@@ -34,7 +34,7 @@ function loadEvents(client) {
         const handler = (...args) => {
           Promise.resolve(event.execute(client, ...args)).catch((err) => {
             client.errorCount += 1;
-            console.error(`❌ خطأ داخل الحدث ${event.name}:`, err);
+      console.error(`[خطأ] خطأ داخل الحدث ${event.name}:`, err);
           });
         };
 
@@ -48,7 +48,7 @@ function loadEvents(client) {
     }
   }
 
-  console.log(`🔔 تم تحميل ${loaded} حدث`);
+ console.log(`[الأحداث] تم تحميل ${loaded} حدث`);
   if (problems.length) problems.forEach((p) => console.warn(`   • ${p}`));
   return { loaded, problems };
 }

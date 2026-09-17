@@ -21,7 +21,7 @@ let CanvasLib = null;
 try {
   CanvasLib = require('@napi-rs/canvas');
 } catch {
-  console.warn('⚠️  @napi-rs/canvas غير متوفّر — سيتم استخدام صورة الأفتار العادية في بطاقة الترحيب.');
+ console.warn('[تنبيه] @napi-rs/canvas غير متوفّر — سيتم استخدام صورة الأفتار العادية في بطاقة الترحيب.');
 }
 
 const CARD_W = 900;
@@ -194,7 +194,7 @@ async function generateWelcomeCard({
 
     return canvas.toBuffer('image/png');
   } catch (err) {
-    console.error('⚠️ فشل توليد بطاقة الترحيب:', err.message);
+  console.error('[تنبيه] فشل توليد بطاقة الترحيب:', err.message);
     return null;
   }
 }

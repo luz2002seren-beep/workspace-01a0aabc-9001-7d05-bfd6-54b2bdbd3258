@@ -67,7 +67,7 @@ module.exports = [
     async execute(client, guild) {
       db.init();
       db.getGuild(guild.id);
-      console.log(`➕ انضم البوت إلى سيرفر جديد: ${guild.name} (${guild.memberCount} عضو)`);
+   console.log(`[إضافة] انضم البوت إلى سيرفر جديد: ${guild.name} (${guild.memberCount} عضو)`);
 
       // رسالة ترحيب لصاحب السيرفر مع خطوات الإعداد
       const owner = await guild.fetchOwner().catch(() => null);
@@ -97,7 +97,7 @@ module.exports = [
   {
     name: Events.GuildDelete,
     async execute(client, guild) {
-      console.log(`➖ خرج البوت من سيرفر: ${guild.name}`);
+   console.log(`[إزالة] خرج البوت من سيرفر: ${guild.name}`);
       // لا نحذف الإعدادات تلقائيًا حتى لا يفقد السيرفر إعداده عند إعادة الإضافة
       db.getGuild(guild.id);
     },
@@ -108,13 +108,13 @@ module.exports = [
     name: Events.Error,
     async execute(client, error) {
       client.errorCount += 1;
-      console.error('❌ خطأ في عميل ديسكورد:', error?.message || error);
+   console.error('[خطأ] خطأ في عميل ديسكورد:', error?.message || error);
     },
   },
   {
     name: Events.Warn,
     async execute(client, info) {
-      console.warn('⚠️ تحذير من ديسكورد:', info);
+   console.warn('[تنبيه] تحذير من ديسكورد:', info);
     },
   },
 ];

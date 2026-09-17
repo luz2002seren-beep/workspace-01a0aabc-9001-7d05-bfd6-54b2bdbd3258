@@ -194,7 +194,7 @@ async function createTicket(client, guild, user, typeId) {
       reason: `تذكرة ${type.label} بواسطة ${user.tag}`,
     })
     .catch((err) => {
-      console.error('⚠️ فشل إنشاء قناة التذكرة:', err.message);
+   console.error('[تنبيه] فشل إنشاء قناة التذكرة:', err.message);
       return null;
     });
 
@@ -260,7 +260,7 @@ async function closeTicket(client, channel, closedBy, { reason = null, deleteCha
     const text = logging.buildTranscript(messages, ticket);
     transcriptFile = new AttachmentBuilder(Buffer.from(text, 'utf8'), { name: `ticket-${ticket.id}.txt` });
   } catch (err) {
-    console.error('⚠️ فشل بناء الأرشيف:', err.message);
+  console.error('[تنبيه] فشل بناء الأرشيف:', err.message);
   }
 
   const embed = base({

@@ -24,10 +24,10 @@ const runWeb = !args.includes('--no-web') && config.web.enabled;
 
 /* ------------------------- حماية من الأخطاء غير المتوقّعة ------------------------- */
 process.on('unhandledRejection', (err) => {
-  console.error('⚠️ Promise مرفوض بدون معالجة:', err?.message || err);
+ console.error('[تنبيه] Promise مرفوض بدون معالجة:', err?.message || err);
 });
 process.on('uncaughtException', (err) => {
-  console.error('💥 خطأ غير متوقّع:', err);
+ console.error('[خطأ عام] خطأ غير متوقّع:', err);
 });
 
 async function startBot() {
@@ -35,7 +35,7 @@ async function startBot() {
 
   if (!config.bot.token || !config.bot.clientId) {
     console.error('');
-    console.error('❌ لا يمكن تشغيل البوت: معلومات ناقصة في ملف .env');
+  console.error('[خطأ] لا يمكن تشغيل البوت: معلومات ناقصة في ملف .env');
     problems.forEach((p) => console.error(`   • ${p}`));
     console.error('');
     console.error('انسخ ملف .env.example إلى .env واملأ: DISCORD_TOKEN و CLIENT_ID');
@@ -45,7 +45,7 @@ async function startBot() {
 
   const client = require('./client');
 
-  console.log('🚀 جارٍ تشغيل Never Land ...');
+ console.log('[تشغيل] جارٍ تشغيل Never Land ...');
   db.init();
 
   // تحميل الأوامر والأحداث
@@ -57,18 +57,18 @@ async function startBot() {
     try {
       await deployCommands(client);
     } catch (err) {
-      console.error('⚠️ فشل تسجيل أوامر السلاش:', err.message);
+   console.error('[تنبيه] فشل تسجيل أوامر السلاش:', err.message);
     }
   });
 
   await client.login(config.bot.token).catch((err) => {
-    console.error('❌ فشل تسجيل الدخول:', err.message);
+  console.error('[خطأ] فشل تسجيل الدخول:', err.message);
     console.error('   تأكد من صحة DISCORD_TOKEN وأن Intents مفعّلة في Developer Portal.');
     return null;
   });
 
   if (problems.length) {
-    console.warn('⚠️ ملاحظات على الإعدادات:');
+  console.warn('[تنبيه] ملاحظات على الإعدادات:');
     problems.forEach((p) => console.warn(`   • ${p}`));
   }
 
@@ -80,7 +80,7 @@ function startWeb() {
     const { startServer } = require('./web/server');
     return startServer();
   } catch (err) {
-    console.error('⚠️ فشل تشغيل لوحة التحكم:', err.message);
+  console.error('[تنبيه] فشل تشغيل لوحة التحكم:', err.message);
     return null;
   }
 }
@@ -94,19 +94,19 @@ function startWeb() {
   console.log('╚═══════════════════════════════════════════════╝');
 
   if (runBot) await startBot();
-  else console.log('ℹ️  تم تجاوز تشغيل البوت (--no-bot)');
+ else console.log('[ملاحظة] تم تجاوز تشغيل البوت (--no-bot)');
 
   if (runWeb) startWeb();
-  else console.log('ℹ️  لوحة التحكم معطّلة');
+ else console.log('[ملاحظة] لوحة التحكم معطّلة');
 
   console.log('');
-  console.log('✅ كل شيء جاهز. اضغط Ctrl+C للإيقاف.');
+ console.log('[تم] كل شيء جاهز. اضغط Ctrl+C للإيقاف.');
   console.log('');
 })();
 
 /* إغلاق نظيف */
 const shutdown = (signal) => {
-  console.log(`\n🛑 استلام ${signal} — إغلاق نظيف...`);
+ console.log(`\n[إيقاف] استلام ${signal} — إغلاق نظيف...`);
   try {
     db.close();
   } catch {
