@@ -54,6 +54,18 @@ async function hasRequiredRole(userId) {
       if (member.roles?.cache?.has(roleId)) {
         return { ok: true, reason: 'ok', guild: guild.name, checked: true };
       }
+
+      // استثناء آمن: مالك السيرفر ومن يملك «إدارة السيرفر» يدخلون دائمًا
+      // (حتى لا يُحبس صاحب السيرفر خارج لوحة تحكم سيرفره)
+      const isOwner = String(guild.ownerId) === String(userId);
+      const perms = member.permissions;
+      const canManage = Boolean(
+        perms && (perms.has?.('ManageGuild') || perms.has?.('Administrator') || perms.has?.(0x20n)),
+      );
+      if (isOwner || canManage) {
+        return { ok: true, reason: isOwner ? 'owner' : 'manage_guild', guild: guild.name, checked: true };
+      }
+
       return { ok: false, reason: 'no_role', guild: guild.name, checked: true };
     } catch {
       /* نجرّب السيرفر التالي */
@@ -84,6 +96,10 @@ function explain(result) {
   switch (result.reason) {
     case 'ok':
       return 'الوصول متاح.';
+    case 'owner':
+      return 'الوصول متاح: أنت مالك السيرفر.';
+    case 'manage_guild':
+      return 'الوصول متاح: حسابك يملك صلاحية «إدارة السيرفر».';
     case 'no_role':
       return `حسابك مسجّل، لكنه لا يملك الرول المطلوب في "${result.guild || 'السيرفر'}" (المعرّف ${config.web.requiredRoleId}).`;
     case 'not_member':

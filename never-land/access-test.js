@@ -15,6 +15,15 @@ const access = require('./src/web/access');
 const CLIENT_PATH = require.resolve('./src/client.js');
 
 /** عميل وهمي */
+function fakeMember(m) {
+  const perms = new Set(m.perms || []);
+  return {
+    id: m.id,
+    roles: { cache: new Map((m.roles || []).map((r) => [r, {}])) },
+    permissions: { has: (flag) => perms.has(String(flag)) },
+  };
+}
+
 function fakeClient({ ready = true, guilds = [] } = {}) {
   return {
     isReady: () => ready,
@@ -25,13 +34,14 @@ function fakeClient({ ready = true, guilds = [] } = {}) {
           {
             id: g.id,
             name: g.name,
+            ownerId: g.ownerId || null,
             roles: { cache: new Map((g.roles || []).map((r) => [r, {}])) },
             members: {
-              cache: new Map((g.members || []).map((m) => [m.id, { id: m.id, roles: { cache: new Map((m.roles || []).map((r) => [r, {}])) } }])),
+              cache: new Map((g.members || []).map((m) => [m.id, fakeMember(m)])),
               fetch: async (id) => {
                 const m = (g.members || []).find((x) => x.id === id);
                 if (!m) throw new Error('unknown member');
-                return { id, roles: { cache: new Map((m.roles || []).map((r) => [r, {}])) } };
+                return fakeMember(m);
               },
             },
           },
@@ -96,6 +106,27 @@ function installClient(client) {
   const a2 = await access.checkAccess(session, '111');
   console.log('٧) الكاش: أول مرة', a1.cached, '| ثاني مرة', a2.cached);
   assert.strictEqual(a2.cached, true);
+
+  // 8) مالك السيرفر يدخل دائمًا (حتى بلا الرول)
+  installClient(fakeClient({ guilds: [{ id: 'g1', name: 'سيرفر Never Land', ownerId: '444', roles: [ROLE], members: [{ id: '444', roles: [] }] }] }));
+  r = await access.hasRequiredRole('444');
+  console.log('٨) مالك السيرفر بلا الرول →', r.ok, '|', r.reason);
+  assert.strictEqual(r.ok, true);
+  assert.strictEqual(r.reason, 'owner');
+
+  // 9) صاحب صلاحية «إدارة السيرفر» يدخل دائمًا
+  installClient(fakeClient({ guilds: [{ id: 'g1', name: 'سيرفر Never Land', ownerId: '999', roles: [ROLE], members: [{ id: '555', roles: [], perms: ['ManageGuild'] }] }] }));
+  r = await access.hasRequiredRole('555');
+  console.log('٩) صلاحية إدارة السيرفر →', r.ok, '|', r.reason);
+  assert.strictEqual(r.ok, true);
+  assert.strictEqual(r.reason, 'manage_guild');
+
+  // 10) عضو عادي بلا رول ولا صلاحية → ممنوع كما هو مطلوب
+  installClient(fakeClient({ guilds: [{ id: 'g1', name: 'سيرفر Never Land', ownerId: '999', roles: [ROLE], members: [{ id: '666', roles: [] }] }] }));
+  r = await access.hasRequiredRole('666');
+  console.log('١٠) عضو عادي بلا رول →', r.ok, '|', r.reason);
+  assert.strictEqual(r.ok, false);
+  assert.strictEqual(r.reason, 'no_role');
 
   // تنظيف
   delete require.cache[CLIENT_PATH];
