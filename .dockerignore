@@ -1,0 +1,9 @@
+.git
+.github
+**/node_modules
+never-land/data
+never-land/*.db
+never-land/.env
+never-land/tests
+*.zip
+معاينة-*.html
