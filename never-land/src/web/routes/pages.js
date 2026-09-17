@@ -12,6 +12,7 @@
 
 const express = require('express');
 const config = require('../../config');
+const webGuilds = require('../guilds');
 const db = require('../../database');
 
 const router = express.Router();
@@ -416,38 +417,12 @@ router.get('/', requireAuth, (req, res) => {
 });
 
 /* ---------------------------------- قائمة السيرفرات ---------------------------------- */
-router.get('/dashboard', requireAuth, (req, res) => {
+router.get('/dashboard', requireAuth, async (req, res) => {
   const syncStatus = require('../../sync').getStatus();
-  const client = (() => {
-    try {
-      return require('../../client');
-    } catch {
-      return null;
-    }
-  })();
-
   let guilds = [];
   if (req.canEdit) {
-    if (config.web.demoData) {
-      guilds = require('../demo').DEMO_META.guilds;
-    } else {
-      const botIds = new Set(client?.guilds?.cache?.keys?.() ?? []);
-      const sync = require('../../sync');
-      const snap = new Map(sync.listGuildMeta().map((g) => [g.id, g]));
-      guilds = (req.session.guilds || []).map((g) => {
-        const live = client?.guilds?.cache?.get(g.id);
-        const saved = snap.get(g.id);
-        return {
-          id: g.id,
-          name: live?.name || saved?.name || g.name,
-          icon: live?.iconURL?.({ size: 128, extension: 'png' }) || saved?.icon || g.icon,
-          memberCount: live?.memberCount ?? saved?.memberCount ?? null,
-          botPresent: botIds.has(g.id),
-          owner: Boolean(g.owner),
-          syncedAt: saved?.syncedAt ?? null,
-        };
-      });
-    }
+    // مصدر موثوق: جلسة الدخول + سيرفرات البوت الحيّة + آخر مزامنة
+    guilds = await webGuilds.listUserGuilds(req);
   } else {
     // زائر: قائمة السيرفرات العامة (بدون تعديل)
     guilds = publicGuilds(req).map((g) => ({ ...g, owner: false, public: true }));
@@ -591,13 +566,12 @@ router.get('/dashboard', requireAuth, (req, res) => {
 });
 
 /* ---------------------------------- لوحة إعداد سيرفر ---------------------------------- */
-router.get('/dashboard/:guildId', requireAuth, (req, res) => {
+router.get('/dashboard/:guildId', requireAuth, async (req, res) => {
   const { guildId } = req.params;
 
   if (!config.web.demoData) {
-    const allowed = (req.session.guilds || []).some((g) => g.id === guildId);
-    const publiclyListed = publicGuilds(req).some((g) => g.id === guildId);
-    if (!allowed && !(config.web.publicAccess && publiclyListed)) {
+    const allowed = await webGuilds.canAccessGuild(req, guildId);
+    if (!allowed) {
       return res.status(403).send('ما عندك صلاحية الوصول لهذا السيرفر.');
     }
   }

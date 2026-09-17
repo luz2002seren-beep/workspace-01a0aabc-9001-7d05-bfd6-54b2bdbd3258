@@ -21,6 +21,7 @@ const config = require('../../config');
 const db = require('../../database');
 const { mergeSettings } = require('../../database/defaults');
 const sync = require('../../sync');
+const webGuilds = require('../guilds');
 
 const router = express.Router();
 
@@ -32,27 +33,9 @@ function currentUser(req) {
   return req.session.user || null;
 }
 
-/** سيرفرات المستخدم المتاحة في اللوحة */
-function availableGuilds(req) {
-  const client = safeClient();
-  if (config.web.demoData) return require('../demo').DEMO_META.guilds;
-  if (!req.session.guilds) return sync.listGuildMeta();
-
-  const botGuildIds = client?.isReady?.() ? new Set(client.guilds.cache.keys()) : null;
-  const savedMap = new Map(sync.listGuildMeta().map((g) => [g.id, g]));
-  return req.session.guilds.map((g) => {
-    const live = client?.guilds?.cache?.get(g.id);
-    const saved = savedMap.get(g.id);
-    return {
-      id: g.id,
-      name: live?.name || saved?.name || g.name,
-      icon: live?.iconURL?.({ size: 128, extension: 'png' }) || saved?.icon || g.icon,
-      owner: Boolean(g.owner),
-      memberCount: live?.memberCount ?? saved?.memberCount ?? null,
-      botPresent: botGuildIds ? botGuildIds.has(g.id) : Boolean(saved),
-      syncedAt: saved?.syncedAt ?? null,
-    };
-  });
+/** سيرفرات المستخدم المتاحة في اللوحة (مصدر موثوق موحّد) */
+async function availableGuilds(req) {
+  return webGuilds.listUserGuilds(req);
 }
 
 function safeClient() {
@@ -64,22 +47,9 @@ function safeClient() {
   }
 }
 
-/** هل المستخدم يملك صلاحية الوصول لهذا السيرفر؟ */
-function canAccess(req, guildId) {
-  if (config.web.demoData) return true;
-  if (req.session.user) {
-    if (config.bot.developerIds.includes(req.session.user.id)) return true;
-    return (req.session.guilds || []).some((g) => g.id === guildId);
-  }
-  // زائر (عرض عام): قراءة فقط لسيرفر مُدرَج فيه البوت (حيًّا أو من آخر مزامنة)
-  if (config.web.publicAccess && req.method === 'GET') {
-    try {
-      const client = require('../../client');
-      if (client?.guilds?.cache?.has?.(guildId)) return true;
-    } catch { /* البوت غير محمّل */ }
-    return Boolean(sync.getSnapshot(guildId));
-  }
-  return false;
+/** هل المستخدم يملك صلاحية الوصول لهذا السيرفر؟ (مالك/إدارة/الرول المطلوب) */
+async function canAccess(req, guildId) {
+  return webGuilds.canAccessGuild(req, guildId);
 }
 
 /** هل يملك المشاهد صلاحية التعديل؟ */
@@ -125,10 +95,10 @@ router.use(async (req, res, next) => {
 });
 
 /* ------------------------------------ بيانات المستخدم ------------------------------------ */
-router.get('/me', (req, res) => {
+router.get('/me', async (req, res) => {
   res.json({
     user: currentUser(req),
-    guilds: availableGuilds(req),
+    guilds: await availableGuilds(req),
     loginRequired: config.web.loginRequired,
     requiredRoleId: config.web.requiredRoleId || null,
     roleOk: config.web.demoData ? true : Boolean(req.roleOk),
@@ -136,14 +106,14 @@ router.get('/me', (req, res) => {
   });
 });
 
-router.get('/guilds', (req, res) => {
-  res.json({ guilds: availableGuilds(req) });
+router.get('/guilds', async (req, res) => {
+  res.json({ guilds: await availableGuilds(req) });
 });
 
 /* ------------------------------------ بيانات سيرفر ------------------------------------ */
-router.get('/guilds/:guildId', (req, res) => {
+router.get('/guilds/:guildId', async (req, res) => {
   const { guildId } = req.params;
-  if (!canAccess(req, guildId)) return res.status(403).json({ error: 'forbidden' });
+  if (!(await canAccess(req, guildId))) return res.status(403).json({ error: 'forbidden' });
 
   const guild = db.getGuild(guildId);
   const stats = db.getStats(guildId);
@@ -209,11 +179,11 @@ router.get('/guilds/:guildId', (req, res) => {
   });
 });
 
-router.post('/guilds/:guildId/settings', (req, res) => {
+router.post('/guilds/:guildId/settings', async (req, res) => {
   if (!canEdit(req)) return res.status(403).json({ error: 'readonly', message: 'هذا الإجراء يحتاج تسجيل دخول Discord.' });
 
   const { guildId } = req.params;
-  if (!canAccess(req, guildId)) return res.status(403).json({ error: 'forbidden' });
+  if (!(await canAccess(req, guildId))) return res.status(403).json({ error: 'forbidden' });
 
   const patch = req.body;
   if (!patch || typeof patch !== 'object') return res.status(400).json({ error: 'bad_request', message: 'لا توجد بيانات للحفظ' });
@@ -226,9 +196,9 @@ router.post('/guilds/:guildId/settings', (req, res) => {
 });
 
 /* ------------------------------------ السجلات والتذاكر والمستويات ------------------------------------ */
-router.get('/guilds/:guildId/cases', (req, res) => {
+router.get('/guilds/:guildId/cases', async (req, res) => {
   const { guildId } = req.params;
-  if (!canAccess(req, guildId)) return res.status(403).json({ error: 'forbidden' });
+  if (!(await canAccess(req, guildId))) return res.status(403).json({ error: 'forbidden' });
 
   const page = Math.max(1, Number(req.query.page) || 1);
   const perPage = Math.min(100, Math.max(5, Number(req.query.perPage) || 20));
@@ -244,9 +214,9 @@ router.get('/guilds/:guildId/cases', (req, res) => {
   return res.json({ items, total, page, perPage, pages: Math.ceil(total / perPage) });
 });
 
-router.get('/guilds/:guildId/tickets', (req, res) => {
+router.get('/guilds/:guildId/tickets', async (req, res) => {
   const { guildId } = req.params;
-  if (!canAccess(req, guildId)) return res.status(403).json({ error: 'forbidden' });
+  if (!(await canAccess(req, guildId))) return res.status(403).json({ error: 'forbidden' });
 
   const { items, total } = db.listTickets({
     guildId,
@@ -261,7 +231,7 @@ router.post('/guilds/:guildId/tickets/:ticketId/close', async (req, res) => {
   if (!canEdit(req)) return res.status(403).json({ error: 'readonly', message: 'هذا الإجراء يحتاج تسجيل دخول Discord.' });
 
   const { guildId, ticketId } = req.params;
-  if (!canAccess(req, guildId)) return res.status(403).json({ error: 'forbidden' });
+  if (!(await canAccess(req, guildId))) return res.status(403).json({ error: 'forbidden' });
 
   const ticket = db.getTicketById(Number(ticketId));
   if (!ticket || ticket.guild_id !== guildId) return res.status(404).json({ error: 'not_found' });
@@ -287,9 +257,9 @@ router.post('/guilds/:guildId/tickets/:ticketId/close', async (req, res) => {
   return res.json({ ok: true, ticket: db.getTicketById(ticket.id) });
 });
 
-router.get('/guilds/:guildId/levels', (req, res) => {
+router.get('/guilds/:guildId/levels', async (req, res) => {
   const { guildId } = req.params;
-  if (!canAccess(req, guildId)) return res.status(403).json({ error: 'forbidden' });
+  if (!(await canAccess(req, guildId))) return res.status(403).json({ error: 'forbidden' });
 
   const page = Math.max(1, Number(req.query.page) || 1);
   const perPage = Math.min(100, Number(req.query.perPage) || 20);
@@ -312,7 +282,7 @@ router.get('/guilds/:guildId/levels', (req, res) => {
 /** تحويل قائمة آيديات إلى بيانات أعضاء (لجداول اللوحة) */
 router.get('/guilds/:guildId/members', async (req, res) => {
   const { guildId } = req.params;
-  if (!canAccess(req, guildId)) return res.status(403).json({ error: 'forbidden' });
+  if (!(await canAccess(req, guildId))) return res.status(403).json({ error: 'forbidden' });
 
   const client = safeClient();
   const guild = client?.guilds?.cache?.get(guildId);
@@ -360,7 +330,7 @@ router.post('/guilds/:guildId/actions/:action', async (req, res) => {
   if (!canEdit(req)) return res.status(403).json({ error: 'readonly', message: 'هذا الإجراء يحتاج تسجيل دخول Discord.' });
 
   const { guildId, action } = req.params;
-  if (!canAccess(req, guildId)) return res.status(403).json({ error: 'forbidden' });
+  if (!(await canAccess(req, guildId))) return res.status(403).json({ error: 'forbidden' });
 
   const client = safeClient();
   const guild = client?.guilds?.cache?.get(guildId);

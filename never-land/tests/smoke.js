@@ -754,6 +754,41 @@ console.log('[نجاح] كل الاختبارات نجحت!');
   console.log('  [تم] الدخول يحوّل لديسكورد مباشرة + رسالة عربية عند الفشل (بلا صفحات وسطية)');
   }
 
+ console.log('[اختبار] اختبار 26: ربط الموقع بالبوت (سيرفرات المستخدم تظهر فعلًا)');
+  {
+    const { execFileSync } = require('node:child_process');
+    const path11 = require('node:path');
+    const fs11 = require('node:fs');
+    const root11 = path11.join(__dirname, '..');
+
+    // ١) الاختبار المستقل لمصدر السيرفرات
+    const outGuilds = execFileSync('node', [path11.join(root11, 'guilds-test.js')], { cwd: root11, encoding: 'utf8' });
+    for (const needle of ['عضو عنده الرول فقط', 'مالك السيرفر', 'إدارة السيرفر', 'بلا تكرار', 'فحص الوصول']) {
+      assert.ok(outGuilds.includes(needle), `حالة «${needle}» غير مُختبرة في قائمة السيرفرات`);
+    }
+    assert.ok(outGuilds.includes('🎉'), 'اختبار قائمة السيرفرات لم ينجح');
+
+    // ٢) الصفحة والـAPI يستخدمان المصدر الموثوق (لا قائمة OAuth وحدها)
+    const pagesSrc11 = fs11.readFileSync(path11.join(root11, 'src', 'web', 'routes', 'pages.js'), 'utf8');
+    const apiSrc11 = fs11.readFileSync(path11.join(root11, 'src', 'web', 'routes', 'api.js'), 'utf8');
+    assert.ok(pagesSrc11.includes("require('../guilds')"), 'صفحة السيرفرات لا تستخدم مصدر السيرفرات الموحّد');
+    assert.ok(apiSrc11.includes("require('../guilds')"), 'الـAPI لا يستخدم مصدر السيرفرات الموحّد');
+    assert.ok(!/guilds = \(req\.session\.guilds \|\| \[\]\)\.map/.test(pagesSrc11), 'الصفحة ما زالت تعتمد على جلسة OAuth وحدها');
+
+    // ٣) الوحدة تفحص الصلاحية الحقيقية لكل سيرفر
+    const guildsMod = fs11.readFileSync(path11.join(root11, 'src', 'web', 'guilds.js'), 'utf8');
+    for (const fn of ['listUserGuilds', 'canAccessGuild', 'memberCanUse']) {
+      assert.ok(guildsMod.includes(fn), `دالة ${fn} ناقصة من وحدة السيرفرات`);
+    }
+    assert.ok(guildsMod.includes('ManageGuild'), 'فحص صلاحية الإدارة ناقص');
+    assert.ok(guildsMod.includes('requiredRoleId'), 'فحص الرول المطلوب ناقص');
+
+    // ٤) رسالة الفراغ توضّح للمستخدم سبب عدم الظهور
+    assert.ok(pagesSrc11.includes('كان البوت مضافًا إليها'), 'رسالة الفراغ غير موجودة');
+
+  console.log('  [تم] سيرفرات المستخدم: دمج الجلسة + البوت الحيّ + الصلاحية الحقيقية (8 حالات)');
+  }
+
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');
 
   process.exit(0);
