@@ -233,8 +233,13 @@ console.log('[نجاح] كل الاختبارات نجحت!');
 
  console.log('[اختبار] اختبار 14: الخط الفاصل والتفاعلات التلقائية');
   const autolineSystem = require('../src/systems/autoline');
-  const lineContent = autolineSystem.buildLineContent({ autoline: { line: '─'.repeat(10), color: null } });
-  assert.ok(lineContent.content.includes('─'));
+  // الوضع النصّي (السلوك القديم محفوظ)
+  const lineContent = autolineSystem.buildLineContent({ autoline: { lineType: 'text', line: '─'.repeat(10), color: null } });
+  assert.ok(lineContent.resolved.mode === 'text' && lineContent.payload.content.includes('─'), 'الوضع النصّي للخط الفاصل تعطّل');
+  // الوضع الافتراضي الجديد: صورة GIF متحركة
+  const gifContent = autolineSystem.buildLineContent({ autoline: { lineType: 'gif', gifStyle: 'glow' } });
+  assert.strictEqual(gifContent.resolved.mode, 'gif', 'الوضع الافتراضي للخط الفاصل ليس صورة متحركة');
+  assert.ok(Array.isArray(gifContent.payload.files) && gifContent.payload.files.length === 1, 'الخط الفاصل لا يُرسل صورة');
   const autoreactSystem = require('../src/systems/autoreact');
   const tValues = autoreactSystem.toReactionValues(['👍', '<:fire:123456789012345678>', 'نص ليس إيموجي طويل here']);
   assert.strictEqual(tValues.length, 2, 'تحويل الإيموجيات خطأ');
@@ -956,6 +961,64 @@ console.log('[نجاح] كل الاختبارات نجحت!');
     assert.ok(dashCss15.includes('prefers-reduced-motion'), 'لا احترام لإعداد تقليل الحركة في اللوحة');
 
   console.log('  [تم] المفتاح داخل المسار في RTL وLTR: 48 = 3 + 21 + 3 + 21 · حركة ناعمة · بلا خلط منطقي/فيزيائي');
+  }
+
+ console.log('[اختبار] 31: الخط الفاصل بالصور المتحركة (GIF)');
+  {
+    const { execFileSync } = require('node:child_process');
+    const fs16 = require('node:fs');
+    const path16 = require('node:path');
+    const root16 = path16.join(__dirname, '..');
+
+    // ١) الاختبار المستقل الكامل
+    const out16 = execFileSync('node', [path16.join(root16, 'autoline-test.js')], { cwd: root16, encoding: 'utf8' });
+    for (const needle of ['ملفات GIF', 'أُرسل مرفق صورة GIF', 'بلا حلقة', 'بديل تلقائي', 'احتياطي', 'معاينة اللوحة']) {
+      assert.ok(out16.includes(needle), `حالة «${needle}» غير مُختبرة في الخط الفاصل`);
+    }
+    assert.ok(out16.includes('🎉'), 'اختبار الخط الفاصل لم ينجح');
+
+    // ٢) الأنماط الأربعة موجودة كملفات حقيقية
+    const gifDir16 = path16.join(root16, 'assets', 'autoline');
+    for (const name of ['glow', 'flow', 'pulse', 'dash']) {
+      const f16 = path16.join(gifDir16, `${name}.gif`);
+      assert.ok(fs16.existsSync(f16), `${name}.gif ناقص`);
+      const head16 = fs16.readFileSync(f16).subarray(0, 6).toString('ascii');
+      assert.strictEqual(head16, 'GIF89a', `${name}.gif ليس GIF`);
+    }
+
+    // ٣) الإعدادات: النوع والنمط + الوصف في الوحدة
+    const cfg16 = require('../src/config');
+    assert.ok(['gif', 'custom', 'text'].includes(cfg16.defaults.autoline.lineType), 'نوع الخط غير معروف');
+    assert.strictEqual(cfg16.defaults.autoline.lineType, 'gif', 'الافتراضي لازم يكون صورة متحركة');
+    assert.ok(cfg16.defaults.autoline.gifStyle, 'نمط GIF الافتراضي ناقص');
+    assert.ok('customUrl' in cfg16.defaults.autoline, 'حقل الرابط الخاص ناقص');
+
+    const mod16 = require('../src/systems/autoline');
+    assert.strictEqual(Object.keys(mod16.GIF_STYLES).length, 4, 'عدد أنماط GIF غير مطابق');
+
+    // ٤) الخادم يقدّم ملفات GIF + اللوحة فيها واجهة الاختيار
+    const srv16 = fs16.readFileSync(path16.join(root16, 'src', 'web', 'server.js'), 'utf8');
+    assert.ok(srv16.includes("'/autoline'"), 'مسار تقديم الخطوط ناقص من الخادم');
+    const app16 = fs16.readFileSync(path16.join(root16, 'src', 'web', 'public', 'app.js'), 'utf8');
+    for (const needle of ['autoline-styles', 'autoline-preview', 'DEFAULT_LINE_STYLES', 'autoline.lineType', 'autoline.gifStyle', 'autoline.customUrl']) {
+      assert.ok(app16.includes(needle), `عنصر واجهة الخط الفاصل «${needle}» ناقص من اللوحة`);
+    }
+    const dash16 = fs16.readFileSync(path16.join(root16, 'src', 'web', 'public', 'dash.css'), 'utf8');
+    assert.ok(dash16.includes('.autoline-style.active'), 'نمط الاختيار النشط ناقص');
+    assert.ok(dash16.includes('.autoline-img'), 'نمط معاينة الصورة ناقص');
+
+    // ٥) الـAPI يرسل الأنماط للوحة
+    const api16 = fs16.readFileSync(path16.join(root16, 'src', 'web', 'routes', 'api.js'), 'utf8');
+    assert.ok(api16.includes('autolineStyles'), 'أنماط الخطوط غير مُرسلة للوحة');
+
+    // ٦) أمر البوت فيه الأوامر الجديدة
+    const cmd16 = fs16.readFileSync(path16.join(root16, 'src', 'commands', 'config', 'autoline.js'), 'utf8');
+    for (const sub16 of ["sub('style'", "sub('type'", "sub('url'"]) {
+      assert.ok(cmd16.includes(sub16), `الأمر الفرعي ${sub16} ناقص`);
+    }
+    assert.ok(cmd16.includes('GIF_STYLES'), 'أمر البوت لا يعرض الأنماط');
+
+  console.log('  [تم] 4 خطوط GIF متحركة + واجهة اللوحة + أوامر البوت + تسليم من الخادم (13 حالة)');
   }
 
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');

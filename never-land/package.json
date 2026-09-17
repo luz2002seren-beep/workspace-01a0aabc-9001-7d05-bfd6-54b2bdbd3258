@@ -16,7 +16,8 @@
     "test:watch": "node --watch tests/smoke.js",
     "check:site": "node tools/site-check.js",
     "deploy:railway": "bash deploy-railway.sh",
-    "link:public": "node tools/public-link.js"
+    "link:public": "node tools/public-link.js",
+    "make:gifs": "node tools/make-autoline-gifs.js"
   },
   "keywords": [
     "discord",
@@ -34,5 +35,8 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "express-session": "^1.18.1"
+  },
+  "devDependencies": {
+    "omggif": "^1.0.10"
   }
 }

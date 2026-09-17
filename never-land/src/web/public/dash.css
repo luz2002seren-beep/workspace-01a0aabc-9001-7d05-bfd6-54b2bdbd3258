@@ -547,3 +547,42 @@ img.guild-icon { background: var(--panel); border: 1px solid var(--border-soft);
 .d-head { backdrop-filter: blur(6px); }
 .d-card + .d-card { margin-top: 16px; }
 .d-toggle-row, .d-switch-row { flex-wrap: wrap; gap: 8px; }
+
+/* ============================ الخط الفاصل المتحرك (AutoLine) ============================ */
+.autoline-type { display: flex; flex-wrap: wrap; gap: 6px; }
+.autoline-type button { display: inline-flex; align-items: center; gap: 6px; }
+
+.autoline-preview {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 74px; padding: 14px; border-radius: 12px;
+  background: var(--bg); border: 1px dashed var(--border);
+  overflow: hidden;
+}
+.autoline-img { width: 100%; max-width: 100%; height: auto; display: block; }
+.autoline-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text); overflow-wrap: anywhere; text-align: center; direction: ltr;
+}
+
+.autoline-styles {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
+}
+.autoline-style {
+  display: flex; flex-direction: column; gap: 10px; text-align: start;
+  padding: 12px; border-radius: 12px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--border);
+  color: var(--text); font: inherit;
+  transition: border-color .15s ease, transform .08s ease;
+}
+.autoline-style:hover { border-color: var(--primary); }
+.autoline-style:active { transform: scale(.99); }
+.autoline-style.active { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary) inset; }
+.autoline-style img {
+  width: 100%; height: 12px; object-fit: cover; border-radius: 6px;
+  background: var(--bg); padding: 3px 0;
+}
+.autoline-style-meta { display: flex; flex-direction: column; gap: 2px; }
+.autoline-style-meta b { font-size: .9rem; }
+.autoline-style-meta span { color: var(--muted); font-size: .76rem; overflow-wrap: anywhere; }
+.d-shell.readonly .autoline-style { pointer-events: none; opacity: .85; }

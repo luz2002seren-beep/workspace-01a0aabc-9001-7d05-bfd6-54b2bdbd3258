@@ -192,7 +192,7 @@ const state = {
   canEdit: true,
   guildId: null,
   settings: null,
-  meta: { channels: [], roles: [], logGroups: {}, logEvents: {}, emojis: [], cardAvailable: false },
+  meta: { channels: [], roles: [], logGroups: {}, logEvents: {}, emojis: [], cardAvailable: false, autolineStyles: [] },
   guild: null,
   stats: null,
   daily: [],
@@ -478,6 +478,14 @@ const SECTION_ICONS = {
   logs: 'scroll',
   data: 'folder',
 };
+
+/** أنماط خط الفاصل (احتياطي — يأتي الكامل من الـAPI) */
+const DEFAULT_LINE_STYLES = [
+  { key: 'glow', file: 'glow.gif', label: 'توهّج', desc: 'توهّج يمرّ على الخط من اليمين لليسار' },
+  { key: 'flow', file: 'flow.gif', label: 'تدفّق', desc: 'تدرّج لوني متدفّق بلا توقّف' },
+  { key: 'pulse', file: 'pulse.gif', label: 'نبض', desc: 'إضاءة تنبض بهدوء في المنتصف' },
+  { key: 'dash', file: 'dash.gif', label: 'شرطات', desc: 'شرطات تتحرّك على طول الخط' },
+];
 
 const SECTIONS = {
   /* ------------------------------ نظرة عامة ------------------------------ */
@@ -843,16 +851,88 @@ const SECTIONS = {
     title: 'الخط الفاصل',
     desc: 'خط تلقائي في القنوات المحدّدة، مع حذف الخط السابق عند وصول رسالة جديدة.',
     render() {
-      return dCard('إعداد الخط', 'مثال: ──────────── ✦ ────────────', 'lines', [
-        dField('تفعيل', '', [dSwitch('autoline.enabled')]),
-        dField('القنوات', 'القنوات التي يعمل فيها الخط', [dListEditor('autoline.channels', { type: 'channel' })], { wide: true }),
-        dField('شكل الخط', 'يدعم الإيموجيات الخارجية', [dArea('autoline.line')], { wide: true }),
-        dField('لون الخط (اختياري)', 'Hex مثل #5865f2', [dInput('autoline.color', { narrow: true, placeholder: '#5865f2' })]),
-        dField('حذف الخط السابق', 'عند وصول رسالة جديدة', [dSwitch('autoline.deletePrevious')]),
-        dField('حذف الخط مع الرسالة', 'لو انحذفت الرسالة اللي بعده', [dSwitch('autoline.deleteLineWithMessage')]),
-        dField('حذف تلقائي بعد (ثانية)', '0 = بدون', [dNumber('autoline.deleteAfter')]),
-        dField('اختبار', 'يرسل خط في القناة الحالية', [testButton('إرسال خط تجريبي')]),
-      ]);
+      const type = getPath('autoline.lineType') || 'gif';
+      const style = getPath('autoline.gifStyle') || 'glow';
+      const styles = state.meta.autolineStyles || DEFAULT_LINE_STYLES;
+
+      /* -------- اختيار النوع: صورة متحركة / رابط خاص / نصّي -------- */
+      const typeSeg = el('div', { class: 'seg autoline-type' });
+      [
+        { key: 'gif', label: 'صورة GIF متحركة', icon: 'sparkles' },
+        { key: 'custom', label: 'رابط صورة خاص', icon: 'link' },
+        { key: 'text', label: 'خط نصّي', icon: 'type' },
+      ].forEach((option) => {
+        const btn = el('button', {
+          class: type === option.key ? 'active' : '',
+          html: `${ic(option.icon, 15)} ${option.label}`,
+        });
+        btn.addEventListener('click', () => {
+          setPath('autoline.lineType', option.key);
+          renderSection('autoline');
+        });
+        typeSeg.appendChild(btn);
+      });
+
+      /* -------- معاينة حيّة للخط الحالي (صورة أو نص) -------- */
+      const preview = el('div', { class: 'autoline-preview' });
+      const current = styles.find((x) => x.key === style) || styles[0];
+      if (type === 'custom') {
+        const url = getPath('autoline.customUrl') || '';
+        if (/^https?:\/\//i.test(url)) preview.appendChild(el('img', { src: url, alt: 'معاينة الخط', class: 'autoline-img' }));
+        else preview.appendChild(el('div', { class: 'd-hint', text: 'ألصق رابط صورة مباشر (ينتهي بـ .gif أو .png أو .webp) ويظهر هنا.' }));
+      } else if (type === 'text') {
+        preview.appendChild(el('div', { class: 'autoline-text', text: getPath('autoline.line') || '────────────────────────' }));
+      } else {
+        preview.appendChild(el('img', { src: `/autoline/${current.file}`, alt: `خط ${current.label}`, class: 'autoline-img' }));
+      }
+
+      /* -------- بطاقات الأنماط (صورة متحركة لكل نمط) -------- */
+      const styleGrid = el('div', { class: 'autoline-styles' });
+      styles.forEach((item) => {
+        const card = el('button', {
+          class: `autoline-style${item.key === style && type === 'gif' ? ' active' : ''}`,
+        });
+        card.appendChild(el('img', { src: `/autoline/${item.file}`, alt: item.label, loading: 'lazy' }));
+        const meta = el('div', { class: 'autoline-style-meta' });
+        meta.appendChild(el('b', { text: item.label }));
+        meta.appendChild(el('span', { text: item.desc }));
+        card.appendChild(meta);
+        card.addEventListener('click', () => {
+          setPath('autoline.gifStyle', item.key);
+          setPath('autoline.lineType', 'gif');
+          renderSection('autoline');
+        });
+        styleGrid.appendChild(card);
+      });
+
+      return [
+        dCard('نوع الخط', 'اختر: صورة GIF متحركة · رابط صورتك · أو خط نصّي', 'lines', [
+          dField('النوع', 'الافتراضي: صورة GIF متحركة', [typeSeg], { wide: true }),
+          dField('تفعيل', '', [dSwitch('autoline.enabled')]),
+          dField('القنوات', 'القنوات التي يعمل فيها الخط', [dListEditor('autoline.channels', { type: 'channel' })], { wide: true }),
+        ]),
+        dCard(
+          type === 'gif' ? 'شكل الخط المتحرك' : type === 'custom' ? 'رابط الخط' : 'نص الخط',
+          type === 'gif'
+            ? 'اضغط على أي نمط لاختياره — والمعاينة فوق تتحدّث فورًا.'
+            : type === 'custom'
+              ? 'صورة أو GIF من رابطك المباشر.'
+              : 'خط نصّي (يدعم الإيموجيات الخارجية).',
+          'sparkles',
+          [
+            dField('المعاينة', 'شكل الخط اللي بيطلع في القناة', [preview], { wide: true }),
+            ...(type === 'gif'
+              ? [dField('الأنماط الجاهزة', '4 خطوط متحركة جاهزة', [styleGrid], { wide: true })]
+              : type === 'custom'
+                ? [dField('رابط الصورة', 'يجب أن ينتهي بـ .gif أو .png أو .webp', [dInput('autoline.customUrl', { placeholder: 'https://example.com/line.gif' })], { wide: true })]
+                : [dField('نص الخط', 'يدعم الإيموجيات الخارجية', [dArea('autoline.line')], { wide: true })]),
+            dField('حذف الخط السابق', 'عند وصول رسالة جديدة', [dSwitch('autoline.deletePrevious')]),
+            dField('حذف الخط مع الرسالة', 'لو انحذفت الرسالة اللي بعده', [dSwitch('autoline.deleteLineWithMessage')]),
+            dField('حذف تلقائي بعد (ثانية)', '0 = بدون', [dNumber('autoline.deleteAfter')]),
+            dField('اختبار', 'يرسل الخط في القناة المحدّدة', [testButton('إرسال خط تجريبي')]),
+          ],
+        ),
+      ];
     },
   },
 

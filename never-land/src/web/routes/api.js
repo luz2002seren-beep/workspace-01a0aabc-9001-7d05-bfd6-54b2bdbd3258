@@ -166,6 +166,7 @@ router.get('/guilds/:guildId', async (req, res) => {
       logGroups: loggingSystem.EVENT_GROUPS,
       logEvents: Object.fromEntries(Object.entries(loggingSystem.EVENT_META).map(([key, meta]) => [key, { label: meta.label, emoji: meta.emoji, group: meta.group }])),
       cardAvailable: require('../../lib/welcomeCard').available(),
+      autolineStyles: Object.entries(require('../../systems/autoline').GIF_STYLES).map(([key, meta]) => ({ key, ...meta })),
     },
     viewer: {
       canEdit: canEdit(req),

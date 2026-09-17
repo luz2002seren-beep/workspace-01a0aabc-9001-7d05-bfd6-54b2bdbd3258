@@ -208,6 +208,12 @@ const config = {
     autoline: {
       enabled: false,
       channels: [],
+      /** نوع الخط: gif (صورة متحركة) أو custom (رابط صورتك) أو text (خط نصّي) */
+      lineType: 'gif',
+      /** نمط GIF الجاهز: glow | flow | pulse | dash */
+      gifStyle: 'glow',
+      /** رابط صورة/GIF خاص (يُستخدم عند lineType=custom) */
+      customUrl: null,
       line: '─'.repeat(24),
       color: null,        // null = بدون لون، أو hex مثل '#5865f2'
       deletePrevious: true, // حذف الخط السابق عند وصول رسالة جديدة

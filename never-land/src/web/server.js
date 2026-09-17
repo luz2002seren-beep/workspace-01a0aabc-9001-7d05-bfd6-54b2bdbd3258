@@ -54,6 +54,16 @@ function createApp() {
   // الملفات الثابتة (CSS/JS)
   app.use(express.static(path.join(__dirname, 'public')));
 
+  // خطوط الفاصل المتحركة (GIF) — تُخدم للّوحة والمعاينة
+  app.use(
+    '/autoline',
+    express.static(path.join(__dirname, '..', '..', 'assets', 'autoline'), {
+      maxAge: '7d',
+      immutable: true,
+      fallthrough: true,
+    }),
+  );
+
   // فحص صحة عام (للنشر: Railway/Render/Docker) — بلا تسجيل دخول وبلا بيانات حساسة
   app.get('/healthz', (_req, res) => {
     res.status(200).json({
