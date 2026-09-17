@@ -57,6 +57,7 @@ const ICONS = {
   sliders: '<path d="M4.5 7h10M18 7h1.5M4.5 12h3M11 12h8.5M4.5 17h8M16 17h3.5"/><circle cx="16" cy="7" r="1.8"/><circle cx="9" cy="12" r="1.8"/><circle cx="14" cy="17" r="1.8"/>',
   terminal: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.2"/><path d="m8 10 2.4 2.4L8 14.8"/><path d="M13 15h3.4"/>',
   cpu: '<rect x="7.5" y="7.5" width="9" height="9" rx="1.8"/><rect x="3.8" y="3.8" width="16.4" height="16.4" rx="3"/><path d="M10.5 2.2v1.6M13.5 2.2v1.6M10.5 20.2v1.6M13.5 20.2v1.6M2.2 10.5h1.6M2.2 13.5h1.6M20.2 10.5h1.6M20.2 13.5h1.6"/>',
+  home: '<path d="M4 11.2 12 4l8 7.2"/><path d="M6 10.5V20h12v-9.5"/>',
   server: '<rect x="3.5" y="4" width="17" height="7" rx="2"/><rect x="3.5" y="13" width="17" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/>',
   bolt: '<path d="M13.4 2.5 5.5 13.2h5.3l-.9 8.3 8.2-11h-5.3z"/>',
   globe: '<circle cx="12" cy="12" r="8.7"/><path d="M3.4 12h17.2"/><path d="M12 3.3c2.4 2.4 3.6 5.4 3.6 8.7S14.4 18.3 12 20.7c-2.4-2.4-3.6-5.4-3.6-8.7S9.6 5.7 12 3.3z"/>',

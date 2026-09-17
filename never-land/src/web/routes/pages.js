@@ -102,8 +102,15 @@ ${extraHead}
 ${body}
 </main>
 <footer class="footer">
-  <span>${SITE_NAME} — نظام إدارة سيرفرات ديسكورد</span>
-  <span class="muted">قاعدة البيانات: ${db.driverName}</span>
+  <div class="footer-brand">
+    <span class="footer-logo">${logoMark(22)}</span>
+    <span><b>${SITE_NAME}</b> — نظام إدارة سيرفرات ديسكورد</span>
+  </div>
+  <nav class="footer-links" aria-label="روابط التذييل">
+    <a href="/">${icon('home', { size: 15 })} الرئيسية</a>
+    <a href="/dashboard">${icon('server', { size: 15 })} السيرفرات</a>
+    <a href="/api/status">${icon('activity', { size: 15 })} حالة الخدمة</a>
+  </nav>
 </footer>
 <script>
   (function () {

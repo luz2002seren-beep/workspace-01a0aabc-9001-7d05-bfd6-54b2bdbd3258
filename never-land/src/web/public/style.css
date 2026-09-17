@@ -144,14 +144,31 @@ code {
 .container { width: min(1180px, 100%); margin: 0 auto; padding: 32px 20px 60px; flex: 1; }
 .footer {
   border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, .015);
   padding: 18px 28px;
   display: flex;
+  align-items: center;
   justify-content: space-between;
   color: var(--muted);
   font-size: .9rem;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px 18px;
+  line-height: 1.9;
 }
+.footer b { color: var(--text); }
+.footer-brand { display: inline-flex; align-items: center; gap: 10px; min-width: 0; flex-wrap: wrap; }
+.footer-brand span { overflow-wrap: anywhere; }
+.footer-logo { display: inline-flex; }
+.footer-logo svg { width: 22px; height: 22px; }
+.footer-links { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.footer-links a {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px; border-radius: 9px; border: 1px solid var(--border);
+  color: var(--muted); text-decoration: none; font-size: .85rem;
+  transition: color .15s ease, border-color .15s ease;
+}
+.footer-links a:hover { color: var(--text); border-color: var(--primary); }
+.footer-links svg { opacity: .85; }
 
 /* ----------------------------- الصفحة الرئيسية ----------------------------- */
 .hero { text-align: center; padding: 34px 0 18px; }

@@ -892,6 +892,38 @@ console.log('[نجاح] كل الاختبارات نجحت!');
   console.log('  [تم] أيقونات: هاش/رابط/متحرك/فارغ + بديل عند الفشل + أنماط منع التجاوز (4 ملفات)');
   }
 
+ console.log('[اختبار] اختبار 29: تذييل الموقع (هوية + روابط مفيدة بلا تفاصيل تقنية)');
+  {
+    const fs14 = require('node:fs');
+    const path14 = require('node:path');
+    const root14 = path14.join(__dirname, '..');
+    const pagesSrc14 = fs14.readFileSync(path14.join(root14, 'src', 'web', 'routes', 'pages.js'), 'utf8');
+    const styleSrc14 = fs14.readFileSync(path14.join(root14, 'src', 'web', 'public', 'style.css'), 'utf8');
+
+    // ١) لا تفاصيل تقنية في التذييل (مثل اسم مشغّل قاعدة البيانات)
+    const foot14 = pagesSrc14.slice(pagesSrc14.indexOf('<footer'), pagesSrc14.indexOf('</footer>') + 9);
+    assert.ok(!foot14.includes('قاعدة البيانات'), 'تفاصيل قاعدة البيانات ما زالت في التذييل');
+    assert.ok(!foot14.includes('driverName'), 'اسم مشغّل القاعدة ما زال يُعرض');
+    assert.ok(!foot14.includes('sqlite'), 'اسم sqlite ما زال يظهر للزائر');
+
+    // ٢) هوية + روابط مفيدة
+    assert.ok(foot14.includes('footer-brand') && foot14.includes('logoMark'), 'هوية التذييل ناقصة');
+    assert.ok(foot14.includes('${SITE_NAME}'), 'اسم الموقع ناقص من التذييل');
+    for (const href14 of ['href="/"', 'href="/dashboard"', 'href="/api/status"']) {
+      assert.ok(foot14.includes(href14), `رابط التذييل ${href14} ناقص`);
+    }
+    assert.ok(foot14.includes('footer-links'), 'قائمة روابط التذييل ناقصة');
+
+    // ٣) الأنماط: لا اختفاء للنص ولا تجاوز
+    for (const rule14 of ['.footer-brand', '.footer-links', '.footer-links a:hover', 'overflow-wrap: anywhere']) {
+      assert.ok(styleSrc14.includes(rule14), `نمط التذييل «${rule14}» ناقص`);
+    }
+    assert.ok(/\.footer\s*\{[^}]*flex-wrap:\s*wrap/s.test(styleSrc14), 'التذييل لا يلتف على الشاشات الصغيرة');
+    assert.ok(styleSrc14.includes('line-height: 1.9'), 'ارتفاع سطر التذييل صغير (قد يُقتطع النص)');
+
+  console.log('  [تم] تذييل نظيف: هوية + 3 روابط مفيدة + بلا تفاصيل تقنية (يلتف على الجوال)');
+  }
+
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');
 
   process.exit(0);
