@@ -1021,6 +1021,79 @@ console.log('[نجاح] كل الاختبارات نجحت!');
   console.log('  [تم] 4 خطوط GIF متحركة + واجهة اللوحة + أوامر البوت + تسليم من الخادم (13 حالة)');
   }
 
+ console.log('[اختبار] 32: نظام الخبرة الكامل (كتابي · صوتي · تفاعل + توب داي وتوب ويك)');
+  {
+    const { execFileSync } = require('node:child_process');
+    const fs17 = require('node:fs');
+    const path17 = require('node:path');
+    const root17 = path17.join(__dirname, '..');
+
+    // ١) الاختبار المستقل الكامل (١٠ مجموعات)
+    const out17 = execFileSync('node', [path17.join(root17, 'leveling-test.js')], { cwd: root17, encoding: 'utf8' });
+    for (const needle of ['الفترات', 'ثلاث مصادر خبرة منفصلة', 'حمايات التفاعل', 'السقف اليومي', 'الترقية', 'اللوحات', 'بيانات الترتيب', 'التصفير']) {
+      assert.ok(out17.includes(needle), `حالة «${needle}» غير مُختبرة في نظام الخبرة`);
+    }
+    assert.ok(out17.includes('🎉'), 'اختبار نظام الخبرة لم ينجح');
+
+    // ٢) المخطّط: جدول الفترات + أعمدة المصادر
+    const schema17 = fs17.readFileSync(path17.join(root17, 'src', 'database', 'schema.sql'), 'utf8');
+    assert.ok(schema17.includes('CREATE TABLE IF NOT EXISTS xp_periods'), 'جدول فترات الخبرة ناقص');
+    assert.ok(/idx_xp_periods_board/.test(schema17), 'فهرس لوحة الفترات ناقص');
+    const sqlite17 = fs17.readFileSync(path17.join(root17, 'src', 'database', 'sqlite.js'), 'utf8');
+    for (const col of ['text_xp', 'voice_xp', 'interact_xp', 'interactions']) {
+      assert.ok(sqlite17.includes(`'${col}'`), `عمود ${col} غير مُهاجَر في مشغّل SQLite`);
+    }
+    for (const fn of ['addPeriodXp', 'getPeriodLeaderboard', 'getPeriodRank', 'getXpTotals', 'resetLevel']) {
+      assert.ok(sqlite17.includes(`${fn}(`), `دالة ${fn} ناقصة من مشغّل SQLite`);
+    }
+    const json17 = fs17.readFileSync(path17.join(root17, 'src', 'database', 'json.js'), 'utf8');
+    for (const fn of ['addPeriodXp', 'getPeriodLeaderboard', 'getXpTotals', 'resetLevel']) {
+      assert.ok(json17.includes(`${fn}(`), `دالة ${fn} ناقصة من المشغّل الاحتياطي`);
+    }
+
+    // ٣) الإعدادات الافتراضية
+    const cfg17 = require('../src/config');
+    const lv = cfg17.defaults.leveling;
+    for (const key0 of ['textXp', 'voiceXp', 'interactXp', 'interactMinXp', 'interactMaxXp', 'interactDailyCap', 'interactMaxPerMessage', 'resetOffsetHours']) {
+      assert.ok(key0 in lv, `إعداد ${key0} ناقص من إعدادات الخبرة`);
+    }
+    assert.strictEqual(lv.textXp, true, 'الخبرة الكتابية لازم تكون مفعّلة افتراضيًا');
+    assert.strictEqual(lv.voiceXp, true, 'الخبرة الصوتية لازم تكون مفعّلة افتراضيًا');
+    assert.strictEqual(lv.interactXp, true, 'خبرة التفاعل لازم تكون مفعّلة افتراضيًا');
+
+    // ٤) الأوامر: /top + خيارات /leveling
+    const top17 = fs17.readFileSync(path17.join(root17, 'src', 'commands', 'general', 'top.js'), 'utf8');
+    for (const needle of ["setName('top')", "'day'", "'week'", "'all'", "'text'", "'voice'", "'interact'"]) {
+      assert.ok(top17.includes(needle), `أمر /top ينقصه ${needle}`);
+    }
+    const lvCmd17 = fs17.readFileSync(path17.join(root17, 'src', 'commands', 'config', 'leveling.js'), 'utf8');
+    for (const needle of ["sub('sources'", 'الفترة', 'النوع', 'خبرة_كتابية', 'خبرة_تفاعل', 'سقف_التفاعل_اليومي']) {
+      assert.ok(lvCmd17.includes(needle), `أمر /leveling ينقصه ${needle}`);
+    }
+
+    // ٥) حدث التفاعل الحقيقي موجود
+    const react17 = fs17.readFileSync(path17.join(root17, 'src', 'events', 'reactions.js'), 'utf8');
+    assert.ok(react17.includes('MessageReactionAdd') && react17.includes('handleReaction'), 'حدث التفاعل (خبرة التفاعل) ناقص');
+
+    // ٦) الـAPI يدعم الفترات والمصادر
+    const api17 = fs17.readFileSync(path17.join(root17, 'src', 'web', 'routes', 'api.js'), 'utf8');
+    for (const needle of ['periods.isPeriod', 'periods.isSource', 'leveling.getBoard', "reset:", 'totals']) {
+      assert.ok(api17.includes(needle), `واجهة اللوحة ينقصها ${needle}`);
+    }
+
+    // ٧) لوحة التحكم: قسم المتصدّرين + إعدادات المصادر
+    const app17 = fs17.readFileSync(path17.join(root17, 'src', 'web', 'public', 'app.js'), 'utf8');
+    for (const needle of ["label: 'المتصدّرون (توب داي · توب ويك)'", 'loadTopBoard', 'd-top-chips', 'الخبرة الكتابية (الشات)', 'الخبرة الصوتية', 'خبرة التفاعل', 'leveling.resetOffsetHours']) {
+      assert.ok(app17.includes(needle), `لوحة التحكم ينقصها «${needle}»`);
+    }
+    const dash17 = fs17.readFileSync(path17.join(root17, 'src', 'web', 'public', 'dash.css'), 'utf8');
+    for (const needle of ['.d-top-chips', '.chip.active', '.d-top-meta']) {
+      assert.ok(dash17.includes(needle), `أنماط لوحة المتصدّرين ينقصها ${needle}`);
+    }
+
+  console.log('  [تم] خبرة كتابية وصوتية وتفاعل + توب داي وتوب ويك: بوت + لوحة + قاعدة بيانات (10 مجموعات)');
+  }
+
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');
 
   process.exit(0);

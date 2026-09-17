@@ -38,6 +38,23 @@ function hydrateGuild(row, defaults) {
   };
 }
 
+/** إضافة أعمدة جديدة لقواعد البيانات القديمة (آمنة: تتجاهل ما هو موجود) */
+function migrate() {
+  const wanted = [
+    ['levels', 'text_xp', 'INTEGER NOT NULL DEFAULT 0'],
+    ['levels', 'voice_xp', 'INTEGER NOT NULL DEFAULT 0'],
+    ['levels', 'interact_xp', 'INTEGER NOT NULL DEFAULT 0'],
+    ['levels', 'interactions', 'INTEGER NOT NULL DEFAULT 0'],
+  ];
+  for (const [table, column, type] of wanted) {
+    try {
+      db.prepare(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`).run();
+    } catch {
+      /* العمود موجود مسبقًا — لا شيء */
+    }
+  }
+}
+
 module.exports = {
   name: 'sqlite',
 
@@ -47,6 +64,7 @@ module.exports = {
     db = new Database(file);
     const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
     db.exec(schema);
+    migrate();
     return this;
   },
 
@@ -115,6 +133,8 @@ module.exports = {
 
   deleteGuild(guildId) {
     db.prepare('DELETE FROM guilds WHERE id = ?').run(guildId);
+    db.prepare('DELETE FROM levels WHERE guild_id = ?').run(guildId);
+    db.prepare('DELETE FROM xp_periods WHERE guild_id = ?').run(guildId);
   },
 
   /* ------------------------------- الحالات ------------------------------- */
@@ -250,18 +270,103 @@ module.exports = {
     return db.prepare('SELECT * FROM levels WHERE guild_id = ? AND user_id = ?').get(guildId, userId) || null;
   },
 
-  upsertLevel(guildId, userId, { xp, level, messages, voiceMinutes, lastXpAt }) {
+  upsertLevel(guildId, userId, { xp, level, messages, voiceMinutes, lastXpAt, textXp = 0, voiceXp = 0, interactXp = 0, interactions = 0 }) {
     db.prepare(`
-      INSERT INTO levels (guild_id, user_id, xp, level, messages, voice_minutes, last_xp_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO levels (guild_id, user_id, xp, level, messages, voice_minutes, last_xp_at, text_xp, voice_xp, interact_xp, interactions)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT (guild_id, user_id) DO UPDATE SET
         xp = excluded.xp,
         level = excluded.level,
         messages = excluded.messages,
         voice_minutes = excluded.voice_minutes,
-        last_xp_at = excluded.last_xp_at
-    `).run(guildId, userId, xp, level, messages, voiceMinutes, lastXpAt);
+        last_xp_at = excluded.last_xp_at,
+        text_xp = excluded.text_xp,
+        voice_xp = excluded.voice_xp,
+        interact_xp = excluded.interact_xp,
+        interactions = excluded.interactions
+    `).run(guildId, userId, xp, level, messages, voiceMinutes, lastXpAt, textXp, voiceXp, interactXp, interactions);
     return this.getLevelRow(guildId, userId);
+  },
+
+  /** إضافة خبرة لفترة (يوم/أسبوع) — تُنشئ الصف تلقائيًا */
+  addPeriodXp(guildId, userId, period, key, { xp = 0, source = 'text', messages = 0, voiceMinutes = 0, interactions = 0, at = Date.now() } = {}) {
+    const column = source === 'voice' ? 'voice_xp' : source === 'interact' ? 'interact_xp' : 'text_xp';
+    db.prepare(`
+      INSERT INTO xp_periods (guild_id, user_id, period, period_key, xp, text_xp, voice_xp, interact_xp, messages, voice_minutes, interactions, updated_at)
+      VALUES (?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 0, ?)
+      ON CONFLICT (guild_id, user_id, period, period_key) DO NOTHING
+    `).run(guildId, userId, period, key, at);
+    db.prepare(`
+      UPDATE xp_periods
+         SET xp = xp + ?,
+             ${column} = ${column} + ?,
+             messages = messages + ?,
+             voice_minutes = voice_minutes + ?,
+             interactions = interactions + ?,
+             updated_at = ?
+       WHERE guild_id = ? AND user_id = ? AND period = ? AND period_key = ?
+    `).run(xp, xp, messages, voiceMinutes, interactions, at, guildId, userId, period, key);
+    return this.getPeriodRow(guildId, userId, period, key);
+  },
+
+  getPeriodRow(guildId, userId, period, key) {
+    return db.prepare('SELECT * FROM xp_periods WHERE guild_id = ? AND user_id = ? AND period = ? AND period_key = ?')
+      .get(guildId, userId, period, key) || null;
+  },
+
+  getPeriodLeaderboard(guildId, period, key, limit = 10, offset = 0) {
+    return db.prepare(`
+      SELECT * FROM xp_periods
+       WHERE guild_id = ? AND period = ? AND period_key = ? AND xp > 0
+       ORDER BY xp DESC, updated_at ASC
+       LIMIT ? OFFSET ?
+    `).all(guildId, period, key, limit, offset);
+  },
+
+  countPeriodMembers(guildId, period, key) {
+    return db.prepare('SELECT COUNT(*) AS c FROM xp_periods WHERE guild_id = ? AND period = ? AND period_key = ? AND xp > 0')
+      .get(guildId, period, key).c;
+  },
+
+  /** ترتيب عضو داخل فترة معيّنة (1 = الأول) */
+  getPeriodRank(guildId, userId, period, key) {
+    const row = this.getPeriodRow(guildId, userId, period, key);
+    if (!row || row.xp <= 0) return null;
+    const better = db.prepare('SELECT COUNT(*) AS c FROM xp_periods WHERE guild_id = ? AND period = ? AND period_key = ? AND xp > ?')
+      .get(guildId, period, key, row.xp).c;
+    return better + 1;
+  },
+
+  /** مسح فترات عضو (يُستخدم عند التصفير) */
+  clearPeriods(guildId, userId) {
+    db.prepare('DELETE FROM xp_periods WHERE guild_id = ? AND user_id = ?').run(guildId, userId);
+  },
+
+  /** تصفير عضو بالكامل: المستويات + الفترات */
+  resetLevel(guildId, userId) {
+    db.prepare('DELETE FROM levels WHERE guild_id = ? AND user_id = ?').run(guildId, userId);
+    db.prepare('DELETE FROM xp_periods WHERE guild_id = ? AND user_id = ?').run(guildId, userId);
+    return true;
+  },
+
+  /** إجماليات الخبرة حسب المصدر (لوحة التحكم) */
+  getXpTotals(guildId, period = null, key = null) {
+    if (period && period !== 'all' && key) {
+      return db.prepare(`
+        SELECT COALESCE(SUM(xp), 0) AS xp, COALESCE(SUM(text_xp), 0) AS text_xp,
+               COALESCE(SUM(voice_xp), 0) AS voice_xp, COALESCE(SUM(interact_xp), 0) AS interact_xp,
+               COALESCE(SUM(messages), 0) AS messages, COALESCE(SUM(voice_minutes), 0) AS voice_minutes,
+               COALESCE(SUM(interactions), 0) AS interactions
+          FROM xp_periods WHERE guild_id = ? AND period = ? AND period_key = ?
+      `).get(guildId, period, key);
+    }
+    return db.prepare(`
+      SELECT COALESCE(SUM(xp), 0) AS xp, COALESCE(SUM(text_xp), 0) AS text_xp,
+             COALESCE(SUM(voice_xp), 0) AS voice_xp, COALESCE(SUM(interact_xp), 0) AS interact_xp,
+             COALESCE(SUM(messages), 0) AS messages, COALESCE(SUM(voice_minutes), 0) AS voice_minutes,
+             COALESCE(SUM(interactions), 0) AS interactions
+        FROM levels WHERE guild_id = ?
+    `).get(guildId);
   },
 
   getLeaderboard(guildId, limit = 10, offset = 0) {

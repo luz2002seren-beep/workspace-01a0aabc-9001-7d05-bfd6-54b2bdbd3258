@@ -5,13 +5,14 @@ const db = require('../../database');
 const embeds = require('../../lib/embeds');
 const leveling = require('../../systems/leveling');
 const { humanize } = require('../../lib/utils');
+const periods = require('../../lib/periods');
 
 module.exports = {
   cooldown: 3,
   data: (() => {
     const builder = new SlashCommandBuilder()
       .setName('leveling')
-      .setDescription('نظام المستويات: التفعيل، الترتيب، لوحة المتصدرين، المكافآت');
+      .setDescription('نظام الخبرة والمستويات: كتابي · صوتي · تفاعل — توب داي وتوب ويك');
 
     const sub = (name, description) => new SlashCommandSubcommandBuilder().setName(name).setDescription(description);
 
@@ -21,9 +22,31 @@ module.exports = {
     );
 
     builder.addSubcommand(
-      sub('leaderboard', 'لوحة المتصدرين في السيرفر').addIntegerOption((o) =>
-        o.setName('الصفحة').setDescription('رقم الصفحة').setMinValue(1).setRequired(false)),
+      sub('leaderboard', 'لوحة المتصدرين: توب داي · توب ويك · كل الأوقات')
+        .addStringOption((o) =>
+          o
+            .setName('الفترة')
+            .setDescription('المدة')
+            .addChoices(
+              { name: 'اليوم (توب داي)', value: 'day' },
+              { name: 'هذا الأسبوع (توب ويك)', value: 'week' },
+              { name: 'كل الأوقات', value: 'all' },
+            ))
+        .addStringOption((o) =>
+          o
+            .setName('النوع')
+            .setDescription('نوع الخبرة')
+            .addChoices(
+              { name: 'الكل', value: 'all' },
+              { name: 'كتابي (رسائل)', value: 'text' },
+              { name: 'صوتي (رومات)', value: 'voice' },
+              { name: 'تفاعل (ردود)', value: 'interact' },
+            ))
+        .addIntegerOption((o) =>
+          o.setName('الصفحة').setDescription('رقم الصفحة').setMinValue(1).setRequired(false)),
     );
+
+    builder.addSubcommand(sub('sources', 'ملخص مصادر الخبرة: كتابي · صوتي · تفاعل'));
 
     builder.addSubcommand(
       sub('enable', 'تفعيل نظام المستويات (يحتاج صلاحية الإدارة)').addChannelOption((o) =>
@@ -33,11 +56,14 @@ module.exports = {
     builder.addSubcommand(sub('disable', 'تعطيل نظام المستويات'));
 
     builder.addSubcommand(
-      sub('config', 'ضبط الخبرة والكولداون')
+      sub('config', 'ضبط الخبرة: كتابي · صوتي · تفاعل')
         .addIntegerOption((o) => o.setName('أدنى_خبرة').setDescription('أدنى خبرة لكل رسالة').setMinValue(1).setMaxValue(500))
         .addIntegerOption((o) => o.setName('أعلى_خبرة').setDescription('أعلى خبرة لكل رسالة').setMinValue(1).setMaxValue(500))
         .addIntegerOption((o) => o.setName('الكولداون').setDescription('ثواني بين كل خبرة وأخرى').setMinValue(0).setMaxValue(3600))
-        .addBooleanOption((o) => o.setName('خبرة_صوتية').setDescription('منح خبرة على البقاء في القنوات الصوتية')),
+        .addBooleanOption((o) => o.setName('خبرة_كتابية').setDescription('منح خبرة على الرسائل في الشات'))
+        .addBooleanOption((o) => o.setName('خبرة_صوتية').setDescription('منح خبرة على البقاء في القنوات الصوتية'))
+        .addBooleanOption((o) => o.setName('خبرة_تفاعل').setDescription('منح خبرة عند التفاعل مع رسائل الأعضاء'))
+        .addIntegerOption((o) => o.setName('سقف_التفاعل_اليومي').setDescription('أقصى خبرة تفاعل في اليوم للعضو').setMinValue(0).setMaxValue(1000)),
     );
 
     builder.addSubcommand(
@@ -76,8 +102,17 @@ module.exports = {
     /* ----------------------- لوحة المتصدرين ----------------------- */
     if (sub === 'leaderboard') {
       const page = interaction.options.getInteger('الصفحة') || 1;
-      const rows = db.getLeaderboard(interaction.guildId, 10, (page - 1) * 10);
-      return interaction.reply({ embeds: [leveling.leaderboardEmbed(interaction.guildId, db.getLeaderboard(interaction.guildId, 1000, 0), lang, page)], flags: rows.length ? undefined : 64 });
+      const period = interaction.options.getString('الفترة') || 'day';
+      const source = interaction.options.getString('النوع') || 'all';
+      const board = leveling.getBoard(interaction.guildId, { period, source, page, perPage: 10 });
+      return interaction.reply({
+        embeds: [leveling.leaderboardEmbed(interaction.guildId, { period, source, page, perPage: 10 }, lang)],
+        flags: board.rows.length ? undefined : 64,
+      });
+    }
+
+    if (sub === 'sources') {
+      return interaction.reply({ embeds: [leveling.sourcesEmbed(interaction.guildId, lang)], flags: 64 });
     }
 
     /* ---------------------------- التفعيل ---------------------------- */
@@ -95,8 +130,8 @@ module.exports = {
           embeds.success(
             'نظام المستويات',
             enabled
-              ? `✅ تم التفعيل. سيكسب الأعضاء خبرة عند الدردشة${channel ? ` وسيُعلن عن الترقيات في ${channel}` : ''}.`
-              : '🔴 تم تعطيل نظام المستويات.',
+              ? `تم التفعيل. الخبرة تُمنح على: الرسائل (كتابي) · الرومات الصوتية (صوتي) · التفاعلات (تفاعل)${channel ? ` — وإعلان الترقيات في ${channel}` : ''}.`
+              : 'تم تعطيل نظام المستويات.',
           ),
         ],
         flags: 64,
@@ -112,11 +147,17 @@ module.exports = {
       const min = interaction.options.getInteger('أدنى_خبرة');
       const max = interaction.options.getInteger('أعلى_خبرة');
       const cooldown = interaction.options.getInteger('الكولداون');
+      const text = interaction.options.getBoolean('خبرة_كتابية');
       const voice = interaction.options.getBoolean('خبرة_صوتية');
+      const interact = interaction.options.getBoolean('خبرة_تفاعل');
+      const cap = interaction.options.getInteger('سقف_التفاعل_اليومي');
       if (min) patch.minXp = min;
       if (max) patch.maxXp = max;
       if (cooldown !== null) patch.cooldownSeconds = cooldown;
+      if (text !== null) patch.textXp = text;
       if (voice !== null) patch.voiceXp = voice;
+      if (interact !== null) patch.interactXp = interact;
+      if (cap !== null) patch.interactDailyCap = cap;
       if (min && max && min > max) patch.maxXp = min;
 
       db.updateGuildSettings(interaction.guildId, { leveling: { ...patch, enabled: true } });
@@ -127,7 +168,11 @@ module.exports = {
             fields: [
               { name: 'الخبرة لكل رسالة', value: `${cfg.minXp} - ${cfg.maxXp}`, inline: true },
               { name: 'الكولداون', value: `${cfg.cooldownSeconds} ثانية`, inline: true },
-              { name: 'خبرة صوتية', value: cfg.voiceXp ? '🟢 مُفعّلة' : '🔴 مُعطّلة', inline: true },
+              { name: 'خبرة كتابية', value: cfg.textXp === false ? 'معطّلة' : 'مفعّلة', inline: true },
+              { name: 'خبرة صوتية', value: cfg.voiceXp ? 'مفعّلة' : 'معطّلة', inline: true },
+              { name: 'خبرة تفاعل', value: cfg.interactXp === false ? 'معطّلة' : 'مفعّلة', inline: true },
+              { name: 'سقف التفاعل اليومي', value: `${cfg.interactDailyCap ?? 60} XP`, inline: true },
+              { name: 'تجديد توب داي/توب ويك', value: `${cfg.resetOffsetHours || 0}+ UTC`, inline: true },
             ],
           }),
         ],
@@ -181,8 +226,9 @@ module.exports = {
         return interaction.reply({ embeds: [embeds.error('صلاحيات', 'تحتاج صلاحية المسؤول.')], flags: 64 });
       }
       const user = interaction.options.getUser('العضو');
-      db.upsertLevel(interaction.guildId, user.id, { xp: 0, level: 0, messages: 0, voiceMinutes: 0, lastXpAt: 0 });
-      return interaction.reply({ embeds: [embeds.success('تصفير', `✅ تم تصفير خبرة ${user}.`)] });
+      if (typeof db.resetLevel === 'function') db.resetLevel(interaction.guildId, user.id);
+      else db.upsertLevel(interaction.guildId, user.id, { xp: 0, level: 0, messages: 0, voiceMinutes: 0, lastXpAt: 0 });
+      return interaction.reply({ embeds: [embeds.success('تصفير', `تم تصفير خبرة ${user} (المستويات + توب داي + توب ويك).`)] });
     }
   },
 };

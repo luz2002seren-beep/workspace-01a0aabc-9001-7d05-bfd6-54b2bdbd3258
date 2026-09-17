@@ -16,9 +16,12 @@
  */
 
 const express = require('express');
+const demoData = require('../demo');
 const access = require('../access');
 const config = require('../../config');
 const db = require('../../database');
+const leveling = require('../../systems/leveling');
+const periods = require('../../lib/periods');
 const { mergeSettings } = require('../../database/defaults');
 const sync = require('../../sync');
 const webGuilds = require('../guilds');
@@ -259,27 +262,64 @@ router.post('/guilds/:guildId/tickets/:ticketId/close', async (req, res) => {
   return res.json({ ok: true, ticket: db.getTicketById(ticket.id) });
 });
 
+/**
+ * لوحة المتصدّرين — تدعم الفترات (توب داي / توب ويك / كل الأوقات)
+ * والمصادر (كتابي · صوتي · تفاعل).
+ *   /api/guilds/:id/levels?period=day|week|all&source=all|text|voice|interact
+ */
 router.get('/guilds/:guildId/levels', async (req, res) => {
   const { guildId } = req.params;
   if (!(await canAccess(req, guildId))) return res.status(403).json({ error: 'forbidden' });
 
   const page = Math.max(1, Number(req.query.page) || 1);
   const perPage = Math.min(100, Number(req.query.perPage) || 20);
-  const client = safeClient();
-  const rows = db.getLeaderboard(guildId, perPage, (page - 1) * perPage);
+  const period = periods.isPeriod(req.query.period) ? String(req.query.period) : 'all';
+  const source = periods.isSource(req.query.source) ? String(req.query.source) : 'all';
 
-  const items = rows.map((row) => {
-    const member = client?.guilds?.cache?.get(guildId)?.members?.cache?.get(row.user_id);
+  const client = safeClient();
+  const guild = client?.guilds?.cache?.get(guildId);
+
+  const board = leveling.getBoard(guildId, { period, source, page, perPage });
+
+  const items = board.rows.map((row) => {
+    const member = guild?.members?.cache?.get(row.user_id);
+    const levelRow = db.getLevelRow(guildId, row.user_id) || {};
     return {
-      ...row,
-      username: member?.user?.username ?? null,
-      displayName: member?.displayName ?? null,
+      user_id: row.user_id,
+      xp: row.board_xp ?? row.xp ?? 0,
+      total_xp: levelRow.xp ?? row.xp ?? 0,
+      level: row.level ?? levelRow.level ?? 0,
+      text_xp: row.text_xp ?? 0,
+      voice_xp: row.voice_xp ?? 0,
+      interact_xp: row.interact_xp ?? 0,
+      messages: row.messages ?? levelRow.messages ?? 0,
+      voice_minutes: row.voice_minutes ?? levelRow.voice_minutes ?? 0,
+      interactions: row.interactions ?? levelRow.interactions ?? 0,
+      username: member?.user?.username ?? demoMemberInfo(row.user_id).username,
+      displayName: member?.displayName ?? demoMemberInfo(row.user_id).displayName,
       avatar: member?.user?.displayAvatarURL?.({ size: 64 }) ?? null,
     };
   });
 
-  return res.json({ items, total: db.countTrackedMembers(guildId) });
+  return res.json({
+    items,
+    total: board.total,
+    period: board.period,
+    source: board.source,
+    periodKey: board.key,
+    reset: board.reset,
+    totals: board.totals,
+    periods: Object.values(periods.PERIODS),
+    sources: Object.values(periods.SOURCES),
+  });
 });
+
+/** بيانات عضو: من كاش ديسكورد، وإذا البوت مو شغّال نرجع لأسماء العرض */
+function demoMemberInfo(id) {
+  const demo = config.web.demoData ? demoData.demoMember?.(id) : null;
+  if (demo) return { id: demo.id, username: demo.username, displayName: demo.displayName, avatar: null, bot: false };
+  return { id, username: null, displayName: null, avatar: null };
+}
 
 /** تحويل قائمة آيديات إلى بيانات أعضاء (لجداول اللوحة) */
 router.get('/guilds/:guildId/members', async (req, res) => {
@@ -301,7 +341,7 @@ router.get('/guilds/:guildId/members', async (req, res) => {
   }
 
   if (!guild || !ids.length) {
-    return res.json({ members: ids.map((id) => ({ id, username: null, displayName: null, avatar: null })) });
+    return res.json({ members: ids.map((id) => demoMemberInfo(id)) });
   }
 
   const members = [];
@@ -315,7 +355,7 @@ router.get('/guilds/:guildId/members', async (req, res) => {
     members.push(
       fetched
         ? { id, username: fetched.user.username, displayName: fetched.displayName, avatar: fetched.user.displayAvatarURL({ size: 64 }), bot: fetched.user.bot }
-        : { id, username: null, displayName: null, avatar: null },
+        : demoMemberInfo(id),
     );
   }
   return res.json({ members });

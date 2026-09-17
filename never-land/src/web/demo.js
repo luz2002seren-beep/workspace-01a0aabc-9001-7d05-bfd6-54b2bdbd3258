@@ -10,6 +10,7 @@
  */
 
 const db = require('../database');
+const periods = require('../lib/periods');
 
 const DEMO_GUILD_ID = '100000000000000001';
 
@@ -35,6 +36,21 @@ const DEMO_ROLES = [
   { id: '100000000000000021', name: 'عضو جديد', color: '#99aab5', position: 2, managed: false, hoist: false },
   { id: '100000000000000020', name: 'محصّن', color: '#3ba55d', position: 1, managed: false, hoist: false },
 ];
+
+/** أعضاء العرض — أسماء تُستخدم في لوحة المتصدّرين وجداول الأعضاء */
+const DEMO_MEMBER_NAMES = ['Omar', 'Sara', 'Youssef', 'Lina', 'Khalid', 'Nour', 'Adam', 'Maya', 'Zaid', 'Hana'];
+const DEMO_MEMBERS = DEMO_MEMBER_NAMES.map((name, i) => ({
+  id: `2000000000000000${10 + i}`,
+  username: name.toLowerCase(),
+  displayName: name,
+  bot: false,
+  avatar: null,
+}));
+
+/** البحث عن عضو عرض بالمعرّف (يُستخدم كبديل لما البوت مو شغّال) */
+function demoMember(id) {
+  return DEMO_MEMBERS.find((m) => m.id === id) || null;
+}
 
 const DEMO_META = {
   guilds: [
@@ -197,9 +213,13 @@ function seed() {
     if (i === 0) db.updateTicket(ticket.id, { claimed_by: '300000000000000001' });
   });
 
-  // مستويات تجريبية
-  const names = ['Omar', 'Sara', 'Youssef', 'Lina', 'Khalid', 'Nour', 'Adam', 'Maya', 'Zaid', 'Hana'];
-  names.forEach((_, i) => {
+  // مستويات تجريبية — مع تفصيل المصادر (كتابي · صوتي · تفاعل) ولوحات اليوم/الأسبوع
+
+  const dayKey = periods.dayKey(new Date(), {});
+  const weekKey = periods.weekKey(new Date(), {});
+
+  DEMO_MEMBERS.forEach((demoMemberRow, i) => {
+    const userId = demoMemberRow.id;
     const xp = Math.round(24000 / (i + 1)) + Math.round(Math.random() * 500);
     let level = 0;
     let rest = xp;
@@ -207,13 +227,44 @@ function seed() {
       rest -= 5 * level * level + 50 * level + 100;
       level += 1;
     }
-    db.upsertLevel(DEMO_GUILD_ID, `2000000000000000${10 + i}`, {
+    const messages = 1200 - i * 90;
+    const voiceMinutes = 800 - i * 55;
+    const interactions = 260 - i * 18;
+
+    // التفصيل: 55% كتابي · 20% صوتي · 25% تفاعل
+    const textXp = Math.round(xp * 0.55);
+    const voiceXp = Math.round(xp * 0.2);
+    const interactXp = xp - textXp - voiceXp;
+
+    db.upsertLevel(DEMO_GUILD_ID, userId, {
       xp,
       level,
-      messages: 1200 - i * 90,
-      voiceMinutes: 800 - i * 55,
+      messages,
+      voiceMinutes,
+      interactions,
+      textXp,
+      voiceXp,
+      interactXp,
       lastXpAt: Date.now() - i * 60000,
     });
+
+    /** توزيع خبرة فترة معيّنة على المصادر الثلاثة */
+    const seedPeriod = (period, key, totalXp, messageCount, minutes, reactionCount) => {
+      const parts = [
+        ['text', Math.round(totalXp * 0.55), { messages: messageCount }],
+        ['voice', Math.round(totalXp * 0.2), { voiceMinutes: minutes }],
+        ['interact', totalXp - Math.round(totalXp * 0.55) - Math.round(totalXp * 0.2), { interactions: reactionCount }],
+      ];
+      for (const [source, amount, counters] of parts) {
+        if (amount <= 0) continue;
+        db.addPeriodXp(DEMO_GUILD_ID, userId, period, key, { xp: amount, source, ...counters });
+      }
+    };
+
+    const dayXp = Math.round(900 / (i + 1)) + Math.round(Math.random() * 120);
+    const weekXp = Math.round(6200 / (i + 1)) + Math.round(Math.random() * 700);
+    seedPeriod('day', dayKey, dayXp, Math.max(1, Math.round(messages / 22)), Math.max(0, Math.round(voiceMinutes / 30)), Math.max(1, 12 - i));
+    seedPeriod('week', weekKey, weekXp, Math.max(1, Math.round(messages / 6)), Math.max(0, Math.round(voiceMinutes / 6)), Math.max(1, 60 - i * 4));
   });
 
   // إحصائيات يومية لآخر 14 يومًا (للرسم البياني في لوحة التحكم)
@@ -243,4 +294,4 @@ function cleanup() {
   console.log('[تهيئة] أُزيلت بيانات العرض — الموقع يعرض سيرفراتك الحقيقية فقط.');
 }
 
-module.exports = { seed, cleanup, DEMO_GUILD_ID, DEMO_META };
+module.exports = { seed, cleanup, DEMO_GUILD_ID, DEMO_META, DEMO_MEMBERS, demoMember };

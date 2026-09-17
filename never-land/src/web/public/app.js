@@ -730,15 +730,28 @@ const SECTIONS = {
       [levelInput, roleSelect, addReward].forEach((n) => adder.appendChild(n));
 
       return [
-        dCard('إعدادات الخبرة', '', 'chart', [
-          dField('تفعيل النظام', '', [dSwitch('leveling.enabled')]),
+        dCard('الخبرة الكتابية (الشات)', 'خبرة على الرسائل في القنوات', 'message', [
+          dField('تفعيل النظام', 'المفتاح الرئيسي لكل مصادر الخبرة', [dSwitch('leveling.enabled')]),
+          dField('خبرة كتابية', 'منح خبرة على كل رسالة', [dSwitch('leveling.textXp')]),
           dField('نقاط لكل رسالة', 'أقل وأكثر خبرة تُعطى عشوائيًا', [dNumber('leveling.minXp'), dNumber('leveling.maxXp')]),
           dField('الفاصل الزمني (ثانية)', 'منع تكرار الخبرة بسرعة', [dNumber('leveling.cooldownSeconds')]),
-          dField('قناة إعلان الترقية', 'بدون = في نفس القناة', [dSelect('leveling.announceChannelId', channelOptions())]),
+        ]),
+        dCard('الخبرة الصوتية', 'خبرة مقابل البقاء في الرومات الصوتية (كل دقيقة)', 'speaker', [
+          dField('خبرة صوتية', 'لازم يكون معك حد ثاني في الروم', [dSwitch('leveling.voiceXp')]),
+          dField('نقاط الدقيقة', 'أقل وأكثر خبرة لكل دقيقة', [dNumber('leveling.voiceMinXp'), dNumber('leveling.voiceMaxXp')]),
+        ]),
+        dCard('خبرة التفاعل', 'خبرة لما يتفاعل الأعضاء مع رسائل بعضهم', 'activity', [
+          dField('خبرة تفاعل', 'صاحب الرسالة ياخذ خبرة على التفاعلات', [dSwitch('leveling.interactXp')]),
+          dField('نقاط لكل تفاعل', 'أقل وأكثر خبرة', [dNumber('leveling.interactMinXp'), dNumber('leveling.interactMaxXp')]),
+          dField('سقف يومي للعضو', 'أقصى خبرة تفاعل في اليوم (0 = بلا سقف)', [dNumber('leveling.interactDailyCap', { max: 5000 })]),
+          dField('سقف التفاعلات لكل رسالة', 'منع التجميع على رسالة واحدة', [dNumber('leveling.interactMaxPerMessage')]),
+          dField('مكافأة من تفاعل', 'خبرة صغيرة لمن يضغط التفاعل', [dSwitch('leveling.interactGivenXp')]),
+        ]),
+        dCard('الترقية والفترات', 'رسالة الترقية وتوقيت تجديد توب داي وتوب ويك', 'crown', [
+          dField('قناة إعلان الترقية', 'بدون = رسالة خاصة', [dSelect('leveling.announceChannelId', channelOptions())]),
           dField('نص رسالة الترقية', 'المتغيّرات: {user} {level}', [dArea('leveling.levelUpMessage')], { wide: true }),
-          dField('خبرة صوتية', 'خبرة مقابل البقاء في الرومات الصوتية', [dSwitch('leveling.voiceXp')]),
-          dField('خبرة صوتية (أقل/أكثر)', '', [dNumber('leveling.voiceMinXp'), dNumber('leveling.voiceMaxXp')]),
           dField('بدون رسائل ترقية', 'صمت تام', [dSwitch('leveling.silent')]),
+          dField('إزاحة التوقيت (ساعات)', 'عن UTC — تُحدّد وقت تجديد اليوم/الأسبوع', [dNumber('leveling.resetOffsetHours', { min: -12, max: 14 })]),
         ]),
         dCard('مكافآت الرتب', 'رتبة تُعطى تلقائيًا عند مستوى معيّن', 'gift', [rows, dField('إضافة مكافأة', '', [adder], { wide: true })]),
         dCard('استثناءات', 'قنوات أو رتب لا تأخذ خبرة', 'close', [
@@ -746,6 +759,58 @@ const SECTIONS = {
           dField('رتب مستثناة', '', [dListEditor('leveling.ignoredRoles', { type: 'role' })], { wide: true }),
         ]),
       ];
+    },
+  },
+
+  /* ------------------------------ المتصدّرون ------------------------------ */
+  top: {
+    group: 'الأعضاء',
+    label: 'المتصدّرون (توب داي · توب ويك)',
+    title: 'المتصدّرون',
+    desc: 'ترتيب الأعضاء حسب الخبرة: اليوم · هذا الأسبوع · كل الأوقات — مع تفصيل كتابي وصوتي وتفاعل.',
+    render() {
+      const wrap = el('div');
+      if (!state.topPeriod) state.topPeriod = 'day';
+      if (!state.topSource) state.topSource = 'all';
+
+      const seg = el('div', { class: 'seg d-top-seg' });
+      [
+        ['day', 'اليوم (توب داي)', 'clock'],
+        ['week', 'هذا الأسبوع (توب ويك)', 'activity'],
+        ['all', 'كل الأوقات', 'crown'],
+      ].forEach(([key, label, iconName]) => {
+        const btn = el('button', { class: state.topPeriod === key ? 'active' : '', html: `${ic(iconName, 15)} ${label}` });
+        btn.addEventListener('click', () => {
+          state.topPeriod = key;
+          renderSection('top');
+        });
+        seg.appendChild(btn);
+      });
+
+      const chips = el('div', { class: 'd-top-chips' });
+      [
+        ['all', 'الكل'],
+        ['text', 'كتابي'],
+        ['voice', 'صوتي'],
+        ['interact', 'تفاعل'],
+      ].forEach(([key, label]) => {
+        const btn = el('button', { class: `chip${state.topSource === key ? ' active' : ''}`, text: label });
+        btn.addEventListener('click', () => {
+          state.topSource = key;
+          renderSection('top');
+        });
+        chips.appendChild(btn);
+      });
+
+      const note = el('div', { class: 'd-top-note', html: '<span class="d-empty">جارٍ التحميل…</span>' });
+      const box = el('div');
+
+      wrap.appendChild(seg);
+      wrap.appendChild(chips);
+      wrap.appendChild(note);
+      wrap.appendChild(box);
+      loadTopBoard(note, box);
+      return wrap;
     },
   },
 
@@ -1500,6 +1565,77 @@ async function loadDataView(box, view) {
     const wrap = el('div', { class: 'd-table-wrap' });
     wrap.appendChild(table);
     card.appendChild(wrap);
+    box.appendChild(card);
+  } catch (err) {
+    box.innerHTML = `<div class="d-empty">تعذّر التحميل: ${esc(err.message)}</div>`;
+  }
+}
+
+/* ============================ لوحة المتصدّرين ============================ */
+async function loadTopBoard(note, box) {
+  try {
+    const period = state.topPeriod || 'day';
+    const source = state.topSource || 'all';
+    const data = await api(`/guilds/${state.guildId}/levels?period=${period}&source=${source}&perPage=25`);
+
+    const labels = { day: 'اليوم', week: 'هذا الأسبوع', all: 'كل الأوقات' };
+    const sourceLabels = { all: 'كل المصادر', text: 'كتابي فقط', voice: 'صوتي فقط', interact: 'تفاعل فقط' };
+    const totals = data.totals || {};
+    const stats = el('div', { class: 'd-stats' });
+    [
+      ['chart', (totals.xp || 0).toLocaleString('ar-EG'), `خبرة ${labels[period] || ''}`],
+      ['message', (totals.text_xp || 0).toLocaleString('ar-EG'), 'كتابي'],
+      ['speaker', (totals.voice_xp || 0).toLocaleString('ar-EG'), 'صوتي'],
+      ['activity', (totals.interact_xp || 0).toLocaleString('ar-EG'), 'تفاعل'],
+      ['users', (data.total || 0).toLocaleString('ar-EG'), `مشارك — ${sourceLabels[source]}`],
+    ].forEach(([iconName, value, label]) => {
+      const card = el('div', { class: 'd-stat' });
+      card.appendChild(el('b', { text: value }));
+      card.appendChild(el('span', { html: `${ic(iconName, 15)} ${label}` }));
+      stats.appendChild(card);
+    });
+
+    note.innerHTML = '';
+    note.appendChild(stats);
+    note.appendChild(
+      el('div', {
+        class: 'd-top-meta',
+        html: `${ic('clock', 14)} <span>${esc(data.reset || '')}</span> <span class="dot">·</span> <span>مفتاح الفترة: <code>${esc(data.periodKey || 'عام')}</code></span>`,
+      }),
+    );
+
+    if (!data.items.length) {
+      box.innerHTML = '';
+      box.appendChild(el('div', { class: 'd-empty', text: 'ما في بيانات لهذه الفترة بعد.' }));
+      return;
+    }
+
+    const members = await resolveMembers(data.items.map((l) => l.user_id));
+    const table = el('table', { class: 'd-table' });
+    table.appendChild(
+      el('thead', {}, '<tr><th>الترتيب</th><th>العضو</th><th>خبرة الفترة</th><th>كتابي</th><th>صوتي</th><th>تفاعل</th><th>المستوى</th></tr>'),
+    );
+    const body = el('tbody');
+    data.items.forEach((l, i) => {
+      const tr = el('tr');
+      tr.appendChild(el('td', { html: i < 3 ? `<b class="rank rank-${i + 1}">${i + 1}</b>` : `<code>${i + 1}</code>` }));
+      const u = el('td');
+      u.appendChild(memberCell(members, l.user_id));
+      tr.appendChild(u);
+      tr.appendChild(el('td', { html: `<b>${Number(l.xp).toLocaleString('ar-EG')}</b>` }));
+      tr.appendChild(el('td', { text: Number(l.text_xp || 0).toLocaleString('ar-EG') }));
+      tr.appendChild(el('td', { text: Number(l.voice_xp || 0).toLocaleString('ar-EG') }));
+      tr.appendChild(el('td', { text: Number(l.interact_xp || 0).toLocaleString('ar-EG') }));
+      tr.appendChild(el('td', { html: `<code>${l.level}</code>` }));
+      body.appendChild(tr);
+    });
+    table.appendChild(body);
+
+    box.innerHTML = '';
+    const card = el('div', { class: 'd-card' });
+    const wrapEl = el('div', { class: 'd-table-wrap' });
+    wrapEl.appendChild(table);
+    card.appendChild(wrapEl);
     box.appendChild(card);
   } catch (err) {
     box.innerHTML = `<div class="d-empty">تعذّر التحميل: ${esc(err.message)}</div>`;

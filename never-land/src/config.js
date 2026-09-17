@@ -270,15 +270,27 @@ const config = {
     },
     leveling: {
       enabled: false,
+      /* خبرة كتابية (الرسائل) */
+      textXp: true,
       minXp: 15,
       maxXp: 25,
       cooldownSeconds: 60,
+      /* خبرة صوتية (البقاء في الرومات) */
+      voiceXp: true,
+      voiceMinXp: 5,
+      voiceMaxXp: 10,
+      /* خبرة تفاعل (التفاعلات على رسائلك) */
+      interactXp: true,
+      interactMinXp: 2,
+      interactMaxXp: 5,
+      interactGivenXp: false,
+      interactMaxPerMessage: 5,
+      interactDailyCap: 60,
+      /* تجديد توب داي / توب ويك (إزاحة عن UTC بالساعات) */
+      resetOffsetHours: 0,
       announceChannelId: null,
       levelUpMessage: 'وصل {user} إلى المستوى **{level}**.',
       rewards: [], // [{level: 5, roleId: '...'}]
-      voiceXp: false,
-      voiceMinXp: 5,
-      voiceMaxXp: 10,
       ignoredChannels: [],
       ignoredRoles: [],
       silent: false,

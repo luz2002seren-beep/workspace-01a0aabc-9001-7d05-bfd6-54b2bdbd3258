@@ -586,3 +586,29 @@ img.guild-icon { background: var(--panel); border: 1px solid var(--border-soft);
 .autoline-style-meta b { font-size: .9rem; }
 .autoline-style-meta span { color: var(--muted); font-size: .76rem; overflow-wrap: anywhere; }
 .d-shell.readonly .autoline-style { pointer-events: none; opacity: .85; }
+
+/* ============================ لوحة المتصدّرين (توب داي · توب ويك) ============================ */
+.d-top-seg { margin-bottom: 12px; flex-wrap: wrap; }
+.d-top-seg button { display: inline-flex; align-items: center; gap: 6px; }
+
+.d-top-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.chip {
+  padding: 6px 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: .82rem;
+  background: var(--panel); border: 1px solid var(--border); color: var(--muted);
+  transition: border-color .15s ease, color .15s ease;
+}
+.chip:hover { border-color: var(--primary); color: var(--text); }
+.chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+.d-top-note { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.d-top-note .d-stats { margin-bottom: 0; }
+.d-top-meta {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 7px;
+  color: var(--muted); font-size: .8rem;
+}
+.d-top-meta .dot { opacity: .5; }
+.d-top-meta code { background: var(--bg-input); padding: 2px 7px; border-radius: 6px; font-size: .76rem; direction: ltr; }
+.d-table td .rank { display: inline-block; padding: 2px 8px; border-radius: 6px; background: var(--panel-3); }
+.d-table td .rank-1 { background: #3f3520; color: #f0c75e; }
+.d-table td .rank-2 { background: #33353d; color: #cbd2e0; }
+.d-table td .rank-3 { background: #3a2b20; color: #d9945c; }

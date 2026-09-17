@@ -26,6 +26,7 @@ const emptyStore = () => ({
   cases: [],
   tickets: [],
   levels: {},
+  xpPeriods: {},
   stats: {},
   reminders: [],
   counters: { cases: 0, tickets: 0, reminders: 0 },
@@ -69,7 +70,9 @@ module.exports = {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     if (fs.existsSync(file)) {
       try {
-        store = { ...emptyStore(), ...JSON.parse(fs.readFileSync(file, 'utf8')) };
+        const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
+        store = { ...emptyStore(), ...parsed };
+        store.xpPeriods = parsed.xpPeriods || {};
       } catch {
         store = emptyStore();
       }
@@ -147,6 +150,8 @@ module.exports = {
 
   deleteGuild(guildId) {
     delete store.guilds[guildId];
+    for (const id of Object.keys(store.levels)) if (id.startsWith(`${guildId}:`)) delete store.levels[id];
+    for (const id of Object.keys(store.xpPeriods)) if (id.startsWith(`${guildId}:`)) delete store.xpPeriods[id];
     scheduleSave();
   },
 
@@ -272,7 +277,7 @@ module.exports = {
     return store.levels[`${guildId}:${userId}`] || null;
   },
 
-  upsertLevel(guildId, userId, { xp, level, messages, voiceMinutes, lastXpAt }) {
+  upsertLevel(guildId, userId, { xp, level, messages, voiceMinutes, lastXpAt, textXp = 0, voiceXp = 0, interactXp = 0, interactions = 0 }) {
     const row = {
       guild_id: guildId,
       user_id: userId,
@@ -281,10 +286,101 @@ module.exports = {
       messages,
       voice_minutes: voiceMinutes,
       last_xp_at: lastXpAt,
+      text_xp: textXp,
+      voice_xp: voiceXp,
+      interact_xp: interactXp,
+      interactions,
     };
     store.levels[`${guildId}:${userId}`] = row;
     scheduleSave();
     return row;
+  },
+
+  /** إضافة خبرة لفترة (يوم/أسبوع) */
+  addPeriodXp(guildId, userId, period, key, { xp = 0, source = 'text', messages = 0, voiceMinutes = 0, interactions = 0, at = Date.now() } = {}) {
+    const id = `${guildId}:${userId}:${period}:${key}`;
+    const row = store.xpPeriods[id] || {
+      guild_id: guildId,
+      user_id: userId,
+      period,
+      period_key: key,
+      xp: 0,
+      text_xp: 0,
+      voice_xp: 0,
+      interact_xp: 0,
+      messages: 0,
+      voice_minutes: 0,
+      interactions: 0,
+      updated_at: at,
+    };
+    const column = source === 'voice' ? 'voice_xp' : source === 'interact' ? 'interact_xp' : 'text_xp';
+    row.xp += xp;
+    row[column] += xp;
+    row.messages += messages;
+    row.voice_minutes += voiceMinutes;
+    row.interactions += interactions;
+    row.updated_at = at;
+    store.xpPeriods[id] = row;
+    scheduleSave();
+    return row;
+  },
+
+  getPeriodRow(guildId, userId, period, key) {
+    return store.xpPeriods[`${guildId}:${userId}:${period}:${key}`] || null;
+  },
+
+  getPeriodLeaderboard(guildId, period, key, limit = 10, offset = 0) {
+    return Object.values(store.xpPeriods)
+      .filter((r) => r.guild_id === guildId && r.period === period && r.period_key === key && r.xp > 0)
+      .sort((a, b) => b.xp - a.xp || a.updated_at - b.updated_at)
+      .slice(offset, offset + limit);
+  },
+
+  countPeriodMembers(guildId, period, key) {
+    return Object.values(store.xpPeriods)
+      .filter((r) => r.guild_id === guildId && r.period === period && r.period_key === key && r.xp > 0).length;
+  },
+
+  /** ترتيب عضو داخل فترة معيّنة */
+  getPeriodRank(guildId, userId, period, key) {
+    const row = this.getPeriodRow(guildId, userId, period, key);
+    if (!row || row.xp <= 0) return null;
+    const better = Object.values(store.xpPeriods)
+      .filter((r) => r.guild_id === guildId && r.period === period && r.period_key === key && r.xp > row.xp).length;
+    return better + 1;
+  },
+
+  /** مسح فترات عضو */
+  clearPeriods(guildId, userId) {
+    for (const id of Object.keys(store.xpPeriods)) {
+      if (id.startsWith(`${guildId}:${userId}:`)) delete store.xpPeriods[id];
+    }
+    scheduleSave();
+    return true;
+  },
+
+  /** تصفير عضو بالكامل */
+  resetLevel(guildId, userId) {
+    delete store.levels[`${guildId}:${userId}`];
+    this.clearPeriods(guildId, userId);
+    return true;
+  },
+
+  /** إجماليات الخبرة حسب المصدر */
+  getXpTotals(guildId, period = null, key = null) {
+    const empty = { xp: 0, text_xp: 0, voice_xp: 0, interact_xp: 0, messages: 0, voice_minutes: 0, interactions: 0 };
+    const rows = period && period !== 'all' && key
+      ? Object.values(store.xpPeriods).filter((r) => r.guild_id === guildId && r.period === period && r.period_key === key)
+      : Object.values(store.levels).filter((r) => r.guild_id === guildId);
+    return rows.reduce((acc, r) => ({
+      xp: acc.xp + (r.xp || 0),
+      text_xp: acc.text_xp + (r.text_xp || 0),
+      voice_xp: acc.voice_xp + (r.voice_xp || 0),
+      interact_xp: acc.interact_xp + (r.interact_xp || 0),
+      messages: acc.messages + (r.messages || 0),
+      voice_minutes: acc.voice_minutes + (r.voice_minutes || 0),
+      interactions: acc.interactions + (r.interactions || 0),
+    }), empty);
   },
 
   getLeaderboard(guildId, limit = 10, offset = 0) {

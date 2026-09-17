@@ -62,6 +62,27 @@ CREATE TABLE IF NOT EXISTS levels (
 );
 CREATE INDEX IF NOT EXISTS idx_levels_xp ON levels (guild_id, xp DESC);
 
+-- أعمدة مصادر الخبرة (كتابي / صوتي / تفاعل) — تُضاف تلقائيًا لقواعد البيانات القديمة
+-- (انظر migrate() في sqlite.js)
+
+-- خبرة الفترات: توب داي + توب ويك (تُصفَّر تلقائيًا مع تغيّر المفتاح)
+CREATE TABLE IF NOT EXISTS xp_periods (
+  guild_id      TEXT NOT NULL,
+  user_id       TEXT NOT NULL,
+  period        TEXT NOT NULL,               -- day | week
+  period_key    TEXT NOT NULL,               -- 2026-09-18 | 2026-W38
+  xp            INTEGER NOT NULL DEFAULT 0,
+  text_xp       INTEGER NOT NULL DEFAULT 0,
+  voice_xp      INTEGER NOT NULL DEFAULT 0,
+  interact_xp   INTEGER NOT NULL DEFAULT 0,
+  messages      INTEGER NOT NULL DEFAULT 0,
+  voice_minutes INTEGER NOT NULL DEFAULT 0,
+  interactions  INTEGER NOT NULL DEFAULT 0,
+  updated_at    INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (guild_id, user_id, period, period_key)
+);
+CREATE INDEX IF NOT EXISTS idx_xp_periods_board ON xp_periods (guild_id, period, period_key, xp DESC);
+
 -- إحصائيات يومية للوحة التحكم (رسم بياني للرسائل/الأعضاء)
 CREATE TABLE IF NOT EXISTS stats_daily (
   guild_id   TEXT NOT NULL,
