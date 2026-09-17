@@ -17,7 +17,8 @@
     "check:site": "node tools/site-check.js",
     "deploy:railway": "bash deploy-railway.sh",
     "link:public": "node tools/public-link.js",
-    "make:gifs": "node tools/make-autoline-gifs.js"
+    "make:gifs": "node tools/make-autoline-gifs.js",
+    "icons": "node tools/build-icons.js"
   },
   "keywords": [
     "discord",

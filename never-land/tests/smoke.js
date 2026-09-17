@@ -1084,7 +1084,7 @@ console.log('[نجاح] كل الاختبارات نجحت!');
 
     // ٧) لوحة التحكم: قسم المتصدّرين + إعدادات المصادر
     const app17 = fs17.readFileSync(path17.join(root17, 'src', 'web', 'public', 'app.js'), 'utf8');
-    for (const needle of ["label: 'المتصدّرون (توب داي · توب ويك)'", 'loadTopBoard', 'd-top-chips', 'الخبرة الكتابية (الشات)', 'الخبرة الصوتية', 'خبرة التفاعل', 'leveling.resetOffsetHours']) {
+    for (const needle of ["label: 'تفاعل'", 'loadTopBoard', 'd-top-chips', 'الخبرة الكتابية (الشات)', 'الخبرة الصوتية', 'خبرة التفاعل', 'leveling.resetOffsetHours']) {
       assert.ok(app17.includes(needle), `لوحة التحكم ينقصها «${needle}»`);
     }
     const dash17 = fs17.readFileSync(path17.join(root17, 'src', 'web', 'public', 'dash.css'), 'utf8');
@@ -1093,6 +1093,65 @@ console.log('[نجاح] كل الاختبارات نجحت!');
     }
 
   console.log('  [تم] خبرة كتابية وصوتية وتفاعل + توب داي وتوب ويك: بوت + لوحة + قاعدة بيانات (10 مجموعات)');
+  }
+
+ console.log('[اختبار] 33: حزمة الأيقونات الجديدة + شكل القائمة الجانبية');
+  {
+    const fs18 = require('node:fs');
+    const path18 = require('node:path');
+    const root18 = path18.join(__dirname, '..');
+
+    const icons = require('../src/web/public/icons');
+    const { ICONS, LOG_ICONS, icon } = icons;
+
+    // ١) الحزمة الجديدة موجودة وأسماؤها صحيحة
+    const packNames = ['trophy', 'podium', 'medal', 'spark', 'waveform', 'bubbles', 'heart', 'trendUp', 'gauge', 'calendarDay', 'calendarWeek', 'target', 'rocket'];
+    for (const name of packNames) {
+      assert.ok(ICONS[name], `أيقونة الحزمة الجديدة «${name}» ناقصة`);
+      assert.ok(ICONS[name].includes('<'), `أيقونة «${name}» فاضية`);
+    }
+    assert.ok(Object.keys(ICONS).length >= 95, `عدد الأيقونات قلّ (${Object.keys(ICONS).length})`);
+
+    // ٢) بلا إيموجي كيبورد وبلا أي مصدر خارجي
+    const iconsSrc = fs18.readFileSync(path18.join(root18, 'src', 'web', 'public', 'icons.js'), 'utf8');
+    for (const ch of ['\u{1F600}', '\u{1F3C6}', '\u{2B50}', '\u{2705}']) {
+      assert.ok(!iconsSrc.includes(ch), 'أيقونات الحزمة فيها إيموجي كيبورد');
+    }
+    assert.ok(!/https?:\/\//.test(iconsSrc), 'الحزمة تعتمد على رابط خارجي');
+    assert.ok(!/<image|xlink/.test(iconsSrc), 'الحزمة فيها صور خارجية');
+
+    // ٣) كل قيم سجلات الأحداث تُشير لأيقونات موجودة
+    const brokenLogs = Object.entries(LOG_ICONS).filter(([, v]) => !ICONS[v]);
+    assert.strictEqual(brokenLogs.length, 0, `قيم LOG_ICONS مكسورة: ${brokenLogs.map(([k, v]) => `${k} إلى ${v}`).join(', ')}`);
+
+    // ٤) دالة الرسم تُنتج SVG صالحًا قابلة للتلوين بلون النص
+    const svg = icon('trophy', { size: 22, stroke: 1.7 });
+    for (const needle of ['<svg', 'viewBox="0 0 24 24"', 'stroke="currentColor"', 'stroke-width="1.7"', 'fill="none"']) {
+      assert.ok(svg.includes(needle), `وسم الأيقونة ينقصه ${needle}`);
+    }
+
+    // ٥) أدوات الحزمة موجودة في المشروع
+    const pack = fs18.readFileSync(path18.join(root18, 'tools', 'icons-pack.js'), 'utf8');
+    assert.ok(pack.includes('NEW_ICONS') && pack.includes('trophy'), 'ملف حزمة الأيقونات ناقص');
+    const builder = fs18.readFileSync(path18.join(root18, 'tools', 'build-icons.js'), 'utf8');
+    assert.ok(builder.includes('icons-pack') && builder.includes('ICONS_FILE'), 'أداة بناء الأيقونات ناقصة');
+    const pkg18 = JSON.parse(fs18.readFileSync(path18.join(root18, 'package.json'), 'utf8'));
+    assert.ok(pkg18.scripts.icons, 'سكربت npm run icons ناقص');
+
+    // ٦) القائمة الجانبية: اسم «تفاعل» + أيقونة كأس + بلا كسر نص
+    const app18 = fs18.readFileSync(path18.join(root18, 'src', 'web', 'public', 'app.js'), 'utf8');
+    assert.ok(app18.includes("top: 'trophy'"), 'أيقونة قسم تفاعل غير مربوطة');
+    assert.ok(app18.includes("label: 'تفاعل'"), 'اسم القسم لم يتغيّر إلى تفاعل');
+    assert.ok(app18.includes("class: 'd-nav-label'"), 'اسم العنصر غير مُهيّأ لكسر النص');
+    assert.ok(app18.includes('title: section.label'), 'عنوان العنصر عند المرور ناقص');
+    const dash18 = fs18.readFileSync(path18.join(root18, 'src', 'web', 'public', 'dash.css'), 'utf8');
+    for (const needle of ['.d-nav-label', 'white-space: nowrap', 'text-overflow: ellipsis', 'min-width: 0']) {
+      assert.ok(dash18.includes(needle), `أنماط القائمة الجانبية ينقصها ${needle}`);
+    }
+    const navBlock = dash18.slice(dash18.indexOf('.d-nav-item .d-nav-label'), dash18.indexOf('.d-nav-item .dot'));
+    assert.ok(navBlock.includes('nowrap') && navBlock.includes('ellipsis'), 'اسم العنصر ما زال قابلاً للكسر');
+
+  console.log('  [تم] 95 أيقونة (13 جديدة + 30 محسّنة) · قسم «تفاعل» بأيقونة كأس · القائمة الجانبية بلا كسر نص');
   }
 
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');

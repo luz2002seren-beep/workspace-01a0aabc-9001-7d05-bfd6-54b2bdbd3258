@@ -477,6 +477,7 @@ const SECTION_ICONS = {
   staffapp: 'clipboard',
   logs: 'scroll',
   data: 'folder',
+  top: 'trophy',
 };
 
 /** أنماط خط الفاصل (احتياطي — يأتي الكامل من الـAPI) */
@@ -765,9 +766,9 @@ const SECTIONS = {
   /* ------------------------------ المتصدّرون ------------------------------ */
   top: {
     group: 'الأعضاء',
-    label: 'المتصدّرون (توب داي · توب ويك)',
-    title: 'المتصدّرون',
-    desc: 'ترتيب الأعضاء حسب الخبرة: اليوم · هذا الأسبوع · كل الأوقات — مع تفصيل كتابي وصوتي وتفاعل.',
+    label: 'تفاعل',
+    title: 'تفاعل',
+    desc: 'تفاعل الأعضاء وخبرتهم: توب داي · توب ويك · كل الأوقات — كتابي وصوتي وتفاعل.',
     render() {
       const wrap = el('div');
       if (!state.topPeriod) state.topPeriod = 'day';
@@ -1669,9 +1670,9 @@ function buildSidebar() {
     const groupWrap = el('div', { class: 'd-group' });
     groupWrap.appendChild(el('div', { class: 'd-group-title', text: group }));
     entries.forEach(([id, section]) => {
-      const item = el('div', { class: 'd-nav-item', 'data-id': id });
+      const item = el('div', { class: 'd-nav-item', 'data-id': id, title: section.label });
       item.appendChild(el('span', { class: 'ico', html: ic(SECTION_ICONS[id] || 'circle', 18) }));
-      item.appendChild(el('span', { text: section.label }));
+      item.appendChild(el('span', { class: 'd-nav-label', text: section.label }));
       const dot = el('span', { class: 'dot' });
       item.appendChild(dot);
       item.addEventListener('click', () => {
