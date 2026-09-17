@@ -505,6 +505,24 @@ console.log('[نجاح] كل الاختبارات نجحت!');
     const dashCss2 = fs4.readFileSync(path4.join(webPublic, 'dash.css'), 'utf8');
     assert.ok(styleSrc2.includes('.brand-logo svg'), 'أنماط أيقونات الموقع ناقصة');
     assert.ok(dashCss2.includes('.d-nav-item .ico svg'), 'أنماط أيقونات اللوحة ناقصة');
+
+    // رسائل الطرفية: بدون إيموجيات (وسوم نصية فقط)
+    const path7b = require('node:path');
+    const srcDir = path7b.join(__dirname, '..', 'src');
+    let logEmoji = 0;
+    const walk7 = (dir) => {
+      for (const f of fs4.readdirSync(dir)) {
+        const full = path7b.join(dir, f);
+        if (fs4.statSync(full).isDirectory()) walk7(full);
+        else if (f.endsWith('.js')) {
+          for (const line of fs4.readFileSync(full, 'utf8').split('\n')) {
+            if (/console\.(log|error|warn|info)\(/.test(line) && /\p{Extended_Pictographic}/u.test(line)) logEmoji++;
+          }
+        }
+      }
+    };
+    walk7(srcDir);
+    assert.strictEqual(logEmoji, 0, `رسائل الطرفية تحتوي ${logEmoji} إيموجي`);
   console.log(`  [تم] ${iconCount} أيقونة SVG • صفر إيموجي في واجهة الموقع واللوحة`);
   }
  console.log('[اختبار] اختبار 20: هوية الموقع (Never Land) + كونه موقعًا حقيقيًا لا نسخة ثابتة');
