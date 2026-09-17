@@ -924,6 +924,40 @@ console.log('[نجاح] كل الاختبارات نجحت!');
   console.log('  [تم] تذييل نظيف: هوية + 3 روابط مفيدة + بلا تفاصيل تقنية (يلتف على الجوال)');
   }
 
+ console.log('[اختبار] 30: مفتاح التبديل (Switch) لا تخرج كرته من المسار في RTL');
+  {
+    const fs15 = require('node:fs');
+    const path15 = require('node:path');
+    const root15 = path15.join(__dirname, '..');
+    const dashCss15 = fs15.readFileSync(path15.join(root15, 'src', 'web', 'public', 'dash.css'), 'utf8');
+    const styleCss15 = fs15.readFileSync(path15.join(root15, 'src', 'web', 'public', 'style.css'), 'utf8');
+
+    // ١) مفتاح اللوحة: أبعاد مضبوطة بمتغيّرات (العرض = هامش + كرة + هامش + حركة)
+    for (const v of ['--switch-w: 48px', '--switch-knob: 21px', '--switch-pad: 3px']) {
+      assert.ok(dashCss15.includes(v), `متغيّر المفتاح ${v} ناقص`);
+    }
+    assert.ok(dashCss15.includes('--switch-travel: calc(var(--switch-w) - var(--switch-knob) - (var(--switch-pad) * 2))'), 'حساب مسافة الحركة غير مضبوط');
+    assert.ok(/translateX\(var\(--switch-travel\)\)/.test(dashCss15), 'الحركة لا تستخدم مسافة محسوبة');
+    assert.strictEqual(48 - 21 - 3 * 2, 21, 'حساب الأبعاد لا يطابق الحركة');
+
+    // ٢) لا خلط بين الموضع المنطقي والفيزيائي (سبب خروج الكرة)
+    assert.ok(!dashCss15.includes('inset-inline-end: 3px'), 'الموضع المنطقي القديم ما زال موجودًا');
+    assert.ok(!/html\[dir='rtl'\] \.d-switch/.test(dashCss15), 'القاعدة الخاصة بـ RTL القديمة ما زالت موجودة');
+    assert.ok(dashCss15.includes('direction: ltr'), 'الاتجاه الثابت ناقص (بدونه تخرج الكرة في RTL)');
+    assert.ok(dashCss15.includes('left: var(--switch-pad)'), 'الموضع لا يستخدم إحداثيات فيزيائية');
+    assert.ok(dashCss15.includes('transition: transform .2s cubic-bezier(.4, 0, .2, 1)'), 'انتقال حركة الكرة ناقص/غير ناعم');
+
+    // ٣) مفتاح نسخة الموقع: نفس المنطق
+    assert.ok(styleCss15.includes('transform: translateX(24px)'), 'حركة مفتاح الموقع غير صحيحة للاتجاهين');
+    assert.ok(!styleCss15.includes('translateX(-24px)'), 'الحركة السالبة (سبب الخروج في RTL) ما زالت موجودة');
+    assert.ok(/\.switch \{[^}]*direction: ltr/s.test(styleCss15), 'اتجاه مفتاح الموقع غير ثابت');
+
+    // ٤) احترام تقليل الحركة (إتاحة)
+    assert.ok(dashCss15.includes('prefers-reduced-motion'), 'لا احترام لإعداد تقليل الحركة في اللوحة');
+
+  console.log('  [تم] المفتاح داخل المسار في RTL وLTR: 48 = 3 + 21 + 3 + 21 · حركة ناعمة · بلا خلط منطقي/فيزيائي');
+  }
+
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');
 
   process.exit(0);
