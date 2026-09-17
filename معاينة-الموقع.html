@@ -16,10 +16,10 @@
 <meta property="og:site_name" content="Never Land">
 <meta property="og:title" content="بوت إدارة سيرفرات ديسكورد | Never Land">
 <meta property="og:description" content="نظام إدارة سيرفرات ديسكورد متكامل مع لوحة تحكم عربية.">
-<meta property="og:url" content="https://html-parameters-investigate-reef.trycloudflare.com/">
-<meta property="og:image" content="https://html-parameters-investigate-reef.trycloudflare.com/icon.svg">
+<meta property="og:url" content="https://never-land-production.up.railway.app/">
+<meta property="og:image" content="https://never-land-production.up.railway.app/icon.svg">
 <meta name="twitter:card" content="summary">
-<link rel="canonical" href="https://html-parameters-investigate-reef.trycloudflare.com/">
+<link rel="canonical" href="https://never-land-production.up.railway.app/">
 <title>بوت إدارة سيرفرات ديسكورد | Never Land</title>
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNDAgNDAiIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgYXJpYS1oaWRkZW49InRydWUiIGZvY3VzYWJsZT0iZmFsc2UiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJwYkdyYWQiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNWI2Y2ZmIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjM2Y0OWI4Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSIxMSIgZmlsbD0idXJsKCNwYkdyYWQpIi8+CiAgPHBhdGggZD0iTTIwIDguNSAyOSAxMnY2LjZjMCA1LjEtMy41IDguOC05IDEwLjktNS41LTIuMS05LTUuOC05LTEwLjlWMTJ6IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMi4xIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHBhdGggZD0iTTIwLjkgMTMuNiAxNS40IDIwLjRoMy42bC0xIDYgNS43LTcuMWgtMy42eiIgZmlsbD0iI2ZmZiIvPgo8L3N2Zz4=">
 <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNDAgNDAiIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgYXJpYS1oaWRkZW49InRydWUiIGZvY3VzYWJsZT0iZmFsc2UiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJwYkdyYWQiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNWI2Y2ZmIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjM2Y0OWI4Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSIxMSIgZmlsbD0idXJsKCNwYkdyYWQpIi8+CiAgPHBhdGggZD0iTTIwIDguNSAyOSAxMnY2LjZjMCA1LjEtMy41IDguOC05IDEwLjktNS41LTIuMS05LTUuOC05LTEwLjlWMTJ6IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMi4xIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHBhdGggZD0iTTIwLjkgMTMuNiAxNS40IDIwLjRoMy42bC0xIDYgNS43LTcuMWgtMy42eiIgZmlsbD0iI2ZmZiIvPgo8L3N2Zz4=">
@@ -589,6 +589,32 @@ a, button, .btn, .pill, .guild-card {
 /* سطر «آخر مزامنة» في بطاقات السيرفرات */
 .sync-line { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; opacity: 0.75; }
 .sync-line svg { color: var(--primary, #5b6cff); }
+
+/* ================= حماية الشكل: لا خروج عن الإطار ================= */
+html, body { max-width: 100%; overflow-x: hidden; }
+img, svg, video, canvas { max-width: 100%; }
+
+/* أيقونة السيرفر: صورة سليمة أو بديل أنيق (بلا إطار مكسور) */
+img.guild-icon { background: var(--bg-card); border: 1px solid var(--border); }
+img.guild-icon:not([src]), img.guild-icon[src=""] { visibility: hidden; }
+
+/* بطاقة السيرفر: النصوص الطويلة تلتف بدل ما تخرج */
+.guild-card { overflow: hidden; }
+.guild-info { min-width: 0; flex: 1 1 auto; display: flex; flex-direction: column; gap: 3px; }
+.guild-info b { display: block; overflow-wrap: anywhere; line-height: 1.35; }
+.guild-info .muted { display: block; overflow-wrap: anywhere; }
+.guild-card .guild-actions { flex: 0 0 auto; }
+
+/* شريط حالة المزامنة في الصفحة الرئيسية */
+.sync-line { flex-wrap: wrap; }
+
+/* الشبكات والبطاقات لا تتجاوز عرض الشاشة */
+.guild-grid, .site-features, .site-steps { max-width: 100%; }
+.mock-row, .mock-title { overflow-wrap: anywhere; }
+
+/* أي صف مرن: عناصره ما تخرج عن الإطار */
+.site-hero, .page-head, .dash-head, .site-cta, .servers-toolbar, .guild-card { max-width: 100%; }
+.site-hero > *, .page-head > *, .site-cta > * { min-width: 0; }
 
 </style>
 
