@@ -730,6 +730,24 @@ console.log('[نجاح] كل الاختبارات نجحت!');
   console.log(`  [تم] لقطة كاملة (قنوات/رتب/أعضاء) + /api/sync + بث حيّ + شريط مزامنة في اللوحة (كل ${cfg9.sync.intervalSeconds} ثانية)`);
   }
 
+ console.log('[اختبار] اختبار 25: إرشاد الدخول عند نقص رابط العودة (OAuth)');
+  {
+    const fs10 = require('node:fs');
+    const path10 = require('node:path');
+    const root10 = path10.join(__dirname, '..');
+    const authSrc = fs10.readFileSync(path10.join(root10, 'src', 'web', 'routes', 'auth.js'), 'utf8');
+
+    assert.ok(authSrc.includes('async function registeredRedirects'), 'فحص روابط العودة المسجّلة ناقص');
+    assert.ok(authSrc.includes('applications/@me'), 'فحص تطبيق ديسكورد ناقص');
+    assert.ok(authSrc.includes('function redirectHelpPage'), 'صفحة الإرشاد ناقصة');
+    assert.ok(authSrc.includes('/auth/callback'), 'رابط العودة غير مذكور');
+    assert.ok(authSrc.includes('Redirects'), 'تعليمات Redirects ناقصة');
+    assert.ok(/router\.get\('\/login',\s*async/.test(authSrc), 'مسار الدخول لا يفحص رابط العودة قبل التحويل');
+    assert.ok(authSrc.includes('redirectCache'), 'كاش فحص روابط العودة ناقص');
+
+  console.log('  [تم] صفحة إرشاد عربية بدل خطأ ديسكورد + كاش 5 دقائق لفحص روابط العودة');
+  }
+
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');
 
   process.exit(0);

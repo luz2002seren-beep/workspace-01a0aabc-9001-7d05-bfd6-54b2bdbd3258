@@ -135,11 +135,13 @@ function startWeb() {
   console.log('[تم] كل شيء جاهز. اضغط Ctrl+C للإيقاف.');
   if (runWeb) {
     const port = config.web.port;
-    console.log(`[الموقع] افتح في المتصفح: http://localhost:${port}`);
-    if (config.web.url && !/localhost|127\.0\.0\.1/.test(config.web.url)) {
-      console.log(`[الموقع] الرابط العام: ${config.web.url}`);
-    } else {
+    const isLocalUrl = /localhost|127\.0\.0\.1/.test(config.web.url);
+    if (isLocalUrl) {
+      console.log(`[الموقع] افتح في المتصفح: http://localhost:${port}`);
       console.log('[ملاحظة] هذا الرابط يعمل على جهازك فقط. لنشر الموقع على الإنترنت: railway.com أو أي سيرفر.');
+    } else {
+      console.log(`[الموقع] الرابط العام: ${config.web.url}`);
+      console.log(`[الموقع] من داخل السيرفر نفسه: http://localhost:${port}`);
     }
   }
   console.log('');
