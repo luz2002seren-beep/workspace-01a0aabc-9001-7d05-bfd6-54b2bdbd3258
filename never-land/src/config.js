@@ -82,14 +82,8 @@ const config = {
      * الرابط العام: DASHBOARD_URL، أو نطاق Railway التلقائي، وإلا localhost.
      * يُستخدم في روابط OAuth والـ sitemap ووسوم og.
      */
-    url: (
-      process.env.DASHBOARD_URL ||
-      (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '') ||
-      `http://localhost:${int(process.env.DASHBOARD_PORT || process.env.PORT, 3000)}`
-    ).replace(/\/$/, ''),
+    url: resolveWebUrl(),
     sessionSecret: process.env.SESSION_SECRET || 'never-land-change-me',
-    /** رابط إضافة البوت (يُبنى تلقائيًا من CLIENT_ID إن لم يُحدّد) */
-    inviteUrl: process.env.INVITE_URL || null,
   },
 
   database: {
@@ -415,13 +409,6 @@ const config = {
   },
 };
 
-/** رابط إضافة البوت (مع صلاحيات Administrator + أوامر السلاش) */
-config.web.inviteUrl =
-  config.web.inviteUrl ||
-  (/^\d{17,20}$/.test(String(config.bot.clientId || ''))
-    ? `https://discord.com/oauth2/authorize?client_id=${config.bot.clientId}&permissions=8&scope=bot%20applications.commands`
-    : '#');
-
 /** فحص الإعدادات الأساسية وإرجاع قائمة بالمشاكل */
 config.validate = () => {
   const problems = [];
@@ -432,6 +419,36 @@ config.validate = () => {
   }
   return problems;
 };
+
+/**
+ * تحديد الرابط العام للموقع تلقائيًا:
+ *  1) DASHBOARD_URL إن كان مضبوطًا (اختيار صاحب المشروع)
+ *  2) نطاق منصات النشر: Railway / Render / Fly / Vercel / متغير PUBLIC_URL
+ *  3) بيئة المعاينة (e2b): https://<المنفذ>-<معرّف البيئة>.e2b.app — يتغيّر كل جلسة
+ *  4) localhost (يعمل على الجهاز الذي يشغّل المشروع فقط)
+ * إذا كان DASHBOARD_URL من نوع e2b.app وصار قديمًا (بيئة أخرى)، نستخدم الرابط الحيّ تلقائيًا.
+ */
+function resolveWebUrl() {
+  const port = int(process.env.DASHBOARD_PORT || process.env.PORT, 3000);
+  const clean = (u) => String(u || '').trim().replace(/\/+$/, '');
+
+  let auto = '';
+  if (process.env.RAILWAY_PUBLIC_DOMAIN) auto = `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
+  else if (process.env.RENDER_EXTERNAL_URL) auto = process.env.RENDER_EXTERNAL_URL;
+  else if (process.env.FLY_APP_NAME) auto = `https://${process.env.FLY_APP_NAME}.fly.dev`;
+  else if (process.env.VERCEL_URL) auto = `https://${process.env.VERCEL_URL}`;
+  else if (process.env.E2B_SANDBOX && process.env.E2B_SANDBOX_ID) {
+    auto = `https://${port}-${process.env.E2B_SANDBOX_ID}.e2b.app`;
+  } else if (process.env.PUBLIC_URL) auto = process.env.PUBLIC_URL;
+
+  const configured = clean(process.env.DASHBOARD_URL);
+  const isStalePreview = /\.e2b\.app$/i.test(configured) && auto && clean(auto) !== configured;
+
+  if (configured && !isStalePreview) return configured;
+  if (auto) return clean(auto);
+  if (configured) return configured;
+  return `http://localhost:${port}`;
+}
 
 config.isDev = () => config.bot.developerIds.length > 0;
 

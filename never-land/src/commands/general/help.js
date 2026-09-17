@@ -73,9 +73,6 @@ function webButtons() {
     new ButtonBuilder().setLabel('افتح الموقع').setStyle(ButtonStyle.Link).setURL(base),
     new ButtonBuilder().setLabel('لوحة التحكم').setStyle(ButtonStyle.Link).setURL(`${base}/dashboard`),
   );
-  if (webUrlOk(config.web.inviteUrl)) {
-    row.addComponents(new ButtonBuilder().setLabel('إضافة البوت').setStyle(ButtonStyle.Link).setURL(config.web.inviteUrl));
-  }
   return row;
 }
 
@@ -83,9 +80,12 @@ function webButtons() {
 function webLines() {
   const base = (config.web.url || '').replace(/\/$/, '');
   if (!webUrlOk(base)) return ['> موقع اللوحة لم يُضبط بعد — أضف `DASHBOARD_URL` في الإعدادات.'];
+  const isLocal = /localhost|127\.0\.0\.1/.test(base);
   return [
     `**الموقع:** ${base}`,
-    'اضغط زر «افتح الموقع» بالأسفل — يفتح مباشرة في المتصفح.',
+    isLocal
+      ? '> هذا الرابط محلي: يفتح فقط على الجهاز الذي يشغّل البوت (ويكون الموقع شغّالًا عليه).'
+      : 'اضغط زر «افتح الموقع» بالأسفل — يفتح مباشرة في المتصفح.',
     '> الدخول يحتاج تأكيد بحساب Discord، وبعدها يجب أن يملك حسابك الرول المطلوب.',
   ];
 }

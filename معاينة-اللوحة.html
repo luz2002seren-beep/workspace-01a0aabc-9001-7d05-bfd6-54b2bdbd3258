@@ -16,13 +16,13 @@
 <meta property="og:site_name" content="Never Land">
 <meta property="og:title" content="إعدادات السيرفر | Never Land">
 <meta property="og:description" content="نظام إدارة سيرفرات ديسكورد متكامل مع لوحة تحكم عربية.">
-<meta property="og:url" content="https://3000-ipc730la7x6a559wjalgq.e2b.app/">
-<meta property="og:image" content="https://3000-ipc730la7x6a559wjalgq.e2b.app/icon.svg">
+<meta property="og:url" content="https://3000-i6wktundgnt4ma56vshdm.e2b.app/">
+<meta property="og:image" content="https://3000-i6wktundgnt4ma56vshdm.e2b.app/icon.svg">
 <meta name="twitter:card" content="summary">
-<link rel="canonical" href="https://3000-ipc730la7x6a559wjalgq.e2b.app/">
+<link rel="canonical" href="https://3000-i6wktundgnt4ma56vshdm.e2b.app/">
 <title>إعدادات السيرفر | Never Land</title>
-<link rel="icon" href="/icon.svg">
-<link rel="apple-touch-icon" href="/icon.svg">
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNDAgNDAiIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgYXJpYS1oaWRkZW49InRydWUiIGZvY3VzYWJsZT0iZmFsc2UiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJwYkdyYWQiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNWI2Y2ZmIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjM2Y0OWI4Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSIxMSIgZmlsbD0idXJsKCNwYkdyYWQpIi8+CiAgPHBhdGggZD0iTTIwIDguNSAyOSAxMnY2LjZjMCA1LjEtMy41IDguOC05IDEwLjktNS41LTIuMS05LTUuOC05LTEwLjlWMTJ6IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMi4xIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHBhdGggZD0iTTIwLjkgMTMuNiAxNS40IDIwLjRoMy42bC0xIDYgNS43LTcuMWgtMy42eiIgZmlsbD0iI2ZmZiIvPgo8L3N2Zz4=">
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNDAgNDAiIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgYXJpYS1oaWRkZW49InRydWUiIGZvY3VzYWJsZT0iZmFsc2UiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJwYkdyYWQiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNWI2Y2ZmIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjM2Y0OWI4Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSIxMSIgZmlsbD0idXJsKCNwYkdyYWQpIi8+CiAgPHBhdGggZD0iTTIwIDguNSAyOSAxMnY2LjZjMCA1LjEtMy41IDguOC05IDEwLjktNS41LTIuMS05LTUuOC05LTEwLjlWMTJ6IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMi4xIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHBhdGggZD0iTTIwLjkgMTMuNiAxNS40IDIwLjRoMy42bC0xIDYgNS43LTcuMWgtMy42eiIgZmlsbD0iI2ZmZiIvPgo8L3N2Zz4=">
 <link rel="manifest" href="/manifest.webmanifest">
 <style>
 /* ==========================================================
@@ -587,6 +587,482 @@ a, button, .btn, .pill, .guild-card {
 }
 
 </style>
+<style>
+/* ==========================================================
+   Never Land  |  dash.css — أنماط لوحة التحكم
+   تُحمَّل في صفحة /dashboard/:id فقط
+   ========================================================== */
+
+body.dashboard { display: block; }
+body.dashboard .topbar { display: none; }
+body.dashboard .container { padding: 0; width: 100%; }
+
+/* ============================ الهيكل ============================ */
+.d-shell {
+  display: grid;
+  grid-template-columns: 268px 1fr;
+  min-height: 100vh;
+  background: var(--shell);
+}
+
+/* ============================ الشريط الجانبي ============================ */
+.d-side {
+  background: var(--panel-2);
+  border-inline-start: 1px solid var(--border-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 14px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.d-side-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: #fff;
+  padding: 4px 6px 12px;
+}
+.d-side-brand .logo { font-size: 1.5rem; }
+.d-side-brand .back {
+  margin-inline-start: auto;
+  font-size: .75rem;
+  color: var(--muted);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+.d-side-brand .back:hover { color: var(--text); border-color: var(--primary); }
+
+.d-search { position: relative; margin-bottom: 8px; }
+.d-search input {
+  width: 100%;
+  padding: 10px 34px 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text);
+  font: inherit;
+  font-size: .9rem;
+}
+.d-search input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(88,101,242,.18); }
+.d-search .ico { position: absolute; inset-inline-start: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: .9rem; }
+
+.d-group { margin-top: 10px; }
+.d-group-title {
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--muted);
+  padding: 6px 8px;
+  text-transform: uppercase;
+}
+
+.d-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: .93rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  user-select: none;
+}
+.d-nav-item:hover { background: var(--hover); color: var(--text); }
+.d-nav-item.active { background: var(--chip); color: var(--text); border-color: var(--primary); }
+.d-nav-item .ico { width: 20px; text-align: center; }
+.d-nav-item .dot {
+  margin-inline-start: auto;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--success);
+}
+.d-nav-item .dot.off { background: var(--track); }
+
+.d-side-foot {
+  margin-top: auto;
+  padding: 12px 8px 4px;
+  border-top: 1px solid var(--border-soft);
+  font-size: .78rem;
+  color: var(--muted);
+  line-height: 1.9;
+}
+
+/* ============================ المنطقة الرئيسية ============================ */
+.d-main { display: flex; flex-direction: column; min-width: 0; }
+
+.d-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 26px;
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--panel-2);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  flex-wrap: wrap;
+}
+.d-head .guild-icon {
+  width: 42px; height: 42px; border-radius: 12px; object-fit: cover;
+  background: var(--chip); display: grid; place-items: center; font-weight: 800; color: var(--muted);
+}
+.d-head h1 { margin: 0; font-size: 1.12rem; color: var(--text); }
+.d-head .sub { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+.d-head-actions { margin-inline-start: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.d-content { padding: 22px 26px 120px; max-width: 1080px; width: 100%; }
+
+.d-page-title { margin: 0 0 4px; font-size: 1.5rem; color: var(--text); }
+.d-page-desc { margin: 0 0 20px; color: var(--muted); font-size: .92rem; line-height: 1.7; }
+
+/* ============================ الأزرار ============================ */
+.d-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 15px; border-radius: 10px; border: 1px solid transparent;
+  font: inherit; font-size: .9rem; font-weight: 700; cursor: pointer;
+  background: var(--chip); color: var(--text);
+  transition: transform .08s ease, background .15s ease, border-color .15s ease;
+}
+.d-btn:hover { background: var(--hover); }
+.d-btn:active { transform: translateY(1px); }
+.d-btn.primary { background: var(--primary); color: #fff; }
+.d-btn.primary:hover { background: var(--primary-hover); }
+.d-btn.success { background: var(--success); color: #06240f; }
+.d-btn.success:hover { filter: brightness(.93); }
+.d-btn.danger { background: var(--danger); color: #fff; }
+.d-btn.danger:hover { filter: brightness(.93); }
+.d-btn.ghost { background: transparent; border-color: var(--border); color: var(--muted); }
+.d-btn.ghost:hover { background: var(--hover); color: var(--text); }
+.d-btn.sm { padding: 6px 11px; font-size: .82rem; border-radius: 8px; }
+.d-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ============================ البطاقات ============================ */
+.d-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.d-card-head {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--panel-3);
+}
+.d-card-head .ico {
+  width: 34px; height: 34px; border-radius: 10px;
+  background: var(--chip); display: grid; place-items: center; font-size: 1.05rem; flex: 0 0 auto;
+}
+.d-card-head h3 { margin: 0; font-size: 1rem; color: var(--text); }
+.d-card-head p { margin: 3px 0 0; font-size: .82rem; color: var(--muted); line-height: 1.6; }
+.d-card-head .tail { margin-inline-start: auto; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.d-card-body { padding: 4px 18px; }
+.d-card-body.no-pad { padding: 16px 18px; }
+
+/* ============================ الحقول ============================ */
+.d-field {
+  display: flex; align-items: center; gap: 16px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border-soft);
+  flex-wrap: wrap;
+}
+.d-field:last-child { border-bottom: none; }
+.d-field-label { flex: 1 1 260px; min-width: 220px; }
+.d-field-label b { display: block; color: var(--text); font-size: .93rem; font-weight: 700; }
+.d-field-label span { display: block; color: var(--muted); font-size: .79rem; margin-top: 3px; line-height: 1.6; }
+.d-field-control { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.d-input, .d-select, .d-textarea {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: .9rem;
+  min-width: 170px;
+  max-width: 100%;
+}
+.d-input::placeholder, .d-textarea::placeholder { color: var(--muted); }
+.d-input:focus, .d-select:focus, .d-textarea:focus {
+  outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(88,101,242,.18);
+}
+.d-textarea { min-height: 82px; resize: vertical; width: 100%; min-width: 100%; line-height: 1.7; }
+.d-input.full { min-width: 100%; }
+.d-input.narrow, .d-select.narrow { min-width: 110px; width: 130px; }
+.d-field.wide { flex-direction: column; align-items: stretch; gap: 8px; }
+.d-field.wide .d-field-label { flex: none; }
+
+/* مفتاح تبديل */
+.d-switch { position: relative; width: 48px; height: 27px; flex: 0 0 auto; }
+.d-switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.d-switch span {
+  position: absolute; inset: 0; border-radius: 999px; background: var(--track); transition: background .18s;
+  pointer-events: none;
+}
+.d-switch span::after {
+  content: ''; position: absolute; top: 3px; inset-inline-end: 3px;
+  width: 21px; height: 21px; border-radius: 50%; background: #fff; transition: transform .18s;
+}
+.d-switch input:checked + span { background: var(--success); }
+.d-switch input:checked + span::after { transform: translateX(21px); }
+html[dir='rtl'] .d-switch input:checked + span::after { transform: translateX(-21px); }
+
+/* شرائح */
+.d-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.d-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--chip); border: 1px solid var(--border); color: var(--text);
+  border-radius: 999px; padding: 5px 11px; font-size: .83rem; font-weight: 600;
+}
+.d-chip button {
+  background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; line-height: 1;
+  padding: 0 2px;
+}
+.d-chip button:hover { color: var(--danger); }
+
+/* ============================ الإحصاءات ============================ */
+.d-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.d-stat {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 15px 16px;
+}
+.d-stat b { display: block; font-size: 1.6rem; color: var(--info); line-height: 1.2; }
+.d-stat span { color: var(--muted); font-size: .8rem; }
+
+.d-quick { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.d-quick-card {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 14px 15px;
+  display: flex; align-items: center; gap: 12px;
+}
+.d-quick-card .ico { font-size: 1.3rem; }
+.d-quick-card .txt { flex: 1; min-width: 0; }
+.d-quick-card b { display: block; color: var(--text); font-size: .93rem; }
+.d-quick-card span { color: var(--muted); font-size: .78rem; }
+
+/* ============================ الجداول ============================ */
+.d-table-wrap { overflow-x: auto; }
+.d-table { width: 100%; border-collapse: collapse; font-size: .87rem; }
+.d-table th {
+  text-align: start; padding: 11px 12px; color: var(--muted); font-weight: 700;
+  border-bottom: 1px solid var(--border); background: var(--panel-3); white-space: nowrap;
+}
+.d-table td { padding: 11px 12px; border-bottom: 1px solid var(--border-soft); color: var(--text); }
+.d-table tr:hover td { background: var(--panel-3); }
+.d-table code { background: var(--bg-input); padding: 2px 6px; border-radius: 6px; font-size: .82rem; color: #9fb0d0; }
+.d-member { display: flex; align-items: center; gap: 8px; }
+.d-member img { width: 26px; height: 26px; border-radius: 50%; background: var(--chip); }
+.d-member .nm { font-weight: 700; color: var(--text); }
+.d-member .tg { color: var(--muted); font-size: .78rem; }
+
+/* تبويبات داخلية (بيانات) */
+.d-seg { display: inline-flex; background: var(--panel-2); border: 1px solid var(--border); border-radius: 11px; padding: 3px; gap: 3px; margin-bottom: 16px; flex-wrap: wrap; }
+.d-seg button {
+  background: none; border: none; color: var(--muted); font: inherit; font-size: .87rem; font-weight: 700;
+  padding: 8px 14px; border-radius: 9px; cursor: pointer;
+}
+.d-seg button.active { background: var(--chip); color: var(--text); }
+
+/* ============================ السجلات ============================ */
+.d-log-group { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; background: var(--panel); overflow: hidden; }
+.d-log-group > summary {
+  cursor: pointer; padding: 13px 16px; font-weight: 700; color: var(--text);
+  display: flex; align-items: center; gap: 10px; list-style: none;
+}
+.d-log-group > summary::-webkit-details-marker { display: none; }
+.d-log-group > summary .badge {
+  margin-inline-start: auto; font-size: .76rem; color: var(--muted); background: var(--chip);
+  padding: 3px 9px; border-radius: 999px; font-weight: 700;
+}
+.d-log-group[open] > summary { border-bottom: 1px solid var(--border); background: var(--panel-3); }
+.d-log-group .d-card-body { padding: 2px 16px 8px; }
+.d-log-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 4px 16px; }
+.d-log-grid .d-field { border-bottom: none; padding: 8px 0; gap: 10px; }
+.d-log-grid .d-field-label { flex: 1 1 120px; min-width: 0; }
+.d-log-grid .d-field-label b { font-size: .86rem; font-weight: 600; }
+
+/* ============================ شريط الحفظ ============================ */
+.d-savebar {
+  position: fixed; inset-inline: 0; bottom: 0; z-index: 20;
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 26px;
+  background: var(--overlay);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--border);
+  transform: translateY(110%);
+  transition: transform .2s ease;
+}
+.d-savebar.show { transform: translateY(0); }
+.d-savebar .msg { color: var(--warning); font-weight: 700; font-size: .9rem; }
+.d-savebar .msg.ok { color: #3ba55d; }
+.d-savebar .grow { flex: 1; }
+
+/* ============================ حالات ============================ */
+.d-empty { text-align: center; padding: 34px 16px; color: var(--muted); }
+.d-empty .big { font-size: 2rem; display: block; margin-bottom: 8px; }
+.d-loading { display: grid; place-items: center; min-height: 60vh; color: var(--muted); gap: 12px; }
+.d-spinner {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 3px solid var(--border); border-top-color: var(--primary); animation: d-spin .8s linear infinite;
+}
+@keyframes d-spin { to { transform: rotate(360deg); } }
+.d-alert {
+  border-radius: 12px; padding: 12px 15px; font-size: .88rem; margin-bottom: 14px;
+  border: 1px solid var(--border); background: var(--panel-3); color: var(--muted); line-height: 1.7;
+}
+.d-alert.warn { border-color: var(--warning); background: transparent; color: var(--warning); }
+.d-alert.ok { border-color: #1f5138; background: var(--success-bg); color: #a5e6c0; }
+.d-alert.danger { border-color: var(--danger); background: transparent; color: var(--danger); }
+
+.d-kbd { background: var(--chip); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; font-size: .78rem; }
+
+/* ============================ استجابة الشاشات ============================ */
+@media (max-width: 900px) {
+  .d-shell { grid-template-columns: 1fr; }
+  .d-side { position: static; height: auto; border-inline-start: none; border-bottom: 1px solid var(--border-soft); }
+  .d-side nav { display: flex; overflow-x: auto; gap: 6px; padding-bottom: 6px; }
+  .d-group { margin-top: 4px; min-width: max-content; }
+  .d-group-title { display: none; }
+  .d-nav-item { white-space: nowrap; }
+  .d-content, .d-head { padding-inline: 16px; }
+  .d-savebar { padding-inline: 16px; }
+  .d-field { flex-direction: column; align-items: stretch; gap: 8px; }
+  .d-field-control { justify-content: flex-start; }
+  .d-input, .d-select { width: 100%; }
+}
+
+/* ============================ أيقونات وحالات (نسخة رسمية) ============================ */
+.d-nav-item .ico svg, .d-card-head .ico svg, .d-stat span svg, .d-btn svg, .log-ico svg {
+  vertical-align: -3px;
+}
+.d-nav-item .ico { display: inline-flex; align-items: center; justify-content: center; }
+.d-card-head .ico { color: var(--primary); }
+.d-stat span { display: inline-flex; align-items: center; gap: 6px; }
+.d-stat span svg { opacity: .85; }
+.d-btn svg { flex: 0 0 auto; }
+.log-ico { display: inline-flex; color: var(--muted); margin-inline-end: 2px; }
+
+.state-on { color: var(--success); font-weight: 700; }
+.state-off { color: var(--danger); font-weight: 700; }
+
+.rank { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 8px; font-size: .82rem; }
+.rank-1 { background: rgba(234, 179, 8, .18); color: #eab308; }
+.rank-2 { background: rgba(148, 163, 184, .18); color: #94a3b8; }
+.rank-3 { background: rgba(180, 83, 9, .18); color: #b45309; }
+
+.d-empty-ico { color: var(--warning); }
+.d-search .ico { display: inline-flex; align-items: center; }
+
+/* شرائح تعرض قيمًا يحدّدها المستخدم (إيموجيات التفاعل مثلًا) */
+.d-chip-value { font-family: 'Segoe UI Emoji', system-ui, sans-serif; }
+.d-chip-value::before { content: none; }
+
+/* =====================================================================
+   اللوحة على الأجهزة: جوال • تابلت • سطح المكتب + وضع العرض العام
+   ===================================================================== */
+.d-readable { display: none; }
+
+/* شارة «عرض عام» لزائر ما سجّل دخول */
+.d-readonly-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
+  font-size: .9rem;
+  line-height: 1.6;
+}
+.d-readonly-note svg { color: var(--primary); flex: 0 0 auto; }
+.d-readonly-note .d-btn { margin-inline-start: auto; }
+
+/* كل عناصر التعديل معطّلة بصريًا في وضع العرض */
+.d-shell.readonly .d-content input,
+.d-shell.readonly .d-content select,
+.d-shell.readonly .d-content textarea,
+.d-shell.readonly .d-content .d-switch,
+.d-shell.readonly .d-content .d-card-head .d-btn,
+.d-shell.readonly .d-content .word-remove {
+  pointer-events: none;
+  opacity: .82;
+}
+.d-shell.readonly .d-content .d-btn.primary { display: none; }
+
+/* جوال/تابلت: الشريط الجانبي يتكيّف */
+@media (max-width: 1000px) {
+  .d-side {
+    width: 100%;
+    max-width: none;
+    border-inline-end: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .d-side .d-nav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  .d-side .d-nav::-webkit-scrollbar { display: none; }
+  .d-side .d-nav-item { white-space: nowrap; flex: 0 0 auto; }
+  .d-side .d-dots { display: none; }
+  .d-main { padding-inline: 14px; }
+  .d-head { flex-wrap: wrap; }
+  .d-head-actions { width: 100%; }
+  .d-head-actions .d-btn { flex: 1 1 auto; justify-content: center; }
+  .d-savebar { padding-inline: 14px; }
+  .d-savebar .d-btn { flex: 1 1 auto; justify-content: center; }
+}
+
+@media (max-width: 700px) {
+  .d-content { grid-template-columns: 1fr !important; }
+  .d-card { padding: 14px; border-radius: 12px; }
+  .d-card-head { flex-wrap: wrap; }
+  .d-row, .d-grid-2, .d-stats { grid-template-columns: 1fr; }
+  .d-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .d-btn { min-height: 42px; }
+  .d-input, .d-select { min-height: 42px; }
+  input, select, textarea { font-size: 16px; }
+  .d-table, .d-transcript { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
+  .d-kbd { word-break: break-all; }
+  .d-readonly-note { font-size: .86rem; }
+  .d-readonly-note .d-btn { width: 100%; justify-content: center; margin-inline-start: 0; }
+}
+
+@media (max-width: 420px) {
+  .d-stats { grid-template-columns: 1fr; }
+  .d-side .d-nav-item span { display: none; }
+  .d-side .d-nav-item { padding: 10px; }
+}
+
+/* لمس: أهداف أكبر + بلا تحويم عالق */
+@media (hover: none) {
+  .d-nav-item:hover, .d-card:hover { transform: none; }
+  .d-btn, .d-nav-item, .d-switch { -webkit-tap-highlight-color: rgba(91, 108, 255, .2); }
+}
+
+/* احترام تقليل الحركة */
+@media (prefers-reduced-motion: reduce) {
+  .d-shell *, .d-savebar { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+
+/* آيفون: شريط الحفظ فوق الحافة السفلية */
+.d-savebar { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+
+</style>
 <script>
   /* السمة: المفضّل المحفوظ ← وإلا إعداد الجهاز نفسه (ليلي/نهاري/تلقائي) */
   (function () {
@@ -627,7 +1103,7 @@ a, button, .btn, .pill, .guild-card {
   </a>
   <nav class="nav">
     <a href="/">الرئيسية</a>
-    <a href="/dashboard">السيرفرات</a>
+    <a href="/dashboard">لوحة التحكم</a>
     <a href="/api/status" target="_blank" rel="noopener">حالة الخدمة</a>
   </nav>
   <div class="auth">
@@ -638,63 +1114,12 @@ a, button, .btn, .pill, .guild-card {
        </div>
   </div>
 </header>
-<div style="background:#5b6cff;color:#fff;padding:7px 16px;font-size:.8rem;font-weight:600;text-align:center">نسخة للقراءة دون اتصال — الموقع الفعلي يعمل على الخادم</div>
 <main class="container">
 
-  <div id="app" data-guild="100000000000000001" data-edit="1">
+  <div id="app" data-guild="1" data-edit="1">
     <div class="loading">جارٍ تحميل الإعدادات...</div>
   </div>
-  </main>
-<footer class="footer">
-  <span>Never Land — نظام إدارة سيرفرات ديسكورد</span>
-  <span class="muted">قاعدة البيانات: sqlite</span>
-</footer>
-<script>
-  (function () {
-    var btn = document.getElementById('themeToggle');
-    if (!btn) return;
-    var moon = "<svg class=\"ico\" viewBox=\"0 0 24 24\" width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M20 14.6A8.6 8.6 0 1 1 9.4 4a6.9 6.9 0 0 0 10.6 10.6z\"/></svg>";
-    var sun = "<svg class=\"ico\" viewBox=\"0 0 24 24\" width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><circle cx=\"12\" cy=\"12\" r=\"4.2\"/><path d=\"M12 2.8v2.1M12 19.1v2.1M2.8 12h2.1M19.1 12h2.1M5.6 5.6l1.5 1.5M16.9 16.9l1.5 1.5M18.4 5.6l-1.5 1.5M7.1 16.9l-1.5 1.5\"/></svg>";
-    var autoIcon = "<svg class=\"ico\" viewBox=\"0 0 24 24\" width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M20 11.5a8 8 0 1 0-2.4 5.7\"/><path d=\"M20 4.5v7h-7\"/></svg>";
-    var root = document.documentElement;
-    var icon = { light: sun, dark: moon, auto: autoIcon };
-    var label = { light: 'الوضع النهاري', dark: 'الوضع الليلي', auto: 'حسب إعداد الجهاز' };
-    var stored = null;
-    try { stored = localStorage.getItem('neverland-theme'); } catch (e) {}
-    var mode = stored === 'light' || stored === 'dark' ? stored : 'auto';
-    var paint = function () {
-      var shown = mode === 'auto' ? (root.dataset.theme === 'light' ? 'light' : 'dark') : mode;
-      btn.innerHTML = mode === 'auto' ? autoIcon : icon[shown];
-      btn.title = label[mode] + ' — اضغط للتبديل';
-      btn.setAttribute('aria-label', label[mode]);
-    };
-    paint();
-    btn.addEventListener('click', function () {
-      var order = { auto: 'light', light: 'dark', dark: 'auto' };
-      mode = order[mode];
-      try {
-        if (mode === 'auto') localStorage.removeItem('neverland-theme');
-        else localStorage.setItem('neverland-theme', mode);
-      } catch (e) {}
-      var system = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-      root.dataset.theme = mode === 'auto' ? system : mode;
-      paint();
-    });
-  })();
-</script>
-<script>
-window.__SNAPSHOT__={"payload":{"guild":{"id":"100000000000000001","name":"مجتمع Never Land","icon":null,"memberCount":4820,"ownerId":null,"botPresent":true,"botOnline":false,"createdAt":null},"settings":{"language":"ar","prefix":"!","welcome":{"enabled":true,"channelId":"100000000000000010","message":"أهلاً بك {user} في **{server}**، أنت العضو رقم **{memberCount}**.","embed":true,"dm":true,"dmMessage":"أهلاً بك في **{server}**. يُرجى الاطلاع على قوانين السيرفر قبل المشاركة.","autoDeleteAfter":0,"imageMode":"card","imageUrl":null,"cardBackground":null,"cardTheme":{"from":"#5865f2","to":"#2b2f6b","accent":"#ffffff"},"avatarThumbnail":true,"attachImage":true},"leave":{"enabled":true,"channelId":"100000000000000011","message":"غادر {user} السيرفر."},"boost":{"enabled":true,"channelId":"100000000000000012","message":"شكرًا {user} على دعم السيرفر. المستوى الحالي {level}."},"logs":{"enabled":true,"channelId":"100000000000000013","events":{"messageDelete":true,"messageEdit":true,"messageBulkDelete":true,"memberJoin":true,"memberLeave":true,"memberKick":true,"memberBan":true,"memberUnban":true,"memberTimeout":true,"memberBoost":true,"memberRoleUpdate":true,"memberNickname":true,"memberAvatar":true,"memberUsername":true,"roleCreate":true,"roleDelete":true,"roleUpdate":true,"channelCreate":true,"channelDelete":true,"channelUpdate":true,"channelPermissions":true,"serverUpdate":true,"emojiCreate":true,"emojiDelete":true,"stickerCreate":true,"stickerDelete":true,"inviteCreate":true,"inviteDelete":false,"threadCreate":false,"threadDelete":false,"voiceJoin":false,"voiceLeave":false,"voiceMove":false,"voiceMute":false,"voiceDeafen":false,"modActions":true,"automod":true,"ticket":true,"memberUpdate":true},"ignoredChannels":[],"ignoredRoles":[]},"autoline":{"enabled":true,"channels":["100000000000000014","100000000000000015"],"line":"────────────────────────","color":null,"deletePrevious":true,"deleteAfter":0,"deleteLineWithMessage":true},"autoreact":{"enabled":true,"channels":["100000000000000016"],"emojis":["👍","🔥"],"words":[{"word":"ترحيب","emoji":"👋"},{"word":"مبروك","emoji":"🎉"}],"ignoreBots":true},"autorole":{"enabled":true,"roleIds":["100000000000000021"],"botRoleIds":[]},"automod":{"enabled":true,"antiSpam":true,"spamMessages":5,"spamIntervalSeconds":4,"antiLink":true,"antiInvite":true,"antiEveryone":true,"antiCaps":false,"capsPercent":70,"antiMentionSpam":true,"mentionLimit":5,"bannedWords":["كلمة_ممنوعة","spam","اشتراك مقابل"],"whitelistChannels":["100000000000000014"],"whitelistRoles":["100000000000000020"],"whitelistDomains":["tenor.com","giphy.com"],"punishment":"timeout","timeoutMinutes":15,"antiRaid":true,"raidThreshold":10,"raidWindowSeconds":60,"raidAction":"alert","raidMinAccountAgeDays":7},"moderation":{"warnThreshold":3,"warnAction":"timeout"},"reports":{"channelId":null},"leveling":{"enabled":true,"minXp":15,"maxXp":25,"cooldownSeconds":45,"announceChannelId":"100000000000000010","levelUpMessage":"وصل {user} إلى المستوى **{level}**.","rewards":[{"level":5,"roleId":"100000000000000022"},{"level":10,"roleId":"100000000000000023"},{"level":25,"roleId":"100000000000000024"}],"voiceXp":true,"voiceMinXp":5,"voiceMaxXp":10,"ignoredChannels":[],"ignoredRoles":[],"silent":false},"tickets":{"enabled":true,"categoryId":"100000000000000030","supportRoleIds":["100000000000000031","100000000000000032"],"logChannelId":"100000000000000013","panelTitle":"مركز الدعم","panelDescription":"اختر نوع التذكرة من القائمة بالأسفل وسيتم فتح غرفة خاصة لك.","panelFooter":"Never Land • فريق الدعم جاهز لمساعدتك","responseTime":"24 ساعة","panelMode":"buttons","panelSeparateInfo":true,"panelInfoMessage":"**كيف أحصل على الدعم؟**\nاختر نوع الطلب من الأزرار أدناه، وسيُفتح لك روم خاص مع فريق الدعم.","types":[{"id":"support","label":"الدعم الفني","emoji":"🛠️","description":"مشكلة تقنية أو استفسار عن البوت والسيرفر","intro":"اكتب مشكلتك بالتفصيل (وصف المشكلة • متى حدثت • أي صور إن وُجدت) وسيساعدك فريق الدعم الفني.","buttonStyle":"Primary"},{"id":"verify","label":"التوثيق","emoji":"✅","description":"طلب توثيق حساب أو رتبة موثّق","intro":"لطلب التوثيق أرسل: من أنت • لماذا تطلب التوثيق • روابط حساباتك الرسمية.","buttonStyle":"Success"},{"id":"gift","label":"الهدايا","emoji":"🎁","description":"استلام جائزة أو مشكلة في هدية/سحب","intro":"اذكر اسم السحب/الهدية ورقم الرسالة وصورة من الفوز إن وُجدت.","buttonStyle":"Secondary"},{"id":"staff","label":"تقديم إدارة","emoji":"📋","description":"تقديم طلب للانضمام لفريق الإدارة","intro":"اضغط زر «تعبئة النموذج» أدناه، ثم املأ الخانات، وسيصل طلبك إلى الإدارة تلقائيًا.","buttonStyle":"Danger"}],"maxOpenPerUser":3,"transcriptOnClose":true},"staffApplication":{"enabled":true,"onlyForTypes":["staff"],"reviewChannelId":"100000000000000013","pingRoleIds":["100000000000000031"],"formTitle":"نموذج تقديم الإدارة","formIntro":"عبّئ الخانات أدناه بدقة، وسيصل رد الإدارة إلى بريدك الخاص.\n\n> التقديم الناقص أو غير الدقيق يُرفض.","formButtonLabel":"تعبئة النموذج","resendButtonLabel":"إعادة إرسال النموذج","fields":[{"id":"name_age","label":"الاسم والعمر","placeholder":"مثال: أحمد — 18","style":"short","required":true,"maxLength":100},{"id":"country","label":"من أي بلد أنت؟","placeholder":"مثال: المغرب","style":"short","required":true,"maxLength":60},{"id":"prev_servers","label":"سيرفرات كنت فيها إدارياً؟","placeholder":"اذكر أسماء السيرفرات وعدد الأعضاء ورتبتك فيها","style":"paragraph","required":true,"maxLength":700},{"id":"mic","label":"هل تقدر تفتح مايك؟","placeholder":"نعم / لا — مع ذكر الوقت المتاح يوميًا","style":"short","required":true,"maxLength":200},{"id":"logo_link","label":"هل تقدر تحط شعار ورابط؟","placeholder":"مثال: نعم — الشعار جاهز والرابط: https://...","style":"short","required":true,"maxLength":300}],"nameFieldId":"name_age","acceptMessage":"تم قبول طلبك للانضمام إلى فريق الإدارة.\nسيتواصل معك أحد المسؤولين لبدء التدريب.","rejectMessage":"نُشكر لك اهتمامك بالتقديم، ولم يتم قبول طلبك في هذه المرة.\nيمكنك إعادة التقديم لاحقًا.","askRejectReason":true,"onAccept":{"postInTicket":"{user} تم قبول عرضك، وسُجّلت تذكرتك في ملف الإدارة برقم **#{number}**.","dmApplicant":true,"renameChannel":true,"channelNameFormat":"إدارة-{number}-{name}","moveToCategoryId":"100000000000000030","addRoleIds":["100000000000000031"],"pingApplicant":true},"onReject":{"postInTicket":"{user} تم رفض تقديمك، ويمكنك إعادة المحاولة لاحقًا.","dmApplicant":true,"closeTicket":false}},"selfRoles":{"enabled":false,"panels":[]},"referral":{"enabled":false,"channelId":null}},"stats":{"cases":8,"warnings":3,"bans":1,"kicks":1,"timeouts":2,"tickets":5,"openTickets":2,"trackedMembers":10,"xpSum":72414,"messages":7950,"discordMembers":null,"botReady":false},"daily":[{"guild_id":"100000000000000001","day":"2026-09-03","messages":414,"joins":17,"leaves":12},{"guild_id":"100000000000000001","day":"2026-09-04","messages":692,"joins":19,"leaves":9},{"guild_id":"100000000000000001","day":"2026-09-05","messages":480,"joins":17,"leaves":5},{"guild_id":"100000000000000001","day":"2026-09-06","messages":517,"joins":4,"leaves":12},{"guild_id":"100000000000000001","day":"2026-09-07","messages":914,"joins":24,"leaves":9},{"guild_id":"100000000000000001","day":"2026-09-08","messages":1189,"joins":28,"leaves":11},{"guild_id":"100000000000000001","day":"2026-09-09","messages":832,"joins":12,"leaves":6},{"guild_id":"100000000000000001","day":"2026-09-10","messages":675,"joins":10,"leaves":7},{"guild_id":"100000000000000001","day":"2026-09-11","messages":841,"joins":17,"leaves":4},{"guild_id":"100000000000000001","day":"2026-09-12","messages":1020,"joins":10,"leaves":3},{"guild_id":"100000000000000001","day":"2026-09-13","messages":1029,"joins":12,"leaves":11},{"guild_id":"100000000000000001","day":"2026-09-14","messages":440,"joins":29,"leaves":8},{"guild_id":"100000000000000001","day":"2026-09-15","messages":670,"joins":26,"leaves":10},{"guild_id":"100000000000000001","day":"2026-09-16","messages":435,"joins":5,"leaves":6}],"meta":{"channels":[],"roles":[],"members":0,"emojis":[],"logGroups":{"messages":{"emoji":"💬","label":"الرسائل"},"members":{"emoji":"👥","label":"الأعضاء"},"roles":{"emoji":"🎭","label":"الرتب"},"channels":{"emoji":"📁","label":"القنوات"},"server":{"emoji":"⚙️","label":"السيرفر والإيموجيات"},"invites":{"emoji":"🔗","label":"الدعوات"},"threads":{"emoji":"🧵","label":"المواضيع"},"voice":{"emoji":"🔊","label":"الصوت"},"system":{"emoji":"🛡️","label":"الأنظمة"}},"logEvents":{"messageDelete":{"label":"حذف رسالة","emoji":"🗑️","group":"messages"},"messageEdit":{"label":"تعديل رسالة","emoji":"✏️","group":"messages"},"messageBulkDelete":{"label":"حذف جماعي للرسائل","emoji":"🧹","group":"messages"},"memberJoin":{"label":"دخول عضو","emoji":"📥","group":"members"},"memberLeave":{"label":"خروج عضو","emoji":"📤","group":"members"},"memberKick":{"label":"طرد عضو","emoji":"👢","group":"members"},"memberBan":{"label":"حظر عضو","emoji":"🔨","group":"members"},"memberUnban":{"label":"فك حظر","emoji":"♻️","group":"members"},"memberTimeout":{"label":"إسكات عضو (Timeout)","emoji":"🔇","group":"members"},"memberBoost":{"label":"دعم السيرفر (Boost)","emoji":"🚀","group":"members"},"memberRoleUpdate":{"label":"تغيير رتب عضو","emoji":"🎭","group":"members"},"memberNickname":{"label":"تغيير اسم عضو","emoji":"📝","group":"members"},"memberAvatar":{"label":"تغيير صورة عضو","emoji":"🖼️","group":"members"},"memberUsername":{"label":"تغيير اسم المستخدم","emoji":"🏷️","group":"members"},"roleCreate":{"label":"إنشاء رتبة","emoji":"🎭","group":"roles"},"roleDelete":{"label":"حذف رتبة","emoji":"🎭","group":"roles"},"roleUpdate":{"label":"تعديل رتبة","emoji":"🎭","group":"roles"},"channelCreate":{"label":"إنشاء قناة","emoji":"📁","group":"channels"},"channelDelete":{"label":"حذف قناة","emoji":"📁","group":"channels"},"channelUpdate":{"label":"تعديل قناة","emoji":"✏️","group":"channels"},"channelPermissions":{"label":"تغيير صلاحيات قناة","emoji":"🔐","group":"channels"},"serverUpdate":{"label":"تحديث السيرفر","emoji":"⚙️","group":"server"},"emojiCreate":{"label":"إضافة إيموجي","emoji":"😀","group":"server"},"emojiDelete":{"label":"حذف إيموجي","emoji":"😶","group":"server"},"stickerCreate":{"label":"إضافة ملصق","emoji":"🏷️","group":"server"},"stickerDelete":{"label":"حذف ملصق","emoji":"🏷️","group":"server"},"inviteCreate":{"label":"إنشاء دعوة","emoji":"🔗","group":"invites"},"inviteDelete":{"label":"حذف دعوة","emoji":"🔗","group":"invites"},"threadCreate":{"label":"إنشاء موضوع (Thread)","emoji":"🧵","group":"threads"},"threadDelete":{"label":"حذف موضوع (Thread)","emoji":"🧵","group":"threads"},"voiceJoin":{"label":"دخول قناة صوتية","emoji":"🔊","group":"voice"},"voiceLeave":{"label":"خروج من قناة صوتية","emoji":"🔇","group":"voice"},"voiceMove":{"label":"تنقّل بين قنوات صوتية","emoji":"↔️","group":"voice"},"voiceMute":{"label":"كتم صوتي","emoji":"🎙️","group":"voice"},"voiceDeafen":{"label":"إصمام صوتي","emoji":"🎧","group":"voice"},"modActions":{"label":"إجراء إداري","emoji":"🛡️","group":"system"},"automod":{"label":"الحماية التلقائية","emoji":"🚨","group":"system"},"ticket":{"label":"التذاكر","emoji":"🎫","group":"system"}},"cardAvailable":true},"viewer":{"canEdit":true,"loggedIn":true,"demo":true,"publicAccess":true}},"extra":{"cases":{"items":[{"id":8,"guild_id":"100000000000000001","type":"timeout","user_id":"200000000000000007","user_tag":"member_7#0007","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"إساءة للأعضاء","duration":600000,"active":1,"created_at":1789569871013},{"id":7,"guild_id":"100000000000000001","type":"unban","user_id":"200000000000000006","user_tag":"member_6#0006","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"سبام في الشات","duration":null,"active":1,"created_at":1789569871013},{"id":6,"guild_id":"100000000000000001","type":"timeout","user_id":"200000000000000005","user_tag":"member_5#0005","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"مخالفة القوانين","duration":600000,"active":1,"created_at":1789569871013},{"id":5,"guild_id":"100000000000000001","type":"kick","user_id":"200000000000000004","user_tag":"member_4#0004","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"تجاهل تحذيرات","duration":null,"active":1,"created_at":1789569871012},{"id":4,"guild_id":"100000000000000001","type":"ban","user_id":"200000000000000003","user_tag":"member_3#0003","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"نشر روابط","duration":null,"active":1,"created_at":1789569871012},{"id":3,"guild_id":"100000000000000001","type":"warn","user_id":"200000000000000002","user_tag":"member_2#0002","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"إساءة للأعضاء","duration":null,"active":1,"created_at":1789569871012},{"id":2,"guild_id":"100000000000000001","type":"warn","user_id":"200000000000000001","user_tag":"member_1#0001","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"سبام في الشات","duration":null,"active":1,"created_at":1789569871012},{"id":1,"guild_id":"100000000000000001","type":"warn","user_id":"200000000000000000","user_tag":"member_0#0000","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"مخالفة القوانين","duration":null,"active":1,"created_at":1789569871012}],"total":8,"page":1,"perPage":25,"pages":1},"tickets":{"items":[{"id":5,"guild_id":"100000000000000001","channel_id":"400000000000000004","user_id":"200000000000000014","type":"support","status":"closed","claimed_by":null,"transcript":null,"created_at":1789569871014,"closed_at":1789555471014},{"id":4,"guild_id":"100000000000000001","channel_id":"400000000000000003","user_id":"200000000000000013","type":"staff","status":"closed","claimed_by":null,"transcript":null,"created_at":1789569871013,"closed_at":1789559071013},{"id":3,"guild_id":"100000000000000001","channel_id":"400000000000000002","user_id":"200000000000000012","type":"gift","status":"closed","claimed_by":null,"transcript":null,"created_at":1789569871013,"closed_at":1789562671013},{"id":2,"guild_id":"100000000000000001","channel_id":"400000000000000001","user_id":"200000000000000011","type":"verify","status":"open","claimed_by":null,"transcript":null,"created_at":1789569871013,"closed_at":null},{"id":1,"guild_id":"100000000000000001","channel_id":"400000000000000000","user_id":"200000000000000010","type":"support","status":"open","claimed_by":"300000000000000001","transcript":null,"created_at":1789569871013,"closed_at":null}],"total":5},"levels":{"items":[{"guild_id":"100000000000000001","user_id":"200000000000000010","xp":24105,"level":20,"messages":1200,"voice_minutes":800,"last_xp_at":1789569871014,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000011","xp":12085,"level":15,"messages":1110,"voice_minutes":745,"last_xp_at":1789569811014,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000012","xp":8170,"level":12,"messages":1020,"voice_minutes":690,"last_xp_at":1789569751014,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000013","xp":6394,"level":11,"messages":930,"voice_minutes":635,"last_xp_at":1789569691014,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000014","xp":4988,"level":10,"messages":840,"voice_minutes":580,"last_xp_at":1789569631015,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000015","xp":4102,"level":9,"messages":750,"voice_minutes":525,"last_xp_at":1789569571015,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000016","xp":3478,"level":8,"messages":660,"voice_minutes":470,"last_xp_at":1789569511015,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000017","xp":3438,"level":8,"messages":570,"voice_minutes":415,"last_xp_at":1789569451015,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000018","xp":2844,"level":7,"messages":480,"voice_minutes":360,"last_xp_at":1789569391015,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000019","xp":2810,"level":7,"messages":390,"voice_minutes":305,"last_xp_at":1789569331015,"username":null,"displayName":null,"avatar":null}],"total":10}},"guild":"100000000000000001"};
-window.fetch=async function(u,o){o=o||{};var s=window.__SNAPSHOT__,p=String(u).replace('/api',''),d;
-if(o.method==='POST')d={ok:true,settings:s.payload.settings,message:'تم'};
-else if(p==='/guilds/'+s.guild)d=s.payload;
-else if(p.indexOf('/cases')!==-1)d=s.extra.cases;
-else if(p.indexOf('/tickets')!==-1)d=s.extra.tickets;
-else if(p.indexOf('/levels')!==-1)d=s.extra.levels;
-else if(p.indexOf('/members')!==-1)d={members:[]};
-else d={ok:true,message:'تم'};
-return{ok:true,status:200,json:async function(){return d;}};};
-</script>
-<script>
+  <script>
 /* ==========================================================
    Never Land  |  لوحة التحكم — واجهة عربية
    ----------------------------------------------------------
@@ -2291,7 +2716,11 @@ async function boot() {
 
   try {
     const data = await api(`/guilds/${state.guildId}`);
+    state.viewer = data.viewer || null;
     state.canEdit = data.viewer ? Boolean(data.viewer.canEdit) : root.dataset.edit !== '0';
+    if (data.viewer?.roleReason && data.viewer.roleReason !== 'ok') {
+      state.viewer.reason = data.viewer.message || '';
+    }
     state.settings = data.settings;
     state.guild = data.guild;
     state.stats = data.stats;
@@ -2305,8 +2734,12 @@ async function boot() {
       shell.appendChild(
         el('div', {
           class: 'd-readonly-note',
-          html: `${ic('shield', 17)} <b>عرض عام</b> — تقدر تتصفّح الإعدادات بحرية، أما التعديل فيحتاج تسجيل دخول بحساب Discord.
-            <a class="d-btn primary sm" href="/auth/login">${ic('login', 15)} تسجيل الدخول</a>`,
+          html:
+            state.viewer && state.viewer.loginRequired
+              ? `${ic('shield', 17)} <b>الوصول مقيّد</b> — ${esc(state.viewer.reason || 'تحتاج تسجيل دخول بحساب Discord والرول المطلوب.')}
+                 <a class="d-btn primary sm" href="/auth/login">${ic('login', 15)} تسجيل الدخول</a>`
+              : `${ic('shield', 17)} <b>عرض عام</b> — تقدر تتصفّح الإعدادات بحرية، أما التعديل فيحتاج تسجيل دخول بحساب Discord.
+                 <a class="d-btn primary sm" href="/auth/login">${ic('login', 15)} تسجيل الدخول</a>`,
         }),
       );
     }
@@ -2358,6 +2791,44 @@ async function boot() {
 
 document.addEventListener('DOMContentLoaded', boot);
 
+</script>
+</main>
+<footer class="footer">
+  <span>Never Land — نظام إدارة سيرفرات ديسكورد</span>
+  <span class="muted">قاعدة البيانات: sqlite</span>
+</footer>
+<script>
+  (function () {
+    var btn = document.getElementById('themeToggle');
+    if (!btn) return;
+    var moon = "<svg class=\"ico\" viewBox=\"0 0 24 24\" width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M20 14.6A8.6 8.6 0 1 1 9.4 4a6.9 6.9 0 0 0 10.6 10.6z\"/></svg>";
+    var sun = "<svg class=\"ico\" viewBox=\"0 0 24 24\" width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><circle cx=\"12\" cy=\"12\" r=\"4.2\"/><path d=\"M12 2.8v2.1M12 19.1v2.1M2.8 12h2.1M19.1 12h2.1M5.6 5.6l1.5 1.5M16.9 16.9l1.5 1.5M18.4 5.6l-1.5 1.5M7.1 16.9l-1.5 1.5\"/></svg>";
+    var autoIcon = "<svg class=\"ico\" viewBox=\"0 0 24 24\" width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M20 11.5a8 8 0 1 0-2.4 5.7\"/><path d=\"M20 4.5v7h-7\"/></svg>";
+    var root = document.documentElement;
+    var icon = { light: sun, dark: moon, auto: autoIcon };
+    var label = { light: 'الوضع النهاري', dark: 'الوضع الليلي', auto: 'حسب إعداد الجهاز' };
+    var stored = null;
+    try { stored = localStorage.getItem('neverland-theme'); } catch (e) {}
+    var mode = stored === 'light' || stored === 'dark' ? stored : 'auto';
+    var paint = function () {
+      var shown = mode === 'auto' ? (root.dataset.theme === 'light' ? 'light' : 'dark') : mode;
+      btn.innerHTML = mode === 'auto' ? autoIcon : icon[shown];
+      btn.title = label[mode] + ' — اضغط للتبديل';
+      btn.setAttribute('aria-label', label[mode]);
+    };
+    paint();
+    btn.addEventListener('click', function () {
+      var order = { auto: 'light', light: 'dark', dark: 'auto' };
+      mode = order[mode];
+      try {
+        if (mode === 'auto') localStorage.removeItem('neverland-theme');
+        else localStorage.setItem('neverland-theme', mode);
+      } catch (e) {}
+      var system = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      root.dataset.theme = mode === 'auto' ? system : mode;
+      paint();
+    });
+  })();
 </script>
 </body>
 </html>

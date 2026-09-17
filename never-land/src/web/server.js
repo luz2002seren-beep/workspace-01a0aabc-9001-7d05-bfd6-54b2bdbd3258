@@ -90,8 +90,8 @@ function startServer() {
   const { port } = config.web;
 
   server = app.listen(port, '0.0.0.0', () => {
-  console.log(`[الويب] لوحة التحكم شغّالة على: ${config.web.url}`);
-    console.log(`   (الدخول من المتصفح: http://localhost:${port})`);
+  console.log(`[الويب] الموقع شغّال على: ${config.web.url}`);
+    console.log(`   (من نفس الجهاز: http://localhost:${port})`);
     if (!config.web.demoMode && !config.bot.clientSecret) {
    console.warn('[تنبيه] CLIENT_SECRET غير موجود — تسجيل الدخول لن يعمل. أضف DEMO_MODE=true للمعاينة.');
     }

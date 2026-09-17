@@ -262,7 +262,6 @@ router.get('/sitemap.xml', (_req, res) => {
 
 /* ---------------------------------- الصفحة الرئيسية ---------------------------------- */
 router.get('/', requireAuth, (req, res) => {
-  const inviteUrl = config.web.inviteUrl || '#';
   const loggedIn = Boolean(req.user || config.web.demoMode);
   const supportUrl = config.web.supportUrl || null;
 
@@ -287,10 +286,10 @@ router.get('/', requireAuth, (req, res) => {
   ];
 
   const steps = [
-    { t: 'إضافة البوت', d: 'اضغط زر الإضافة واختر السيرفر، ثم اقبل الصلاحيات المطلوبة.' },
-    { t: 'تسجيل الدخول', d: 'ادخل بحساب ديسكورد، وستظهر سيرفراتك التي تملك فيها صلاحية الإدارة.' },
-    { t: 'تشغيل الأنظمة', d: 'فعّل ما تحتاجه من اللوحة: الترحيب، الحماية، التذاكر، السجلات.' },
-    { t: 'الحفظ', d: 'اضغط حفظ التغييرات لتُطبَّق مباشرة على البوت.' },
+    { t: 'تأكيد الدخول', d: 'ادخل بحساب ديسكورد، ولا بد أن يملك حسابك الرول المطلوب.' },
+    { t: 'اختيار السيرفر', d: 'اختر السيرفر من القائمة وستفتح لوحة إعداداته مباشرة.' },
+    { t: 'تفعيل الأنظمة', d: 'فعّل ما تحتاجه: الترحيب، الحماية، التذاكر، السجلات، المستويات.' },
+    { t: 'الحفظ', d: 'اضغط حفظ التغييرات لتُطبَّق فورًا على البوت.' },
   ];
 
   const commands = [
@@ -315,8 +314,8 @@ router.get('/', requireAuth, (req, res) => {
         <a class="btn btn-primary btn-lg" href="${loggedIn ? '/dashboard' : '/auth/login'}">
           ${icon(loggedIn ? 'dashboard' : 'login', { size: 18 })} ${loggedIn ? 'لوحة التحكم' : 'تسجيل الدخول'}
         </a>
-        <a class="btn btn-ghost btn-lg" href="${inviteUrl}" target="_blank" rel="noopener">
-          ${icon('plus', { size: 18 })} إضافة البوت
+        <a class="btn btn-ghost btn-lg" href="/api/status" target="_blank" rel="noopener">
+          ${icon('activity', { size: 18 })} حالة الخدمة
         </a>
       </div>
       <div class="stat-row" style="justify-content:flex-start;margin-top:26px">
@@ -423,7 +422,6 @@ router.get('/dashboard', requireAuth, (req, res) => {
   }
   const isGuest = !req.canEdit;
 
-  const inviteUrl = config.web.inviteUrl || '#';
   const withBot = guilds.filter((g) => g.botPresent).length;
 
   const cards = guilds.length
@@ -446,7 +444,7 @@ router.get('/dashboard', requireAuth, (req, res) => {
           ${
             g.botPresent
               ? `<a class="btn btn-primary btn-sm" href="/dashboard/${g.id}">${icon('settings', { size: 16 })} ${isGuest ? 'عرض' : 'إعداد'}</a>`
-              : `<a class="btn btn-ghost btn-sm" href="${inviteUrl}" target="_blank" rel="noopener">${icon('plus', { size: 16 })} إضافة البوت</a>`
+              : `<span class="badge badge-warn">${icon('warning', { size: 15 })} البوت غير مضاف</span>`
           }
         </div>
       </div>`;
@@ -465,7 +463,6 @@ router.get('/dashboard', requireAuth, (req, res) => {
       <p class="muted">${guilds.length} سيرفر · البوت مضاف إلى ${withBot} منها${isGuest ? ' · عرض عام للقراءة فقط' : ''}</p>
     </div>
     <div class="head-actions">
-      <a class="btn btn-ghost" href="${inviteUrl}" target="_blank" rel="noopener">${icon('plus', { size: 17 })} إضافة البوت</a>
       ${
         isGuest
           ? `<a class="btn btn-primary" href="/auth/login">${icon('login', { size: 17 })} تسجيل الدخول بـ Discord</a>`

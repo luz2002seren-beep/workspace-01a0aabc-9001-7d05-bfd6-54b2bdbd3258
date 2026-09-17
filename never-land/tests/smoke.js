@@ -442,7 +442,8 @@ console.log('[نجاح] كل الاختبارات نجحت!');
       assert.ok(pagesSrc.includes(cls), `عنصر ${cls} ناقص من الصفحة الرئيسية`);
       assert.ok(styleSrc.includes(`.${cls}`), `نمط ${cls} ناقص من style.css`);
     }
-    assert.ok(pagesSrc.includes('إضافة البوت'), 'زر إضافة البوت ناقص');
+    assert.ok(!pagesSrc.includes('إضافة البوت'), 'ميزة إضافة البوت ما زالت موجودة');
+    assert.ok(!pagesSrc.includes('inviteUrl'), 'رابط إضافة البوت ما زال مستخدمًا');
     assert.ok(!pagesSrc.includes('feature-note'), 'العناصر المعلوماتية القديمة ما زالت موجودة');
 
     // قائمة السيرفرات المحسّنة
@@ -460,8 +461,10 @@ console.log('[نجاح] كل الاختبارات نجحت!');
     const dashVars = (dashSrc.match(/var\(--/g) || []).length;
     assert.ok(dashVars > 60, `dash.css يستخدم ${dashVars} رمزًا فقط — التحويل للرموز ناقص`);
 
-    // رابط إضافة البوت يُبنى تلقائيًا
-    assert.ok(/inviteUrl/.test(fs3.readFileSync(path3.join(__dirname, '..', 'src', 'config.js'), 'utf8')), 'inviteUrl ناقص من الإعدادات');
+    // ميزة إضافة البوت مُزالة بالكامل
+    const cfgSrc3 = fs3.readFileSync(path3.join(__dirname, '..', 'src', 'config.js'), 'utf8');
+    assert.ok(!/inviteUrl/.test(cfgSrc3), 'inviteUrl ما زال في الإعدادات');
+    assert.ok(!/oauth2\/authorize\?client_id/.test(cfgSrc3), 'رابط التفويض ما زال يُبنى');
   console.log(`  [تم] الرئيسية + السيرفرات + الوضع الليلي/النهاري (${dashVars} رمزًا في dash.css)`);
   }
 
