@@ -32,11 +32,24 @@ const list = (v) => String(v ?? '')
 
 const root = path.resolve(__dirname, '..');
 
+/**
+ * هل التوكن حقيقي (لا نصًا بديلًا من .env.example)؟
+ * توكنات ديسكورد طويلة (أكثر من 50 محرفًا) وبالإنجليزية/أرقام فقط.
+ */
+const hasRealToken = (() => {
+  const t = String(process.env.DISCORD_TOKEN || '').trim();
+  if (t.length < 50) return false;
+  if (!/^[A-Za-z0-9._-]+$/.test(t)) return false;
+  return true;
+})();
+
 const config = {
   root,
 
   bot: {
     token: process.env.DISCORD_TOKEN || '',
+    /** true عندما يكون التوكن حقيقيًا (وقتها تُستخدم بيانات ديسكورد الفعلية) */
+    hasToken: hasRealToken,
     clientId: process.env.CLIENT_ID || '',
     clientSecret: process.env.CLIENT_SECRET || '',
     defaultLanguage: (process.env.DEFAULT_LANGUAGE || 'ar').trim().toLowerCase().startsWith('en') ? 'en' : 'ar',
@@ -84,6 +97,13 @@ const config = {
      */
     url: resolveWebUrl(),
     sessionSecret: process.env.SESSION_SECRET || 'never-land-change-me',
+  },
+
+  /** المزامنة الحقيقية مع ديسكورد (لقطات القنوات/الرتب/الأعضاء للوحة) */
+  sync: {
+    enabled: bool(process.env.SYNC_ENABLED, true),
+    /** كل كم ثانية تُعاد المزامنة تلقائيًا (الحد الأدنى 60) */
+    intervalSeconds: Math.max(60, int(process.env.SYNC_INTERVAL_SECONDS, 300)),
   },
 
   database: {
@@ -449,6 +469,18 @@ function resolveWebUrl() {
   if (configured) return configured;
   return `http://localhost:${port}`;
 }
+
+/**
+ * بيانات العرض (DEMO) تُستخدم فقط عندما لا يوجد توكن حقيقي.
+ * بمجرد وضع DISCORD_TOKEN في .env تتوقف كل بيانات العرض تلقائيًا
+ * وتصير الصفحات تقرأ بياناتك الحقيقية من ديسكورد.
+ */
+Object.defineProperty(config.web, 'demoData', {
+  get() {
+    return Boolean(this.demoMode) && !config.bot.hasToken;
+  },
+  enumerable: true,
+});
 
 config.isDev = () => config.bot.developerIds.length > 0;
 

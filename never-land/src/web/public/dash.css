@@ -382,6 +382,26 @@ html[dir='rtl'] .d-switch input:checked + span::after { transform: translateX(-2
 .d-readable { display: none; }
 
 /* شارة «عرض عام» لزائر ما سجّل دخول */
+/* شريط المزامنة الحيّ */
+.d-syncbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  font-size: 13px;
+}
+.d-sync-info { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; opacity: 0.95; }
+.d-sync-info svg { color: var(--primary); }
+.d-sync-ok { color: #3ba55d; }
+.d-sync-warn { color: #e0a02a; }
+.d-sync-count { opacity: 0.7; }
+.d-syncbar .d-btn { margin-inline-start: auto; }
+
 .d-readonly-note {
   display: flex;
   flex-wrap: wrap;

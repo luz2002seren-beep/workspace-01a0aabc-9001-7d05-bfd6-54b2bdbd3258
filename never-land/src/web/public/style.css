@@ -558,3 +558,7 @@ a, button, .btn, .pill, .guild-card {
   .topbar, .footer, .site-cta, .theme-toggle, .auth { display: none !important; }
   body { background: #fff; color: #000; }
 }
+
+/* سطر «آخر مزامنة» في بطاقات السيرفرات */
+.sync-line { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; opacity: 0.75; }
+.sync-line svg { color: var(--primary, #5b6cff); }

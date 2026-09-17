@@ -72,6 +72,13 @@ CREATE TABLE IF NOT EXISTS stats_daily (
   PRIMARY KEY (guild_id, day)
 );
 
+-- مخزن عام (لقطات المزامنة الحقيقية من ديسكورد + حالة المزامنة)
+CREATE TABLE IF NOT EXISTS kv (
+  key        TEXT PRIMARY KEY,
+  value      TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
 -- التذكيرات (Reminders)
 CREATE TABLE IF NOT EXISTS reminders (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,

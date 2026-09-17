@@ -16,10 +16,10 @@
 <meta property="og:site_name" content="Never Land">
 <meta property="og:title" content="السيرفرات | Never Land">
 <meta property="og:description" content="نظام إدارة سيرفرات ديسكورد متكامل مع لوحة تحكم عربية.">
-<meta property="og:url" content="https://predicted-saves-ocean-guests.trycloudflare.com/">
-<meta property="og:image" content="https://predicted-saves-ocean-guests.trycloudflare.com/icon.svg">
+<meta property="og:url" content="https://html-parameters-investigate-reef.trycloudflare.com/">
+<meta property="og:image" content="https://html-parameters-investigate-reef.trycloudflare.com/icon.svg">
 <meta name="twitter:card" content="summary">
-<link rel="canonical" href="https://predicted-saves-ocean-guests.trycloudflare.com/">
+<link rel="canonical" href="https://html-parameters-investigate-reef.trycloudflare.com/">
 <title>السيرفرات | Never Land</title>
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNDAgNDAiIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgYXJpYS1oaWRkZW49InRydWUiIGZvY3VzYWJsZT0iZmFsc2UiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJwYkdyYWQiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNWI2Y2ZmIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjM2Y0OWI4Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSIxMSIgZmlsbD0idXJsKCNwYkdyYWQpIi8+CiAgPHBhdGggZD0iTTIwIDguNSAyOSAxMnY2LjZjMCA1LjEtMy41IDguOC05IDEwLjktNS41LTIuMS05LTUuOC05LTEwLjlWMTJ6IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMi4xIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHBhdGggZD0iTTIwLjkgMTMuNiAxNS40IDIwLjRoMy42bC0xIDYgNS43LTcuMWgtMy42eiIgZmlsbD0iI2ZmZiIvPgo8L3N2Zz4=">
 <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNDAgNDAiIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgYXJpYS1oaWRkZW49InRydWUiIGZvY3VzYWJsZT0iZmFsc2UiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJwYkdyYWQiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNWI2Y2ZmIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjM2Y0OWI4Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSIxMSIgZmlsbD0idXJsKCNwYkdyYWQpIi8+CiAgPHBhdGggZD0iTTIwIDguNSAyOSAxMnY2LjZjMCA1LjEtMy41IDguOC05IDEwLjktNS41LTIuMS05LTUuOC05LTEwLjlWMTJ6IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMi4xIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHBhdGggZD0iTTIwLjkgMTMuNiAxNS40IDIwLjRoMy42bC0xIDYgNS43LTcuMWgtMy42eiIgZmlsbD0iI2ZmZiIvPgo8L3N2Zz4=">
@@ -586,6 +586,10 @@ a, button, .btn, .pill, .guild-card {
   body { background: #fff; color: #000; }
 }
 
+/* سطر «آخر مزامنة» في بطاقات السيرفرات */
+.sync-line { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; opacity: 0.75; }
+.sync-line svg { color: var(--primary, #5b6cff); }
+
 </style>
 
 <script>
@@ -647,9 +651,12 @@ a, button, .btn, .pill, .guild-card {
       <p class="muted">1 سيرفر · البوت مضاف إلى 1 منها</p>
     </div>
     <div class="head-actions">
-      <a class="btn btn-ghost" href="/auth/logout"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 4.5h2.8A1.7 1.7 0 0 1 19.5 6.2v11.6a1.7 1.7 0 0 1-1.7 1.7H15"/><path d="M10 12h9"/><path d="m13 9-3 3 3 3"/></svg> خروج</a>
+      <button class="btn btn-primary" id="syncNowBtn"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 11.5a8 8 0 1 0-2.4 5.7"/><path d="M20 4.5v7h-7"/></svg> مزامنة الآن</button>
+             <a class="btn btn-ghost" href="/auth/logout"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 4.5h2.8A1.7 1.7 0 0 1 19.5 6.2v11.6a1.7 1.7 0 0 1-1.7 1.7H15"/><path d="M10 12h9"/><path d="m13 9-3 3 3 3"/></svg> خروج</a>
     </div>
   </div>
+
+  <p class="muted" id="syncInfo">آخر مزامنة مع ديسكورد: <b>لم تتم المزامنة بعد</b></p>
 
   <div class="servers-toolbar">
            <span class="search-wrap"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="10.8" cy="10.8" r="6.3"/><path d="m15.5 15.5 4 4"/></svg><input type="text" id="guildSearch" placeholder="ابحث عن سيرفر بالاسم"></span>
@@ -669,6 +676,7 @@ a, button, .btn, .pill, .guild-card {
             ٤٬٨٢٠ عضو
             
           </span>
+          <span class="muted sync-line"><svg class="ico" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 11.5a8 8 0 1 0-2.4 5.7"/><path d="M20 4.5v7h-7"/></svg> آخر مزامنة: لم تتم المزامنة بعد</span>
         </div>
         <div class="guild-actions">
           <a class="btn btn-primary btn-sm" href="/dashboard/100000000000000001"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3.1"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-2.87 1.2V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 2.6 15H2.5a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.3 9a1.7 1.7 0 0 0-.34-1.87L3.9 7.07A2 2 0 1 1 6.73 4.24l.06.06A1.7 1.7 0 0 0 8.66 4.64h.08A1.7 1.7 0 0 0 9.8 3V2.9a2 2 0 1 1 4 0V3a1.7 1.7 0 0 0 1.06 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.2 9v.08a1.7 1.7 0 0 0 1.64 1.06h.1a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.44 1.06z"/></svg> إعداد</a>
@@ -677,6 +685,26 @@ a, button, .btn, .pill, .guild-card {
 
   <script>
            (function () {
+             // «مزامنة الآن»: يحدّث بيانات السيرفرات من ديسكورد ثم يعيد تحميل الصفحة
+             var syncBtn = document.getElementById('syncNowBtn');
+             if (syncBtn) {
+               syncBtn.addEventListener('click', async function () {
+                 var original = syncBtn.innerHTML;
+                 syncBtn.disabled = true;
+                 syncBtn.textContent = 'جارٍ المزامنة...';
+                 try {
+                   var res = await fetch('/api/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+                   var data = await res.json();
+                   if (!res.ok) throw new Error(data.message || 'تعذّرت المزامنة');
+                   location.reload();
+                 } catch (err) {
+                   syncBtn.disabled = false;
+                   syncBtn.innerHTML = original;
+                   alert(err.message || 'تعذّرت المزامنة');
+                 }
+               });
+             }
+
              var search = document.getElementById('guildSearch');
              var filter = document.getElementById('guildFilter');
              var grid = document.getElementById('guildGrid');

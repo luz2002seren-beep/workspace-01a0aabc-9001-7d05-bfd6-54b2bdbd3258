@@ -152,7 +152,7 @@ function escapeHtml(str) {
  */
 async function requireAuth(req, res, next) {
   /* وضع التطوير (DEMO): دخول مباشر بدون توكن */
-  if (config.web.demoMode) {
+  if (config.web.demoData) {
     req.user = { id: '0', username: 'المسؤول', globalName: 'مسؤول السيرفر' };
     req.canEdit = true;
     req.roleResult = { ok: true, reason: 'demo', checked: false };
@@ -206,9 +206,30 @@ function denialBody(req, result) {
 }
 
 /** قائمة السيرفرات العامة (لزائر بدون تسجيل): من البوت إن كان متصلًا، وإلا قائمة المعاينة */
+/** صياغة «قبل كم» بالعربية لوقت المزامنة */
+function sinceArabic(ts) {
+  if (!ts) return 'لم تتم المزامنة بعد';
+  const sec = Math.max(0, Math.round((Date.now() - ts) / 1000));
+  if (sec < 60) return 'قبل لحظات';
+  const min = Math.round(sec / 60);
+  if (min < 60) return `قبل ${min} دقيقة`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `قبل ${hr} ساعة`;
+  const day = Math.round(hr / 24);
+  return `قبل ${day} يوم`;
+}
+
 function publicGuilds(req) {
-  if (config.web.demoMode) return require('../demo').DEMO_META.guilds;
-  const client = require('../../client');
+  if (config.web.demoData) return require('../demo').DEMO_META.guilds;
+  const client = (() => {
+    try {
+      return require('../../client');
+    } catch {
+      return null;
+    }
+  })();
+
+  // ١) البوت متّصل الآن → بيانات حيّة مباشرة من ديسكورد
   if (client?.isReady?.()) {
     return [...client.guilds.cache.values()].map((g) => ({
       id: g.id,
@@ -217,9 +238,12 @@ function publicGuilds(req) {
       memberCount: g.memberCount,
       ownerName: null,
       botPresent: true,
+      syncedAt: Date.now(),
     }));
   }
-  return [];
+
+  // ٢) البوت متوقّف → آخر لقطة مزامنة محفوظة في قاعدة البيانات
+  return require('../../sync').listGuildMeta();
 }
 
 /* --------------------- ملفات الموقع الأساسية (أيقونة، مانيفست، روبوتات) --------------------- */
@@ -262,7 +286,7 @@ router.get('/sitemap.xml', (_req, res) => {
 
 /* ---------------------------------- الصفحة الرئيسية ---------------------------------- */
 router.get('/', requireAuth, (req, res) => {
-  const loggedIn = Boolean(req.user || config.web.demoMode);
+  const loggedIn = Boolean(req.user || config.web.demoData);
   const supportUrl = config.web.supportUrl || null;
 
   const features = [
@@ -393,6 +417,7 @@ router.get('/', requireAuth, (req, res) => {
 
 /* ---------------------------------- قائمة السيرفرات ---------------------------------- */
 router.get('/dashboard', requireAuth, (req, res) => {
+  const syncStatus = require('../../sync').getStatus();
   const client = (() => {
     try {
       return require('../../client');
@@ -403,18 +428,25 @@ router.get('/dashboard', requireAuth, (req, res) => {
 
   let guilds = [];
   if (req.canEdit) {
-    if (config.web.demoMode) {
+    if (config.web.demoData) {
       guilds = require('../demo').DEMO_META.guilds;
     } else {
       const botIds = new Set(client?.guilds?.cache?.keys?.() ?? []);
-      guilds = (req.session.guilds || []).map((g) => ({
-        id: g.id,
-        name: g.name,
-        icon: g.icon,
-        memberCount: client?.guilds?.cache?.get(g.id)?.memberCount ?? null,
-        botPresent: botIds.has(g.id),
-        owner: Boolean(g.owner),
-      }));
+      const sync = require('../../sync');
+      const snap = new Map(sync.listGuildMeta().map((g) => [g.id, g]));
+      guilds = (req.session.guilds || []).map((g) => {
+        const live = client?.guilds?.cache?.get(g.id);
+        const saved = snap.get(g.id);
+        return {
+          id: g.id,
+          name: live?.name || saved?.name || g.name,
+          icon: live?.iconURL?.({ size: 128, extension: 'png' }) || saved?.icon || g.icon,
+          memberCount: live?.memberCount ?? saved?.memberCount ?? null,
+          botPresent: botIds.has(g.id),
+          owner: Boolean(g.owner),
+          syncedAt: saved?.syncedAt ?? null,
+        };
+      });
     }
   } else {
     // زائر: قائمة السيرفرات العامة (بدون تعديل)
@@ -439,6 +471,7 @@ router.get('/dashboard', requireAuth, (req, res) => {
             ${g.memberCount ? `${Number(g.memberCount).toLocaleString('ar-EG')} عضو` : 'عدد الأعضاء غير متاح'}
             ${g.owner ? `— ${icon('crown', { size: 14 })} المالك` : ''}
           </span>
+          <span class="muted sync-line">${icon('refresh', { size: 13 })} آخر مزامنة: ${sinceArabic(g.syncedAt)}</span>
         </div>
         <div class="guild-actions">
           ${
@@ -466,10 +499,15 @@ router.get('/dashboard', requireAuth, (req, res) => {
       ${
         isGuest
           ? `<a class="btn btn-primary" href="/auth/login">${icon('login', { size: 17 })} تسجيل الدخول بـ Discord</a>`
-          : `<a class="btn btn-ghost" href="/auth/logout">${icon('logout', { size: 17 })} خروج</a>`
+          : `<button class="btn btn-primary" id="syncNowBtn">${icon('refresh', { size: 17 })} مزامنة الآن</button>
+             <a class="btn btn-ghost" href="/auth/logout">${icon('logout', { size: 17 })} خروج</a>`
       }
     </div>
   </div>
+
+  <p class="muted" id="syncInfo">آخر مزامنة مع ديسكورد: <b>${sinceArabic(syncStatus.at)}</b>${
+    syncStatus.botOnline ? ' · البوت متّصل ويحدّث البيانات لحظيًا' : ''
+  }</p>
 
   ${
     guilds.length
@@ -490,6 +528,26 @@ router.get('/dashboard', requireAuth, (req, res) => {
     guilds.length
       ? `<script>
            (function () {
+             // «مزامنة الآن»: يحدّث بيانات السيرفرات من ديسكورد ثم يعيد تحميل الصفحة
+             var syncBtn = document.getElementById('syncNowBtn');
+             if (syncBtn) {
+               syncBtn.addEventListener('click', async function () {
+                 var original = syncBtn.innerHTML;
+                 syncBtn.disabled = true;
+                 syncBtn.textContent = 'جارٍ المزامنة...';
+                 try {
+                   var res = await fetch('/api/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+                   var data = await res.json();
+                   if (!res.ok) throw new Error(data.message || 'تعذّرت المزامنة');
+                   location.reload();
+                 } catch (err) {
+                   syncBtn.disabled = false;
+                   syncBtn.innerHTML = original;
+                   alert(err.message || 'تعذّرت المزامنة');
+                 }
+               });
+             }
+
              var search = document.getElementById('guildSearch');
              var filter = document.getElementById('guildFilter');
              var grid = document.getElementById('guildGrid');
@@ -536,7 +594,7 @@ router.get('/dashboard', requireAuth, (req, res) => {
 router.get('/dashboard/:guildId', requireAuth, (req, res) => {
   const { guildId } = req.params;
 
-  if (!config.web.demoMode) {
+  if (!config.web.demoData) {
     const allowed = (req.session.guilds || []).some((g) => g.id === guildId);
     const publiclyListed = publicGuilds(req).some((g) => g.id === guildId);
     if (!allowed && !(config.web.publicAccess && publiclyListed)) {

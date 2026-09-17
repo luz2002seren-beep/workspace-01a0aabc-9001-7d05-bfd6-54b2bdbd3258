@@ -21,6 +21,7 @@ const now = () => Date.now();
 const today = () => new Date().toISOString().slice(0, 10);
 
 const emptyStore = () => ({
+  kv: {},
   guilds: {},
   cases: [],
   tickets: [],
@@ -79,6 +80,30 @@ module.exports = {
     process.on('SIGINT', () => saveNow());
     process.on('SIGTERM', () => saveNow());
     return this;
+  },
+  /* ----------------------- المخزن العام (لقطات المزامنة) ----------------------- */
+
+  getKV(key) {
+    const row = store.kv[key];
+    return row ? row.value : null;
+  },
+
+  setKV(key, value) {
+    store.kv[key] = { value: String(value), updatedAt: now() };
+    scheduleSave();
+    return true;
+  },
+
+  delKV(key) {
+    delete store.kv[key];
+    scheduleSave();
+    return true;
+  },
+
+  listKV(prefix = '') {
+    return Object.entries(store.kv)
+      .filter(([k]) => k.startsWith(prefix))
+      .map(([key, row]) => ({ key, value: row.value, updated_at: row.updatedAt }));
   },
 
   ensureGuild(guildId) {

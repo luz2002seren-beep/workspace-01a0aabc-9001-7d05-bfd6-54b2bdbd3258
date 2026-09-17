@@ -58,9 +58,12 @@ function createApp() {
   });
 
   // بيانات تجريبية عند تفعيل وضع المعاينة
-  if (config.web.demoMode) {
+  if (config.web.demoData) {
     require('./demo').seed();
-    console.log('[تهيئة] DEMO_MODE مفعّل: الدخول متاح بدون توكن حتى تربط بيانات Discord.');
+    console.log('[تهيئة] ما في توكن Discord بعد: الصفحات تعرض بيانات العرض حتى تربط حسابك.');
+  } else if (config.web.demoMode && config.bot.hasToken) {
+    console.log('[تهيئة] تم اكتشاف توكن Discord: بيانات العرض متوقّفة، والموقع يستخدم بياناتك الحقيقية.');
+    require('./demo').cleanup?.();
   }
 
   // المسارات

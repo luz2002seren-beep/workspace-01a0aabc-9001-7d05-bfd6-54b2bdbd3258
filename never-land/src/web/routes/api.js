@@ -20,13 +20,14 @@ const access = require('../access');
 const config = require('../../config');
 const db = require('../../database');
 const { mergeSettings } = require('../../database/defaults');
+const sync = require('../../sync');
 
 const router = express.Router();
 
 /** العضو المسجّل حاليًا (أو مستخدم المعاينة) */
 function currentUser(req) {
-  if (config.web.demoMode) {
-    return { id: '0', username: 'المسؤول', globalName: 'مسؤول السيرفر', demo: true };
+  if (config.web.demoData) {
+    return { id: '0', username: 'المسؤول', globalName: 'مسؤول السيرفر' };
   }
   return req.session.user || null;
 }
@@ -34,18 +35,24 @@ function currentUser(req) {
 /** سيرفرات المستخدم المتاحة في اللوحة */
 function availableGuilds(req) {
   const client = safeClient();
-  if (config.web.demoMode) return require('../demo').DEMO_META.guilds;
-  if (!req.session.guilds) return [];
+  if (config.web.demoData) return require('../demo').DEMO_META.guilds;
+  if (!req.session.guilds) return sync.listGuildMeta();
 
   const botGuildIds = client?.isReady?.() ? new Set(client.guilds.cache.keys()) : null;
-  return req.session.guilds.map((g) => ({
-    id: g.id,
-    name: g.name,
-    icon: g.icon,
-    owner: Boolean(g.owner),
-    memberCount: client?.guilds?.cache?.get(g.id)?.memberCount ?? null,
-    botPresent: botGuildIds ? botGuildIds.has(g.id) : null,
-  }));
+  const savedMap = new Map(sync.listGuildMeta().map((g) => [g.id, g]));
+  return req.session.guilds.map((g) => {
+    const live = client?.guilds?.cache?.get(g.id);
+    const saved = savedMap.get(g.id);
+    return {
+      id: g.id,
+      name: live?.name || saved?.name || g.name,
+      icon: live?.iconURL?.({ size: 128, extension: 'png' }) || saved?.icon || g.icon,
+      owner: Boolean(g.owner),
+      memberCount: live?.memberCount ?? saved?.memberCount ?? null,
+      botPresent: botGuildIds ? botGuildIds.has(g.id) : Boolean(saved),
+      syncedAt: saved?.syncedAt ?? null,
+    };
+  });
 }
 
 function safeClient() {
@@ -59,26 +66,25 @@ function safeClient() {
 
 /** هل المستخدم يملك صلاحية الوصول لهذا السيرفر؟ */
 function canAccess(req, guildId) {
-  if (config.web.demoMode) return true;
+  if (config.web.demoData) return true;
   if (req.session.user) {
     if (config.bot.developerIds.includes(req.session.user.id)) return true;
     return (req.session.guilds || []).some((g) => g.id === guildId);
   }
-  // زائر (عرض عام): قراءة فقط لسيرفر مُدرَج فيه البوت
+  // زائر (عرض عام): قراءة فقط لسيرفر مُدرَج فيه البوت (حيًّا أو من آخر مزامنة)
   if (config.web.publicAccess && req.method === 'GET') {
     try {
       const client = require('../../client');
-      return Boolean(client?.guilds?.cache?.has?.(guildId));
-    } catch {
-      return false;
-    }
+      if (client?.guilds?.cache?.has?.(guildId)) return true;
+    } catch { /* البوت غير محمّل */ }
+    return Boolean(sync.getSnapshot(guildId));
   }
   return false;
 }
 
 /** هل يملك المشاهد صلاحية التعديل؟ */
 function canEdit(req) {
-  if (config.web.demoMode) return true;
+  if (config.web.demoData) return true;
   return Boolean(req.roleOk);
 }
 
@@ -88,7 +94,7 @@ function canEdit(req) {
  *  - الكتابة (POST/PATCH/DELETE) تحتاج تسجيل دخول Discord
  */
 router.use(async (req, res, next) => {
-  if (config.web.demoMode) {
+  if (config.web.demoData) {
     req.roleOk = true;
     return next();
   }
@@ -123,10 +129,10 @@ router.get('/me', (req, res) => {
   res.json({
     user: currentUser(req),
     guilds: availableGuilds(req),
-    demo: config.web.demoMode,
     loginRequired: config.web.loginRequired,
     requiredRoleId: config.web.requiredRoleId || null,
-    roleOk: config.web.demoMode ? true : Boolean(req.roleOk),
+    roleOk: config.web.demoData ? true : Boolean(req.roleOk),
+    sync: sync.getStatus(),
   });
 });
 
@@ -143,37 +149,41 @@ router.get('/guilds/:guildId', (req, res) => {
   const stats = db.getStats(guildId);
   const client = safeClient();
   const discordGuild = client?.guilds?.cache?.get(guildId);
+  const snapshot = sync.getSnapshot(guildId);
 
-  // الميتاداتا (قنوات/رتب) للقوائم المنسدلة
+  // الميتاداتا (قنوات/رتب): من البوت المتّصل، وإلا من آخر مزامنة محفوظة
   const channels = discordGuild
     ? [...discordGuild.channels.cache.values()]
         .filter((c) => c.type === 0 || c.type === 2 || c.type === 4 || c.type === 15)
         .map((c) => ({ id: c.id, name: c.name, type: c.type, parentId: c.parentId ?? null }))
         .sort((a, b) => a.type - b.type || String(a.name).localeCompare(String(b.name), 'ar'))
-    : [];
+    : (snapshot?.channels || []).filter((c) => [0, 2, 4, 15].includes(c.type));
 
   const roles = discordGuild
     ? [...discordGuild.roles.cache.values()]
         .filter((r) => r.id !== discordGuild.id && !r.managed)
         .sort((a, b) => b.position - a.position)
         .map((r) => ({ id: r.id, name: r.name, color: r.hexColor, position: r.position }))
-    : [];
+    : (snapshot?.roles || []).filter((r) => !r.managed);
 
   const loggingSystem = require('../../systems/logging');
 
   return res.json({
     guild: {
       id: guildId,
-      name: discordGuild?.name ?? (config.web.demoMode ? 'مجتمع Never Land' : guildId),
-      icon: discordGuild?.icon ?? null,
-      memberCount: discordGuild?.memberCount ?? (config.web.demoMode ? 4820 : null),
-      ownerId: discordGuild?.ownerId ?? null,
-      botPresent: Boolean(discordGuild) || config.web.demoMode,
+      name: discordGuild?.name ?? snapshot?.name ?? guildId,
+      icon: discordGuild?.iconURL?.({ size: 128, extension: 'png' }) ?? snapshot?.icon ?? null,
+      memberCount: discordGuild?.memberCount ?? snapshot?.memberCount ?? null,
+      ownerId: discordGuild?.ownerId ?? snapshot?.ownerId ?? null,
+      botPresent: Boolean(discordGuild) || Boolean(snapshot),
       botOnline: Boolean(client?.isReady?.()),
-      createdAt: discordGuild?.createdTimestamp ?? null,
+      createdAt: discordGuild?.createdTimestamp ?? snapshot?.createdAt ?? null,
+      syncedAt: snapshot?.syncedAt ?? null,
+      syncSource: snapshot?.source ?? null,
     },
+    sync: sync.getStatus(),
     settings: guild.settings,
-    stats: { ...stats, discordMembers: discordGuild?.memberCount ?? null, botReady: Boolean(client?.isReady?.()) },
+    stats: { ...stats, discordMembers: discordGuild?.memberCount ?? snapshot?.memberCount ?? null, botReady: Boolean(client?.isReady?.()) },
     daily: db.getDailyStats(guildId, 14),
     meta: {
       channels,
@@ -181,15 +191,15 @@ router.get('/guilds/:guildId', (req, res) => {
       members: discordGuild ? discordGuild.members.cache.size : 0,
       emojis: discordGuild
         ? [...discordGuild.emojis.cache.values()].slice(0, 100).map((e) => ({ id: e.id, name: e.name, animated: e.animated, url: e.imageURL?.() ?? null }))
-        : [],
+        : (snapshot?.emojis || []),
       logGroups: loggingSystem.EVENT_GROUPS,
       logEvents: Object.fromEntries(Object.entries(loggingSystem.EVENT_META).map(([key, meta]) => [key, { label: meta.label, emoji: meta.emoji, group: meta.group }])),
       cardAvailable: require('../../lib/welcomeCard').available(),
     },
     viewer: {
       canEdit: canEdit(req),
-      loggedIn: Boolean(req.session.user) || config.web.demoMode,
-      demo: config.web.demoMode,
+      loggedIn: Boolean(req.session.user) || config.web.demoData,
+      demo: config.web.demoData,
       publicAccess: config.web.publicAccess,
       loginRequired: config.web.loginRequired,
       requiredRoleId: config.web.requiredRoleId || null,
@@ -457,6 +467,69 @@ router.post('/guilds/:guildId/actions/:action', async (req, res) => {
 });
 
 /* ------------------------------------ فحص البوت ------------------------------------ */
+/* ---------------------------- المزامنة الحقيقية ---------------------------- */
+
+/** حالة المزامنة: آخر مزامنة، عدد السيرفرات، مصدرها، حالة البوت */
+router.get('/sync/status', (_req, res) => {
+  res.json(sync.getStatus());
+});
+
+/** مزامنة فورية لكل السيرفرات (يحتاج صلاحية تعديل) */
+router.post('/sync', async (req, res) => {
+  if (!canEdit(req)) {
+    return res.status(403).json({ error: 'readonly', message: 'المزامنة اليدوية تحتاج تسجيل دخول Discord.' });
+  }
+  const result = await sync.syncNow({});
+  res.json({ ok: Boolean(result.ok), status: result });
+});
+
+/** مزامنة سيرفر واحد */
+router.post('/guilds/:guildId/sync', async (req, res) => {
+  if (!canEdit(req)) return res.status(403).json({ error: 'readonly' });
+  const { guildId } = req.params;
+  const client = safeClient();
+  const guild = client?.guilds?.cache?.get(guildId);
+  if (guild) {
+    sync.saveSnapshot(sync.serializeGuild(guild, sync.getSnapshot(guildId)));
+  } else {
+    await sync.syncNow({});
+  }
+  const snapshot = sync.getSnapshot(guildId);
+  res.json({ ok: true, syncedAt: snapshot?.syncedAt ?? null, status: sync.getStatus() });
+});
+
+/**
+ * البث الحيّ (Server-Sent Events): يحدّث الصفحة المفتوحة فورًا عند أي مزامنة.
+ * يُستخدم في اللوحة ليعرض «آخر مزامنة» والقوائم الحقيقية بدون تحديث الصفحة.
+ */
+router.get('/events', (req, res) => {
+  res.set({
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+  res.flushHeaders?.();
+  res.write(`event: hello\ndata: ${JSON.stringify(sync.getStatus())}\n\n`);
+
+  const off = sync.onEvent((event, payload) => {
+    try {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`);
+    } catch { /* انقطع الاتصال */ }
+  });
+
+  const ping = setInterval(() => {
+    try {
+      res.write(': ping\n\n');
+    } catch { /* تجاهل */ }
+  }, 25000);
+
+  req.on('close', () => {
+    clearInterval(ping);
+    off();
+  });
+});
+
 router.get('/status', (req, res) => {
   const client = safeClient();
   res.json({
@@ -467,6 +540,7 @@ router.get('/status', (req, res) => {
     database: db.driverName,
     demo: config.web.demoMode,
     uptime: client ? Date.now() - client.startedAt : 0,
+    sync: sync.getStatus(),
   });
 });
 

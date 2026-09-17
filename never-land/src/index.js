@@ -35,6 +35,15 @@ process.on('uncaughtException', (err) => {
 });
 
 async function startBot() {
+  // لا يوجد توكن حقيقي بعد → الموقع يكفي، والبوت يُشغَّل لاحقًا
+  if (!config.bot.hasToken) {
+    console.log('');
+    console.log('[ملاحظة] ما في توكن Discord صالح بعد — البوت لن يعمل، والموقع يعمل طبيعي.');
+    console.log('         أضف DISCORD_TOKEN في ملف .env لتشغيل البوت وربط معلومات سيرفرك بالموقع.');
+    console.log('');
+    return null;
+  }
+
   const problems = config.validate();
 
   if (!config.bot.token || !config.bot.clientId) {
@@ -97,8 +106,23 @@ function startWeb() {
   console.log('║     مودريشن • حماية • تذاكر • مستويات • لوحة  ║');
   console.log('╚═══════════════════════════════════════════════╝');
 
-  if (runBot) await startBot();
- else console.log('[ملاحظة] تم تجاوز تشغيل البوت (--no-bot)');
+  const botClient = runBot ? await startBot() : null;
+  if (!runBot) console.log('[ملاحظة] تم تجاوز تشغيل البوت (--no-bot)');
+
+  // المزامنة الحقيقية: من البوت إن كان متّصلًا، وإلا عبر واجهة ديسكورد بالتوكن
+  const sync = require('./sync');
+  if (config.sync.enabled) {
+    if (botClient) sync.start(botClient);
+    else {
+      await sync.syncNow({ client: null, silent: true }).catch(() => {});
+      const st = sync.getStatus();
+      console.log(
+        st.ok
+          ? `[مزامنة] زامنّا ${st.guilds} سيرفر من ديسكورد (المصدر: ${st.source}).`
+          : '[مزامنة] لا توكن بعد — البيانات الحالية من آخر مزامنة محفوظة.',
+      );
+    }
+  }
 
   if (runWeb) {
     startWeb();

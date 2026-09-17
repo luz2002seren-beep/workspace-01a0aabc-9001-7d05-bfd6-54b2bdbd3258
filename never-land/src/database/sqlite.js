@@ -50,6 +50,30 @@ module.exports = {
     return this;
   },
 
+  /* ----------------------- المخزن العام (لقطات المزامنة) ----------------------- */
+
+  getKV(key) {
+    const row = db.prepare('SELECT value FROM kv WHERE key = ?').get(key);
+    return row ? row.value : null;
+  },
+
+  setKV(key, value) {
+    db.prepare(
+      `INSERT INTO kv (key, value, updated_at) VALUES (?, ?, ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+    ).run(key, String(value), now());
+    return true;
+  },
+
+  delKV(key) {
+    db.prepare('DELETE FROM kv WHERE key = ?').run(key);
+    return true;
+  },
+
+  listKV(prefix = '') {
+    return db.prepare('SELECT key, value, updated_at FROM kv WHERE key LIKE ? ORDER BY key').all(`${prefix}%`);
+  },
+
   /* ----------------------- السيرفرات والإعدادات ----------------------- */
 
   ensureGuild(guildId) {

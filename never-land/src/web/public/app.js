@@ -1586,6 +1586,84 @@ function updateDots(items) {
   });
 }
 
+/* ============================ المزامنة الحيّة ============================ */
+
+/** صياغة «قبل كم» بالعربية */
+function sinceText(ts) {
+  if (!ts) return 'لم تتم المزامنة بعد';
+  const s = Math.max(0, Math.round((Date.now() - ts) / 1000));
+  if (s < 60) return 'قبل لحظات';
+  const m = Math.round(s / 60);
+  if (m < 60) return `قبل ${m} دقيقة`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `قبل ${h} ساعة`;
+  return `قبل ${Math.round(h / 24)} يوم`;
+}
+
+/** شريط يعرض آخر مزامنة مع ديسكورد + زر مزامنة فورية */
+function buildSyncBar() {
+  const bar = el('div', { class: 'd-syncbar' });
+  const info = el('span', { class: 'd-sync-info' });
+
+  const paint = (st) => {
+    const s = st || state.sync || {};
+    const parts = [`${ic('refresh', 15)} <b>آخر مزامنة مع ديسكورد:</b> <span class="sync-when">${esc(sinceText(s.at))}</span>`];
+    if (s.botOnline) parts.push('<span class="sync-ok">البوت متّصل — البيانات لحظية</span>');
+    else if (s.hasToken) parts.push('<span class="sync-warn">البوت متوقّف — نعرض آخر مزامنة محفوظة</span>');
+    else parts.push('<span class="sync-warn">لم يُربط توكن البوت بعد</span>');
+    if (s.guildsKnown) parts.push(`<span class="sync-count">${esc(String(s.guildsKnown))} سيرفر</span>`);
+    info.innerHTML = parts.join(' · ');
+  };
+  paint();
+  bar.appendChild(info);
+
+  if (state.canEdit) {
+    const btn = el('button', { class: 'd-btn ghost sm', html: `${ic('refresh', 15)} مزامنة الآن` });
+    btn.addEventListener('click', async () => {
+      const old = btn.innerHTML;
+      btn.disabled = true;
+      btn.textContent = 'جارٍ المزامنة...';
+      try {
+        const r = await api(`/guilds/${state.guildId}/sync`, { method: 'POST' });
+        paint(r.status);
+        toast('تمت المزامنة — القنوات والرتب محدّثة.');
+        await boot();
+      } catch (err) {
+        toast(err.message, true);
+        btn.disabled = false;
+        btn.innerHTML = old;
+      }
+    });
+    bar.appendChild(btn);
+  }
+
+  window.__syncPaint = paint;
+  return bar;
+}
+
+/** البث الحيّ: أي مزامنة تحدّث الصفحة المفتوحة فورًا بدون تحديث يدوي */
+let liveConnected = false;
+function connectLive() {
+  if (liveConnected || typeof EventSource === 'undefined') return;
+  liveConnected = true;
+  try {
+    const es = new EventSource('/api/events');
+    es.addEventListener('sync', (ev) => {
+      try {
+        const payload = JSON.parse(ev.data);
+        state.sync = payload;
+        if (window.__syncPaint) window.__syncPaint(payload);
+      } catch { /* تجاهل */ }
+    });
+    es.addEventListener('sync-error', (ev) => {
+      try {
+        toast(JSON.parse(ev.data).message || 'تعذّرت المزامنة', true);
+      } catch { /* تجاهل */ }
+    });
+    es.addEventListener('error', () => { liveConnected = false; });
+  } catch { /* المتصفح لا يدعم البث الحيّ */ }
+}
+
 /* ============================ الإقلاع ============================ */
 async function boot() {
   const root = document.getElementById('app');
@@ -1604,6 +1682,7 @@ async function boot() {
     state.stats = data.stats;
     state.daily = data.daily || [];
     state.meta = data.meta;
+    state.sync = data.sync || null;
     state.dirty = false;
 
     root.innerHTML = '';
@@ -1627,6 +1706,7 @@ async function boot() {
 
     const main = el('div', { class: 'd-main' });
     main.appendChild(buildHeader());
+    main.appendChild(buildSyncBar());
     const content = el('div', { class: 'd-content', id: 'd-content' });
     main.appendChild(content);
     shell.appendChild(main);
@@ -1662,6 +1742,7 @@ async function boot() {
     items.forEach(({ item }) => item.classList.toggle('active', item.dataset.id === state.section));
     renderSection(state.section);
     updateDots(items);
+    connectLive();
   } catch (err) {
     root.innerHTML = `<div class="d-loading"><div class="d-empty-ico">${ic('warning', 34)}</div><div>تعذّر تحميل الإعدادات: ${esc(err.message)}</div><a class="d-btn primary" href="/dashboard">الرجوع إلى السيرفرات</a></div>`;
   }

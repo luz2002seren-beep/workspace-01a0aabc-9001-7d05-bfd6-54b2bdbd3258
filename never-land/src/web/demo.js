@@ -13,6 +13,29 @@ const db = require('../database');
 
 const DEMO_GUILD_ID = '100000000000000001';
 
+/* قنوات السيرفر ورتبه (تُحفظ كلقطة مزامنة حتى تظهر القوائم المنسدلة بأسماء حقيقية) */
+const DEMO_CHANNELS = [
+  { id: '100000000000000030', name: 'التذاكر', type: 4, parentId: null, position: 0 },
+  { id: '100000000000000010', name: 'الترحيب', type: 0, parentId: null, position: 1 },
+  { id: '100000000000000011', name: 'الوداع', type: 0, parentId: null, position: 2 },
+  { id: '100000000000000012', name: 'الدعم', type: 0, parentId: null, position: 3 },
+  { id: '100000000000000013', name: 'السجلات', type: 0, parentId: null, position: 4 },
+  { id: '100000000000000014', name: 'عام', type: 0, parentId: null, position: 5 },
+  { id: '100000000000000015', name: 'الخط-الفاصل', type: 0, parentId: null, position: 6 },
+  { id: '100000000000000016', name: 'التفاعل', type: 0, parentId: null, position: 7 },
+  { id: '100000000000000017', name: 'صوتي عام', type: 2, parentId: null, position: 8 },
+];
+
+const DEMO_ROLES = [
+  { id: '100000000000000031', name: 'الإدارة', color: '#5865f2', position: 10, managed: false, hoist: true },
+  { id: '100000000000000032', name: 'الدعم', color: '#57f287', position: 9, managed: false, hoist: true },
+  { id: '100000000000000022', name: 'نشِط', color: '#fee75c', position: 5, managed: false, hoist: false },
+  { id: '100000000000000023', name: 'متفاعل', color: '#eb459e', position: 4, managed: false, hoist: false },
+  { id: '100000000000000024', name: 'أسطورة', color: '#ed4245', position: 3, managed: false, hoist: false },
+  { id: '100000000000000021', name: 'عضو جديد', color: '#99aab5', position: 2, managed: false, hoist: false },
+  { id: '100000000000000020', name: 'محصّن', color: '#3ba55d', position: 1, managed: false, hoist: false },
+];
+
 const DEMO_META = {
   guilds: [
     {
@@ -28,6 +51,27 @@ const DEMO_META = {
 
 function seed() {
   db.init();
+
+  // لقطة مزامنة للعرض: تجعل القوائم المنسدلة والبطاقات تعرض أسماء قنوات/رتب حقيقية
+  try {
+    const sync = require('../sync');
+    const g = DEMO_META.guilds[0];
+    sync.saveSnapshot({
+      id: g.id,
+      name: g.name,
+      icon: null,
+      memberCount: g.memberCount,
+      ownerId: null,
+      ownerName: g.ownerName,
+      createdAt: Date.now() - 210 * 24 * 3600 * 1000,
+      channels: DEMO_CHANNELS,
+      roles: DEMO_ROLES,
+      emojis: [],
+      syncedAt: Date.now(),
+      source: 'demo',
+    });
+  } catch { /* المزامنة اختيارية */ }
+
   const existing = db.getGuild(DEMO_GUILD_ID);
   if (existing && existing.settings?.welcome?.channelId) return; // ممنوح مسبقًا
 
@@ -185,4 +229,18 @@ function seed() {
   console.log('[تهيئة] تم تحضير بيانات السيرفر الافتراضي (مجتمع Never Land).');
 }
 
-module.exports = { seed, DEMO_GUILD_ID, DEMO_META };
+/**
+ * إزالة بيانات العرض: تُنادى تلقائيًا عند ربط توكن Discord حقيقي
+ * حتى لا تختلط بيانات العرض بسيرفراتك الفعلية.
+ */
+function cleanup() {
+  try {
+    require('../sync').removeSnapshot(DEMO_GUILD_ID);
+  } catch { /* تجاهل */ }
+  try {
+    db.deleteGuild?.(DEMO_GUILD_ID);
+  } catch { /* تجاهل */ }
+  console.log('[تهيئة] أُزيلت بيانات العرض — الموقع يعرض سيرفراتك الحقيقية فقط.');
+}
+
+module.exports = { seed, cleanup, DEMO_GUILD_ID, DEMO_META };

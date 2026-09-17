@@ -664,6 +664,72 @@ console.log('[نجاح] كل الاختبارات نجحت!');
   console.log(`  [تم] Railway (Dockerfile + /healthz) + فحص الموقع + رابط عام تلقائي (${cfg8.web.url.replace(/^https?:\/\//, '')})`);
   }
 
+ console.log('[اختبار] اختبار 24: المزامنة الحقيقية مع ديسكورد (بيانات سيرفرك في الموقع)');
+  {
+    const fs9 = require('node:fs');
+    const path9 = require('node:path');
+    const root9 = path9.join(__dirname, '..');
+
+    // ١) وحدة المزامنة موجودة وتُصدّر ما يلزم
+    const sync9 = require('../src/sync');
+    for (const fn of ['start', 'syncNow', 'getStatus', 'getSnapshot', 'saveSnapshot', 'listGuildMeta', 'serializeGuild', 'onEvent']) {
+      assert.strictEqual(typeof sync9[fn], 'function', `دالة ${fn} ناقصة من وحدة المزامنة`);
+    }
+    assert.ok(fs9.readFileSync(path9.join(root9, 'src', 'database', 'schema.sql'), 'utf8').includes('CREATE TABLE IF NOT EXISTS kv'), 'جدول المخزن kv ناقص');
+
+    // ٢) دورة كاملة: حفظ لقطة ← قراءتها ← ظهورها في القائمة ← حذفها
+    const fakeId = '999000000000000001';
+    sync9.saveSnapshot({
+      id: fakeId,
+      name: 'سيرفر اختبار المزامنة',
+      icon: null,
+      memberCount: 123,
+      channels: [{ id: 'c1', name: 'عام', type: 0, parentId: null, position: 1 }],
+      roles: [{ id: 'r1', name: 'الإدارة', managed: false, position: 5 }],
+      emojis: [],
+      syncedAt: Date.now(),
+      source: 'test',
+    });
+    const snap9 = sync9.getSnapshot(fakeId);
+    assert.ok(snap9 && snap9.name === 'سيرفر اختبار المزامنة', 'قراءة اللقطة فشلت');
+    assert.strictEqual(snap9.channels.length, 1, 'قنوات اللقطة ناقصة');
+    assert.ok(sync9.listGuildMeta().some((g) => g.id === fakeId), 'اللقطة لا تظهر في قائمة السيرفرات');
+    sync9.removeSnapshot(fakeId);
+    assert.strictEqual(sync9.getSnapshot(fakeId), null, 'حذف اللقطة فشل');
+
+    // ٣) الحالة تحتوي ما تعرضه اللوحة
+    const st9 = sync9.getStatus();
+    for (const key of ['ok', 'source', 'guilds', 'at', 'hasToken', 'botOnline', 'intervalSeconds', 'guildsKnown']) {
+      assert.ok(key in st9, `الحقل ${key} ناقص من حالة المزامنة`);
+    }
+
+    // ٤) المسارات موجودة في الـAPI + البث الحيّ + واجهة المزامنة
+    const apiSrc9 = fs9.readFileSync(path9.join(root9, 'src', 'web', 'routes', 'api.js'), 'utf8');
+    assert.ok(apiSrc9.includes("router.get('/sync/status'"), 'مسار /api/sync/status ناقص');
+    assert.ok(apiSrc9.includes("router.post('/sync'"), 'مسار /api/sync ناقص');
+    assert.ok(apiSrc9.includes("router.get('/events'"), 'مسار البث الحيّ /api/events ناقص');
+    assert.ok(apiSrc9.includes('text/event-stream'), 'ترويسة البث الحيّ ناقصة');
+
+    const pagesSrc9 = fs9.readFileSync(path9.join(root9, 'src', 'web', 'routes', 'pages.js'), 'utf8');
+    assert.ok(pagesSrc9.includes('مزامنة الآن'), 'زر «مزامنة الآن» ناقص من قائمة السيرفرات');
+    assert.ok(pagesSrc9.includes('آخر مزامنة'), 'معلومة «آخر مزامنة» ناقصة');
+
+    const appSrc9 = fs9.readFileSync(path9.join(root9, 'src', 'web', 'public', 'app.js'), 'utf8');
+    assert.ok(appSrc9.includes('buildSyncBar'), 'شريط المزامنة ناقص من اللوحة');
+    assert.ok(appSrc9.includes("EventSource('/api/events')"), 'البث الحيّ غير موصول في اللوحة');
+
+    // ٥) القوائم المنسدلة تقرأ القنوات/الرتب من اللقطة عند توقّف البوت
+    assert.ok(apiSrc9.includes('snapshot?.channels'), 'القنوات لا تُقرأ من اللقطة');
+    assert.ok(apiSrc9.includes('snapshot?.roles'), 'الرتب لا تُقرأ من اللقطة');
+
+    // ٦) بيانات العرض تتوقف تلقائيًا عند وجود توكن حقيقي
+    const cfg9 = require('../src/config');
+    assert.strictEqual(typeof cfg9.web.demoData, 'boolean', 'خاصية demoData ناقصة');
+    assert.ok(Number.isFinite(cfg9.sync.intervalSeconds) && cfg9.sync.intervalSeconds >= 60, 'مدة المزامنة غير صالحة');
+
+  console.log(`  [تم] لقطة كاملة (قنوات/رتب/أعضاء) + /api/sync + بث حيّ + شريط مزامنة في اللوحة (كل ${cfg9.sync.intervalSeconds} ثانية)`);
+  }
+
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');
 
   process.exit(0);
