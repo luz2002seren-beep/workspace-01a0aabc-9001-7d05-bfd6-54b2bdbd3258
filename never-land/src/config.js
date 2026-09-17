@@ -269,7 +269,8 @@ const config = {
       channelId: null,
     },
     leveling: {
-      enabled: false,
+      /* النظام مفعّل افتراضيًا حتى يشتغل من أول لحظة — يُطفأ من اللوحة أو /leveling disable */
+      enabled: true,
       /* خبرة كتابية (الرسائل) */
       textXp: true,
       minXp: 15,

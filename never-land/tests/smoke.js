@@ -1057,6 +1057,7 @@ console.log('[نجاح] كل الاختبارات نجحت!');
     for (const key0 of ['textXp', 'voiceXp', 'interactXp', 'interactMinXp', 'interactMaxXp', 'interactDailyCap', 'interactMaxPerMessage', 'resetOffsetHours']) {
       assert.ok(key0 in lv, `إعداد ${key0} ناقص من إعدادات الخبرة`);
     }
+    assert.strictEqual(lv.enabled, true, 'نظام المستويات لازم يكون مفعّلًا افتراضيًا');
     assert.strictEqual(lv.textXp, true, 'الخبرة الكتابية لازم تكون مفعّلة افتراضيًا');
     assert.strictEqual(lv.voiceXp, true, 'الخبرة الصوتية لازم تكون مفعّلة افتراضيًا');
     assert.strictEqual(lv.interactXp, true, 'خبرة التفاعل لازم تكون مفعّلة افتراضيًا');
