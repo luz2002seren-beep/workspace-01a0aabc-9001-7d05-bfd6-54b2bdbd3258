@@ -2,10 +2,16 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="Never Land — نظام إدارة سيرفرات ديسكورد: حماية تلقائية، سجلات، تذاكر، ترحيب، مستويات، ولوحة تحكم عربية كاملة.">
-<meta name="theme-color" content="#0d1017">
+<meta name="theme-color" content="#0d1017" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f4f6fb" media="(prefers-color-scheme: light)">
 <meta name="color-scheme" content="dark light">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Never Land">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Never Land">
 <meta property="og:title" content="السيرفرات | Never Land">
@@ -471,12 +477,136 @@ code {
 .site-hero .stat b { font-size: 1.5rem; }
 .brand-text { font-weight: 800; letter-spacing: -.3px; }
 
+/* =====================================================================
+   تكيّف مع الأجهزة: جوال • تابلت • سطح المكتب • الشاشات الكبيرة
+   ===================================================================== */
+
+/* حافة آمنة لهواتف iPhone (النتشة والعنوان السفلي) */
+body {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+.topbar {
+  padding-top: max(10px, env(safe-area-inset-top));
+}
+.footer { padding-bottom: calc(18px + env(safe-area-inset-bottom)); }
+
+/* خطوط تتكيّف مع عرض الشاشة */
+h1 { font-size: clamp(1.5rem, 1.05rem + 2.2vw, 2.3rem); }
+h2 { font-size: clamp(1.2rem, 0.95rem + 1.2vw, 1.65rem); }
+.site-hero h1 { font-size: clamp(1.75rem, 1.1rem + 3vw, 3rem); }
+.site-hero p { font-size: clamp(0.95rem, 0.85rem + 0.5vw, 1.12rem); }
+
+/* لمس أنعم على الجوال */
+a, button, .btn, .pill, .guild-card {
+  -webkit-tap-highlight-color: rgba(91, 108, 255, 0.18);
+}
+.btn, .theme-toggle { min-height: 40px; }
+
+/* ماوس فقط: تأثيرات التحويم لا تُطبّق على اللمس */
+@media (hover: hover) and (pointer: fine) {
+  .guild-card:hover { transform: translateY(-2px); }
+}
+
+/* احترام تقليل الحركة */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* تابلت */
+@media (max-width: 1024px) {
+  .site-features, .site-steps { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .cmd-preview { grid-template-columns: 1fr; }
+}
+
+/* تابلت صغير / جوال كبير */
+@media (max-width: 860px) {
+  .topbar { flex-wrap: wrap; gap: 10px; row-gap: 12px; }
+  .nav {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 6px;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav a { white-space: nowrap; }
+  .auth { margin-inline-start: auto; }
+  .stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .site-cta .btn { flex: 1 1 auto; justify-content: center; }
+  .mock-bar { flex-wrap: wrap; }
+}
+
+/* جوال */
+@media (max-width: 620px) {
+  .container { padding-inline: 14px; }
+  .site-features, .site-steps, .stat-row { grid-template-columns: 1fr; }
+  .site-hero { padding-block: 26px 18px; text-align: center; }
+  .site-step { gap: 10px; }
+  .cmd-preview { font-size: .84rem; }
+  .cmd-line { flex-wrap: wrap; row-gap: 4px; }
+  .mock-panel { border-radius: 14px; }
+  .mock-row { font-size: .84rem; }
+  .search-wrap { flex: 1 1 100%; }
+  .head-actions { width: 100%; }
+  .head-actions .btn { flex: 1 1 auto; justify-content: center; }
+  .guild-card { flex-wrap: wrap; }
+  .guild-actions { width: 100%; }
+  .guild-actions .btn { width: 100%; justify-content: center; }
+  .footer { flex-direction: column; align-items: flex-start; gap: 6px; text-align: start; }
+  .footer .muted { white-space: normal; }
+  /* منع تكبير iOS التلقائي عند الكتابة */
+  input, select, textarea { font-size: 16px; }
+}
+
+/* جوال صغير جدًا */
+@media (max-width: 400px) {
+  .btn { padding-inline: 12px; font-size: .86rem; }
+  .brand-text { font-size: 1rem; }
+  .pill { font-size: .72rem; }
+  .container { padding-inline: 12px; }
+}
+
+/* شاشات كبيرة: لا يتمدّد النص بلا نهاية */
+@media (min-width: 1500px) {
+  .container { max-width: 1320px; }
+  .site-features { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* الشاشات الأفقية المنخفضة (جوال بالعرض) */
+@media (max-height: 480px) and (orientation: landscape) {
+  .site-hero { padding-block: 18px 10px; }
+  .topbar { padding-block: 8px; }
+}
+
+/* الطباعة */
+@media print {
+  .topbar, .footer, .site-cta, .theme-toggle, .auth { display: none !important; }
+  body { background: #fff; color: #000; }
+}
+
 </style>
 <script>
-  try {
-    var saved = localStorage.getItem('neverland-theme');
-    if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
-  } catch (e) {}
+  /* السمة: المفضّل المحفوظ ← وإلا إعداد الجهاز نفسه (ليلي/نهاري/تلقائي) */
+  (function () {
+    var root = document.documentElement;
+    var saved = null;
+    try { saved = localStorage.getItem('neverland-theme'); } catch (e) {}
+    function systemTheme() {
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    }
+    root.dataset.theme = saved === 'light' || saved === 'dark' ? saved : systemTheme();
+    if (window.matchMedia) {
+      try {
+        window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', function (e) {
+          var cur = null;
+          try { cur = localStorage.getItem('neverland-theme'); } catch (err) {}
+          if (cur !== 'light' && cur !== 'dark') root.dataset.theme = e.matches ? 'light' : 'dark';
+        });
+      } catch (e) {}
+    }
+  })();
 </script>
 
 </head>
@@ -497,7 +627,7 @@ code {
   </a>
   <nav class="nav">
     <a href="/">الرئيسية</a>
-    <a href="/dashboard">لوحة التحكم</a>
+    <a href="/dashboard">السيرفرات</a>
     <a href="/api/status" target="_blank" rel="noopener">حالة الخدمة</a>
   </nav>
   <div class="auth">
@@ -595,15 +725,29 @@ code {
     if (!btn) return;
     var moon = "<svg class=\"ico\" viewBox=\"0 0 24 24\" width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M20 14.6A8.6 8.6 0 1 1 9.4 4a6.9 6.9 0 0 0 10.6 10.6z\"/></svg>";
     var sun = "<svg class=\"ico\" viewBox=\"0 0 24 24\" width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><circle cx=\"12\" cy=\"12\" r=\"4.2\"/><path d=\"M12 2.8v2.1M12 19.1v2.1M2.8 12h2.1M19.1 12h2.1M5.6 5.6l1.5 1.5M16.9 16.9l1.5 1.5M18.4 5.6l-1.5 1.5M7.1 16.9l-1.5 1.5\"/></svg>";
+    var autoIcon = "<svg class=\"ico\" viewBox=\"0 0 24 24\" width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M20 11.5a8 8 0 1 0-2.4 5.7\"/><path d=\"M20 4.5v7h-7\"/></svg>";
+    var root = document.documentElement;
+    var icon = { light: sun, dark: moon, auto: autoIcon };
+    var label = { light: 'الوضع النهاري', dark: 'الوضع الليلي', auto: 'حسب إعداد الجهاز' };
+    var stored = null;
+    try { stored = localStorage.getItem('neverland-theme'); } catch (e) {}
+    var mode = stored === 'light' || stored === 'dark' ? stored : 'auto';
     var paint = function () {
-      var light = document.documentElement.dataset.theme === 'light';
-      btn.innerHTML = light ? sun : moon;
+      var shown = mode === 'auto' ? (root.dataset.theme === 'light' ? 'light' : 'dark') : mode;
+      btn.innerHTML = mode === 'auto' ? autoIcon : icon[shown];
+      btn.title = label[mode] + ' — اضغط للتبديل';
+      btn.setAttribute('aria-label', label[mode]);
     };
     paint();
     btn.addEventListener('click', function () {
-      var next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
-      document.documentElement.dataset.theme = next;
-      try { localStorage.setItem('neverland-theme', next); } catch (e) {}
+      var order = { auto: 'light', light: 'dark', dark: 'auto' };
+      mode = order[mode];
+      try {
+        if (mode === 'auto') localStorage.removeItem('neverland-theme');
+        else localStorage.setItem('neverland-theme', mode);
+      } catch (e) {}
+      var system = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      root.dataset.theme = mode === 'auto' ? system : mode;
       paint();
     });
   })();

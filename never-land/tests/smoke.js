@@ -535,6 +535,74 @@ console.log('🎉 كل الاختبارات نجحت!');
     console.log(`   ✅ الاسم: ${cfg.web.siteName} • أيقونة + مانيفست + robots + sitemap + 404 بقالب الموقع`);
   }
 
+  console.log('🧪 اختبار 21: الوصول العام (كل يفوت) + التكيّف مع الشاشات والأجهزة');
+  {
+    const fs6 = require('node:fs');
+    const path6 = require('node:path');
+    const cfg6 = require('../src/config');
+    assert.strictEqual(typeof cfg6.web.publicAccess, 'boolean', 'خيار PUBLIC_ACCESS غير معرّف');
+
+    const pages6 = fs6.readFileSync(path6.join(__dirname, '..', 'src', 'web', 'routes', 'pages.js'), 'utf8');
+    assert.ok(pages6.includes('req.canEdit'), 'منطق صلاحية الزائر ناقص');
+    assert.ok(pages6.includes('publicGuilds'), 'قائمة السيرفرات العامة ناقصة');
+    assert.ok(pages6.includes('dashboard-readonly'), 'وضع العرض العام في صفحة السيرفر ناقص');
+    assert.ok(pages6.includes('viewport-fit=cover'), 'وسم viewport للهواتف ناقص');
+    assert.ok(pages6.includes('apple-mobile-web-app-capable'), 'وسوم آيفون ناقصة');
+    assert.ok(pages6.includes('prefers-color-scheme'), 'متابعة إعداد الجهاز (ليلي/نهاري) ناقصة');
+    assert.ok(pages6.includes('data-edit='), 'تمرير صلاحية التعديل للصفحة ناقص');
+
+    const api6 = fs6.readFileSync(path6.join(__dirname, '..', 'src', 'web', 'routes', 'api.js'), 'utf8');
+    assert.ok(api6.includes("const isWrite = !['GET', 'HEAD', 'OPTIONS']"), 'فصل القراءة عن الكتابة في الـAPI ناقص');
+    assert.ok(api6.includes('canEdit(req)'), 'حماية نقاط الكتابة ناقصة');
+    assert.ok(api6.includes('viewer:'), 'إرسال صلاحية المشاهد ناقص');
+
+    const app6 = fs6.readFileSync(path6.join(__dirname, '..', 'src', 'web', 'public', 'app.js'), 'utf8');
+    assert.ok(app6.includes('canEdit'), 'اللوحة لا تدعم وضع القراءة فقط');
+    assert.ok(app6.includes('d-readonly-note'), 'شارة العرض العام ناقصة من اللوحة');
+    assert.ok(app6.includes('حسب الجهاز'), 'خيار «حسب الجهاز» في السمة ناقص');
+
+    const style6 = fs6.readFileSync(path6.join(__dirname, '..', 'src', 'web', 'public', 'style.css'), 'utf8');
+    const dash6 = fs6.readFileSync(path6.join(__dirname, '..', 'src', 'web', 'public', 'dash.css'), 'utf8');
+    const mqStyle = (style6.match(/@media/g) || []).length;
+    const mqDash = (dash6.match(/@media/g) || []).length;
+    assert.ok(mqStyle >= 8, `عدد نقاط التكيّف في style.css قليل (${mqStyle})`);
+    assert.ok(mqDash >= 5, `عدد نقاط التكيّف في dash.css قليل (${mqDash})`);
+    assert.ok(style6.includes('env(safe-area-inset'), 'دعم الحواف الآمنة للهواتف ناقص');
+    assert.ok(style6.includes('clamp('), 'الخطوط لا تتكيّف مع عرض الشاشة');
+    assert.ok(style6.includes('prefers-reduced-motion'), 'احترام تقليل الحركة ناقص');
+    assert.ok(dash6.includes('.d-shell.readonly'), 'أنماط وضع القراءة فقط ناقصة');
+    assert.ok(dash6.includes('max-width: 700px'), 'تكيّف اللوحة مع الجوال ناقص');
+    console.log(`   ✅ وصول عام للقراءة + ${mqStyle + mqDash} نقطة تكيّف (جوال/تابلت/شاشة كبيرة) + سمة تتبع الجهاز`);
+  }
+
+  console.log('🧪 اختبار 22: زر /help يفتح الموقع + تأكيد الدخول والرول المطلوب');
+  {
+    const { execFileSync } = require('node:child_process');
+    const path7 = require('node:path');
+    const root7 = path7.join(__dirname, '..');
+
+    // ١) أمر /help يحمل زر رابط فعّال
+    const outHelp = execFileSync('node', [path7.join(root7, 'help-test.js')], { cwd: root7, encoding: 'utf8' });
+    assert.ok(outHelp.includes('افتح الموقع'), 'زر «افتح الموقع» ناقص من /help');
+    assert.ok(outHelp.includes('لوحة التحكم'), 'زر «لوحة التحكم» ناقص من /help');
+
+    // ٢) منطق الرول المطلوب
+    const cfg7 = require('../src/config');
+    assert.strictEqual(cfg7.web.requiredRoleId, '1549364852433354792', 'معرّف الرول المطلوب غير مطابق');
+    assert.strictEqual(cfg7.web.loginRequired, true, 'تأكيد الدخول غير مفعّل');
+    const outAccess = execFileSync('node', [path7.join(root7, 'access-test.js')], { cwd: root7, encoding: 'utf8' });
+    for (const reason of ['bot_offline', 'no_role', 'not_member']) {
+      assert.ok(outAccess.includes(reason), `حالة ${reason} غير مُختبرة`);
+    }
+
+    // ٣) بوابة الدخول على مستوى HTTP
+    const outGate = execFileSync('node', [path7.join(root7, 'gate-test.js')], { cwd: root7, encoding: 'utf8' });
+    assert.ok(outGate.includes('302 /auth/login'), 'الزائر لا يُحوَّل لتسجيل الدخول');
+    assert.ok(outGate.includes('role_required'), 'حماية الـAPI بالرول ناقصة');
+    assert.ok(outGate.includes('الوصول مقيّد'), 'صفحة الوصول مقيّد ناقصة');
+    console.log('   ✅ /help بزر يعمل + تأكيد دخول + رول 1549364852433354792 (صفحة منع كاملة)');
+  }
+
   console.log('🎉 جميع اختبارات الميزات الجديدة نجحت!');
 
   process.exit(0);

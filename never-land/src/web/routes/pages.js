@@ -16,6 +16,7 @@ const db = require('../../database');
 
 const router = express.Router();
 const { icon, logoMark } = require('../public/icons');
+const access = require('../access');
 
 /** تخطيط الصفحة العام */
 function layout({ title, body, user = null, extraHead = '', bodyClass = '' }) {
@@ -32,10 +33,16 @@ function layout({ title, body, user = null, extraHead = '', bodyClass = '' }) {
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="${SITE_NAME} — نظام إدارة سيرفرات ديسكورد: حماية تلقائية، سجلات، تذاكر، ترحيب، مستويات، ولوحة تحكم عربية كاملة.">
-<meta name="theme-color" content="#0d1017">
+<meta name="theme-color" content="#0d1017" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f4f6fb" media="(prefers-color-scheme: light)">
 <meta name="color-scheme" content="dark light">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="${SITE_NAME}">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="${SITE_NAME}">
 <meta property="og:title" content="${escapeHtml(title)} | ${SITE_NAME}">
@@ -51,10 +58,25 @@ function layout({ title, body, user = null, extraHead = '', bodyClass = '' }) {
 <link rel="stylesheet" href="/style.css">
 ${bodyClass === 'dashboard' ? '<link rel="stylesheet" href="/dash.css">' : ''}
 <script>
-  try {
-    var saved = localStorage.getItem('neverland-theme');
-    if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
-  } catch (e) {}
+  /* السمة: المفضّل المحفوظ ← وإلا إعداد الجهاز نفسه (ليلي/نهاري/تلقائي) */
+  (function () {
+    var root = document.documentElement;
+    var saved = null;
+    try { saved = localStorage.getItem('neverland-theme'); } catch (e) {}
+    function systemTheme() {
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    }
+    root.dataset.theme = saved === 'light' || saved === 'dark' ? saved : systemTheme();
+    if (window.matchMedia) {
+      try {
+        window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', function (e) {
+          var cur = null;
+          try { cur = localStorage.getItem('neverland-theme'); } catch (err) {}
+          if (cur !== 'light' && cur !== 'dark') root.dataset.theme = e.matches ? 'light' : 'dark';
+        });
+      } catch (e) {}
+    }
+  })();
 </script>
 ${extraHead}
 </head>
@@ -66,7 +88,7 @@ ${extraHead}
   </a>
   <nav class="nav">
     <a href="/">الرئيسية</a>
-    <a href="/dashboard">لوحة التحكم</a>
+    <a href="/dashboard">${config.web.publicAccess ? 'السيرفرات' : 'لوحة التحكم'}</a>
     <a href="/api/status" target="_blank" rel="noopener">حالة الخدمة</a>
   </nav>
   <div class="auth">
@@ -87,15 +109,29 @@ ${body}
     if (!btn) return;
     var moon = ${JSON.stringify(icon('moon', { size: 17 }))};
     var sun = ${JSON.stringify(icon('sun', { size: 17 }))};
+    var autoIcon = ${JSON.stringify(icon('refresh', { size: 17 }))};
+    var root = document.documentElement;
+    var icon = { light: sun, dark: moon, auto: autoIcon };
+    var label = { light: 'الوضع النهاري', dark: 'الوضع الليلي', auto: 'حسب إعداد الجهاز' };
+    var stored = null;
+    try { stored = localStorage.getItem('neverland-theme'); } catch (e) {}
+    var mode = stored === 'light' || stored === 'dark' ? stored : 'auto';
     var paint = function () {
-      var light = document.documentElement.dataset.theme === 'light';
-      btn.innerHTML = light ? sun : moon;
+      var shown = mode === 'auto' ? (root.dataset.theme === 'light' ? 'light' : 'dark') : mode;
+      btn.innerHTML = mode === 'auto' ? autoIcon : icon[shown];
+      btn.title = label[mode] + ' — اضغط للتبديل';
+      btn.setAttribute('aria-label', label[mode]);
     };
     paint();
     btn.addEventListener('click', function () {
-      var next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
-      document.documentElement.dataset.theme = next;
-      try { localStorage.setItem('neverland-theme', next); } catch (e) {}
+      var order = { auto: 'light', light: 'dark', dark: 'auto' };
+      mode = order[mode];
+      try {
+        if (mode === 'auto') localStorage.removeItem('neverland-theme');
+        else localStorage.setItem('neverland-theme', mode);
+      } catch (e) {}
+      var system = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      root.dataset.theme = mode === 'auto' ? system : mode;
       paint();
     });
   })();
@@ -108,15 +144,82 @@ function escapeHtml(str) {
   return String(str ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-/** هل المستخدم مسجّلًا */
-function requireAuth(req, res, next) {
+/**
+ * تحديد المشاهد:
+ *  - مسجّل بـ Discord (أو وضع DEMO) → مشاهدة وتعديل
+ *  - زائر مع الوصول العام (PUBLIC_ACCESS) → مشاهدة فقط
+ *  - غير ذلك → تحويل لتسجيل الدخول
+ */
+async function requireAuth(req, res, next) {
+  /* وضع التطوير (DEMO): دخول مباشر بدون توكن */
   if (config.web.demoMode) {
     req.user = { id: '0', username: 'المسؤول', globalName: 'مسؤول السيرفر' };
+    req.canEdit = true;
+    req.roleResult = { ok: true, reason: 'demo', checked: false };
     return next();
   }
-  if (!req.session.user) return res.redirect('/auth/login');
+
+  /* 1) تأكيد الدخول */
+  if (!req.session.user) {
+    if (config.web.publicAccess && !config.web.loginRequired) {
+      req.user = null;
+      req.canEdit = false;
+      req.roleResult = { ok: false, reason: 'guest', checked: false };
+      return next();
+    }
+    req.session.returnTo = req.originalUrl || '/';
+    return res.redirect('/auth/login');
+  }
+
+  /* 2) تأكيد الرول المطلوب */
   req.user = req.session.user;
+  const result = await access.checkAccess(req.session, req.session.user.id);
+  req.roleResult = result;
+  if (!result.ok) {
+    return res.status(403).send(layout({ title: 'الوصول مقيّد', body: denialBody(req, result), user: req.user }));
+  }
+
+  req.canEdit = true;
   return next();
+}
+
+/** صفحة «الوصول مقيّد» بقالب الموقع */
+function denialBody(req, result) {
+  const who = req.user ? escapeHtml(req.user.globalName || req.user.username) : '';
+  return `
+  <section class="site-hero" style="text-align:center;max-width:720px;margin-inline:auto">
+    <span class="pill">${icon('shield', { size: 15 })} الوصول مقيّد</span>
+    <h1>ما عندك الرول المطلوب</h1>
+    <p class="muted">${escapeHtml(access.explain(result))}</p>
+    <div class="mock-panel" style="text-align:start;margin-top:18px">
+      <div class="mock-title">${icon('list', { size: 16 })} كيف تحصل على الوصول</div>
+      <div class="mock-row"><span class="mock-ico">${icon('userPlus', { size: 16 })}</span> ادخل سيرفر البوت بحسابك: <b>${who || 'حسابك'}</b></div>
+      <div class="mock-row"><span class="mock-ico">${icon('tag', { size: 16 })}</span> اطلب من الإدارة الرول المطلوب (المعرّف: <code>${escapeHtml(String(config.web.requiredRoleId || '—'))}</code>)</div>
+      <div class="mock-row"><span class="mock-ico">${icon('refresh', { size: 16 })}</span> ارجع واضغط «إعادة الفحص»</div>
+    </div>
+    <div class="site-cta" style="margin-top:18px">
+      <a class="btn btn-primary" href="/dashboard">${icon('refresh', { size: 16 })} إعادة الفحص</a>
+      <a class="btn btn-ghost" href="/auth/login">${icon('login', { size: 16 })} الدخول بحساب آخر</a>
+      <a class="btn btn-ghost" href="/auth/logout">${icon('logout', { size: 16 })} خروج</a>
+    </div>
+  </section>`;
+}
+
+/** قائمة السيرفرات العامة (لزائر بدون تسجيل): من البوت إن كان متصلًا، وإلا قائمة المعاينة */
+function publicGuilds(req) {
+  if (config.web.demoMode) return require('../demo').DEMO_META.guilds;
+  const client = require('../../client');
+  if (client?.isReady?.()) {
+    return [...client.guilds.cache.values()].map((g) => ({
+      id: g.id,
+      name: g.name,
+      icon: g.iconURL({ size: 128, extension: 'png' }) || null,
+      memberCount: g.memberCount,
+      ownerName: null,
+      botPresent: true,
+    }));
+  }
+  return [];
 }
 
 /* --------------------- ملفات الموقع الأساسية (أيقونة، مانيفست، روبوتات) --------------------- */
@@ -158,7 +261,7 @@ router.get('/sitemap.xml', (_req, res) => {
 });
 
 /* ---------------------------------- الصفحة الرئيسية ---------------------------------- */
-router.get('/', (req, res) => {
+router.get('/', requireAuth, (req, res) => {
   const inviteUrl = config.web.inviteUrl || '#';
   const loggedIn = Boolean(req.user || config.web.demoMode);
   const supportUrl = config.web.supportUrl || null;
@@ -300,19 +403,25 @@ router.get('/dashboard', requireAuth, (req, res) => {
   })();
 
   let guilds = [];
-  if (config.web.demoMode) {
-    guilds = require('../demo').DEMO_META.guilds;
+  if (req.canEdit) {
+    if (config.web.demoMode) {
+      guilds = require('../demo').DEMO_META.guilds;
+    } else {
+      const botIds = new Set(client?.guilds?.cache?.keys?.() ?? []);
+      guilds = (req.session.guilds || []).map((g) => ({
+        id: g.id,
+        name: g.name,
+        icon: g.icon,
+        memberCount: client?.guilds?.cache?.get(g.id)?.memberCount ?? null,
+        botPresent: botIds.has(g.id),
+        owner: Boolean(g.owner),
+      }));
+    }
   } else {
-    const botIds = new Set(client?.guilds?.cache?.keys?.() ?? []);
-    guilds = (req.session.guilds || []).map((g) => ({
-      id: g.id,
-      name: g.name,
-      icon: g.icon,
-      memberCount: client?.guilds?.cache?.get(g.id)?.memberCount ?? null,
-      botPresent: botIds.has(g.id),
-      owner: Boolean(g.owner),
-    }));
+    // زائر: قائمة السيرفرات العامة (بدون تعديل)
+    guilds = publicGuilds(req).map((g) => ({ ...g, owner: false, public: true }));
   }
+  const isGuest = !req.canEdit;
 
   const inviteUrl = config.web.inviteUrl || '#';
   const withBot = guilds.filter((g) => g.botPresent).length;
@@ -336,7 +445,7 @@ router.get('/dashboard', requireAuth, (req, res) => {
         <div class="guild-actions">
           ${
             g.botPresent
-              ? `<a class="btn btn-primary btn-sm" href="/dashboard/${g.id}">${icon('settings', { size: 16 })} إعداد</a>`
+              ? `<a class="btn btn-primary btn-sm" href="/dashboard/${g.id}">${icon('settings', { size: 16 })} ${isGuest ? 'عرض' : 'إعداد'}</a>`
               : `<a class="btn btn-ghost btn-sm" href="${inviteUrl}" target="_blank" rel="noopener">${icon('plus', { size: 16 })} إضافة البوت</a>`
           }
         </div>
@@ -353,11 +462,15 @@ router.get('/dashboard', requireAuth, (req, res) => {
   <div class="page-head">
     <div>
       <h1>اختيار السيرفر</h1>
-      <p class="muted">${guilds.length} سيرفر · البوت مضاف إلى ${withBot} منها</p>
+      <p class="muted">${guilds.length} سيرفر · البوت مضاف إلى ${withBot} منها${isGuest ? ' · عرض عام للقراءة فقط' : ''}</p>
     </div>
     <div class="head-actions">
       <a class="btn btn-ghost" href="${inviteUrl}" target="_blank" rel="noopener">${icon('plus', { size: 17 })} إضافة البوت</a>
-      <a class="btn btn-ghost" href="/auth/logout">${icon('logout', { size: 17 })} خروج</a>
+      ${
+        isGuest
+          ? `<a class="btn btn-primary" href="/auth/login">${icon('login', { size: 17 })} تسجيل الدخول بـ Discord</a>`
+          : `<a class="btn btn-ghost" href="/auth/logout">${icon('logout', { size: 17 })} خروج</a>`
+      }
     </div>
   </div>
 
@@ -426,17 +539,28 @@ router.get('/dashboard', requireAuth, (req, res) => {
 router.get('/dashboard/:guildId', requireAuth, (req, res) => {
   const { guildId } = req.params;
 
-  if (!config.web.demoMode && !(req.session.guilds || []).some((g) => g.id === guildId)) {
-    return res.status(403).send('ما عندك صلاحية الوصول لهذا السيرفر.');
+  if (!config.web.demoMode) {
+    const allowed = (req.session.guilds || []).some((g) => g.id === guildId);
+    const publiclyListed = publicGuilds(req).some((g) => g.id === guildId);
+    if (!allowed && !(config.web.publicAccess && publiclyListed)) {
+      return res.status(403).send('ما عندك صلاحية الوصول لهذا السيرفر.');
+    }
   }
 
   const body = `
-  <div id="app" data-guild="${escapeHtml(guildId)}">
+  <div id="app" data-guild="${escapeHtml(guildId)}" data-edit="${req.canEdit ? '1' : '0'}">
     <div class="loading">جارٍ تحميل الإعدادات...</div>
   </div>
   <script src="/app.js"></script>`;
 
-  res.send(layout({ title: 'إعدادات السيرفر', body, user: req.user, bodyClass: 'dashboard' }));
+  res.send(
+    layout({
+      title: 'إعدادات السيرفر',
+      body,
+      user: req.user,
+      bodyClass: `dashboard${req.canEdit ? '' : ' dashboard-readonly'}`,
+    }),
+  );
 });
 
 // نُصدّر الراوتر نفسه مع إرفاق دوال مساعدة (يستخدمها خادم اللوحة)

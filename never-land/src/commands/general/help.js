@@ -55,8 +55,39 @@ function buildCategoryEmbed(client, categoryId, lang) {
     color: 0x5865f2,
     title: `${category.emoji} ${category.label} — ${commands.length} أمر`,
     description: lines.join('\n\n').slice(0, 4000) || 'لا توجد أوامر في هذا القسم.',
-    footer: `Never Land • ${config.web.url}`,
+    footer: webUrlOk(config.web.url) ? `${config.web.siteName} • ${config.web.url}` : config.web.siteName,
   });
+}
+
+
+/** هل رابط الموقع صالح للنقر؟ */
+function webUrlOk(url) {
+  return typeof url === 'string' && /^https?:\/\//i.test(url) && url !== '#';
+}
+
+/** زر «افتح الموقع» و«لوحة التحكم» — تظهر فقط إذا كان الرابط صالحًا */
+function webButtons() {
+  const base = (config.web.url || '').replace(/\/$/, '');
+  if (!webUrlOk(base)) return null;
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setLabel('افتح الموقع').setStyle(ButtonStyle.Link).setURL(base),
+    new ButtonBuilder().setLabel('لوحة التحكم').setStyle(ButtonStyle.Link).setURL(`${base}/dashboard`),
+  );
+  if (webUrlOk(config.web.inviteUrl)) {
+    row.addComponents(new ButtonBuilder().setLabel('إضافة البوت').setStyle(ButtonStyle.Link).setURL(config.web.inviteUrl));
+  }
+  return row;
+}
+
+/** أسطر تعريفية بالموقع تُضاف للنص */
+function webLines() {
+  const base = (config.web.url || '').replace(/\/$/, '');
+  if (!webUrlOk(base)) return ['> موقع اللوحة لم يُضبط بعد — أضف `DASHBOARD_URL` في الإعدادات.'];
+  return [
+    `**الموقع:** ${base}`,
+    'اضغط زر «افتح الموقع» بالأسفل — يفتح مباشرة في المتصفح.',
+    '> الدخول يحتاج تأكيد بحساب Discord، وبعدها يجب أن يملك حسابك الرول المطلوب.',
+  ];
 }
 
 /** أزرار التنقل */
@@ -77,10 +108,10 @@ function buildComponents(client, activeId) {
         .setStyle(c.id === activeId ? ButtonStyle.Primary : ButtonStyle.Secondary),
     ),
   );
-  const links = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setLabel('لوحة التحكم').setEmoji('🌐').setStyle(ButtonStyle.Link).setURL(config.web.url),
-  );
-  return [buttons, menu, links];
+  const rows = [buttons, menu];
+  const linkRow = webButtons();
+  if (linkRow) rows.push(linkRow);
+  return rows;
 }
 
 module.exports = {
@@ -117,6 +148,7 @@ module.exports = {
         return interaction.reply({ content: '❌ ما لقيت هذا الأمر.', flags: MessageFlags.Ephemeral });
       }
       const usage = command.data.options?.map((o) => `\`${o.name}\` ${o.required ? '(إلزامي)' : '(اختياري)'} — ${o.description}`).join('\n') || 'لا توجد خيارات.';
+      const linkRow = webButtons();
       return interaction.reply({
         embeds: [
           embeds.info(`/${command.data.name}`, command.data.description, {
@@ -125,8 +157,10 @@ module.exports = {
               { name: 'القسم', value: CATEGORY_META[command.category]?.label || command.category, inline: true },
               { name: 'الكولداون', value: `${command.cooldown ?? 3} ثانية`, inline: true },
             ],
+            footer: webUrlOk(config.web.url) ? `الموقع: ${config.web.url}` : undefined,
           }),
         ],
+        components: linkRow ? [linkRow] : [],
         flags: MessageFlags.Ephemeral,
       });
     }
@@ -148,9 +182,9 @@ module.exports = {
         '👋 ترحيب ووداع قابل للتخصيص بالكامل',
         '🎫 نظام تذاكر احترافي مع أرشيف',
         '📈 نظام مستويات ومكافآت رتب',
-        '🌐 لوحة تحكم ويب كاملة',
+        '🌐 موقع ولوحة تحكم عربية كاملة',
         '',
-        `🌐 لوحة التحكم: ${config.web.url}`,
+        ...webLines(),
       ].join('\n'),
       footer: t(lang, 'help.footer'),
     });

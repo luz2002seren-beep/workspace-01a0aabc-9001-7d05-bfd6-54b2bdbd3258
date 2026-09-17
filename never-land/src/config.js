@@ -58,6 +58,24 @@ const config = {
     /** الاسم الذي يظهر في الموقع وكل الصفحات */
     siteName: process.env.SITE_NAME || 'Never Land',
     demoMode: bool(process.env.DEMO_MODE, false),
+    /**
+     * الوصول العام: أي زائر يفتح الموقع ويشاهد الصفحات والسيرفرات (بلا تعديل).
+     * التعديل يحتاج تسجيل دخول Discord. اجعلها false لمنع الزوار بالكامل.
+     */
+    publicAccess: bool(process.env.PUBLIC_ACCESS, true),
+    /**
+     * تأكيد الدخول: true = الموقع لا يُفتح إلا بعد تسجيل الدخول بحساب Discord.
+     * (الصفحة الرئيسية واللوحة كلها)
+     */
+    loginRequired: bool(process.env.LOGIN_REQUIRED, true),
+    /**
+     * الرول المطلوب لاستخدام الموقع — معرّف الرول.
+     * من لا يملكه: يسجّل دخوله لكنه يرى صفحة «الوصول مقيّد».
+     * اتركه فارغًا لقبول أي عضو.
+     */
+    requiredRoleId: (process.env.REQUIRED_ROLE_ID || '1549364852433354792').trim(),
+    /** مدة كاش فحص الرول بالثواني */
+    roleCacheSeconds: int(process.env.ROLE_CACHE_SECONDS, 300),
     /** المنفذ: DASHBOARD_PORT أو PORT (تُضبط تلقائيًا في Railway/Render/Heroku) */
     port: int(process.env.DASHBOARD_PORT || process.env.PORT, 3000),
     /**

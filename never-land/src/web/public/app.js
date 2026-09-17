@@ -188,6 +188,8 @@ function iconForEvent(key = '') {
 
 /* ============================ الحالة ============================ */
 const state = {
+  /** هل الزائر يقدر يعدّل؟ (الوصول العام = مشاهدة فقط) */
+  canEdit: true,
   guildId: null,
   settings: null,
   meta: { channels: [], roles: [], logGroups: {}, logEvents: {}, emojis: [], cardAvailable: false },
@@ -260,6 +262,7 @@ function setPath(path, value) {
 function markDirty() {
   state.dirty = true;
   const bar = document.querySelector('.d-savebar');
+  if (!state.canEdit) return;
   if (bar) {
     bar.classList.add('show');
     const msg = bar.querySelector('.msg');
@@ -1508,16 +1511,30 @@ function buildHeader() {
   head.appendChild(info);
 
   const actions = el('div', { class: 'd-head-actions' });
-  const themeBtn = el('button', { class: 'd-btn ghost sm', title: 'تبديل الوضع الليلي/النهاري' });
-  const paintTheme = (theme) => {
-    themeBtn.innerHTML = `${ic(theme === 'light' ? 'sun' : 'moon', 16)} ${theme === 'light' ? 'الوضع النهاري' : 'الوضع الليلي'}`;
+  const themeBtn = el('button', { class: 'd-btn ghost sm' });
+  const themeMode = () => {
+    try {
+      const saved = localStorage.getItem('neverland-theme');
+      return saved === 'light' || saved === 'dark' ? saved : 'auto';
+    } catch { return 'auto'; }
   };
-  paintTheme(currentTheme());
+  const paintTheme = () => {
+    const mode = themeMode();
+    const shown = mode === 'auto' ? currentTheme() : mode;
+    const label = mode === 'auto' ? 'حسب الجهاز' : shown === 'light' ? 'الوضع النهاري' : 'الوضع الليلي';
+    themeBtn.innerHTML = `${ic(mode === 'auto' ? 'refresh' : shown === 'light' ? 'sun' : 'moon', 16)} ${label}`;
+    themeBtn.title = 'السمة: ' + label + ' — اضغط للتبديل';
+  };
+  paintTheme();
   themeBtn.addEventListener('click', () => {
-    const next = currentTheme() === 'light' ? 'dark' : 'light';
-    document.documentElement.dataset.theme = next;
-    try { localStorage.setItem('neverland-theme', next); } catch { /* تجاهل */ }
-    paintTheme(next);
+    const order = { auto: 'light', light: 'dark', dark: 'auto' };
+    const next = order[themeMode()];
+    try {
+      if (next === 'auto') localStorage.removeItem('neverland-theme');
+      else localStorage.setItem('neverland-theme', next);
+    } catch { /* تجاهل */ }
+    document.documentElement.dataset.theme = next === 'auto' ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : next;
+    paintTheme();
   });
   actions.appendChild(themeBtn);
 
@@ -1577,6 +1594,11 @@ async function boot() {
 
   try {
     const data = await api(`/guilds/${state.guildId}`);
+    state.viewer = data.viewer || null;
+    state.canEdit = data.viewer ? Boolean(data.viewer.canEdit) : root.dataset.edit !== '0';
+    if (data.viewer?.roleReason && data.viewer.roleReason !== 'ok') {
+      state.viewer.reason = data.viewer.message || '';
+    }
     state.settings = data.settings;
     state.guild = data.guild;
     state.stats = data.stats;
@@ -1585,7 +1607,20 @@ async function boot() {
     state.dirty = false;
 
     root.innerHTML = '';
-    const shell = el('div', { class: 'd-shell' });
+    const shell = el('div', { class: `d-shell${state.canEdit ? '' : ' readonly'}` });
+    if (!state.canEdit) {
+      shell.appendChild(
+        el('div', {
+          class: 'd-readonly-note',
+          html:
+            state.viewer && state.viewer.loginRequired
+              ? `${ic('shield', 17)} <b>الوصول مقيّد</b> — ${esc(state.viewer.reason || 'تحتاج تسجيل دخول بحساب Discord والرول المطلوب.')}
+                 <a class="d-btn primary sm" href="/auth/login">${ic('login', 15)} تسجيل الدخول</a>`
+              : `${ic('shield', 17)} <b>عرض عام</b> — تقدر تتصفّح الإعدادات بحرية، أما التعديل فيحتاج تسجيل دخول بحساب Discord.
+                 <a class="d-btn primary sm" href="/auth/login">${ic('login', 15)} تسجيل الدخول</a>`,
+        }),
+      );
+    }
     const { side, items } = buildSidebar();
     window.__dashItems = items;
     shell.appendChild(side);
@@ -1597,7 +1632,8 @@ async function boot() {
     shell.appendChild(main);
     root.appendChild(shell);
 
-    /* شريط الحفظ */
+    /* شريط الحفظ (للمسجّلين فقط) */
+    if (state.canEdit) {
     const bar = el('div', { class: 'd-savebar' });
     const msg = el('span', { class: 'msg', text: 'تغييرات غير محفوظة' });
     const grow = el('span', { class: 'grow' });
@@ -1621,6 +1657,7 @@ async function boot() {
     });
     [msg, grow, reset, save].forEach((n) => bar.appendChild(n));
     main.appendChild(bar);
+    }
 
     items.forEach(({ item }) => item.classList.toggle('active', item.dataset.id === state.section));
     renderSection(state.section);

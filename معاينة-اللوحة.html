@@ -2,10 +2,16 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="Never Land — نظام إدارة سيرفرات ديسكورد: حماية تلقائية، سجلات، تذاكر، ترحيب، مستويات، ولوحة تحكم عربية كاملة.">
-<meta name="theme-color" content="#0d1017">
+<meta name="theme-color" content="#0d1017" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f4f6fb" media="(prefers-color-scheme: light)">
 <meta name="color-scheme" content="dark light">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Never Land">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Never Land">
 <meta property="og:title" content="إعدادات السيرفر | Never Land">
@@ -471,12 +477,136 @@ code {
 .site-hero .stat b { font-size: 1.5rem; }
 .brand-text { font-weight: 800; letter-spacing: -.3px; }
 
+/* =====================================================================
+   تكيّف مع الأجهزة: جوال • تابلت • سطح المكتب • الشاشات الكبيرة
+   ===================================================================== */
+
+/* حافة آمنة لهواتف iPhone (النتشة والعنوان السفلي) */
+body {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+.topbar {
+  padding-top: max(10px, env(safe-area-inset-top));
+}
+.footer { padding-bottom: calc(18px + env(safe-area-inset-bottom)); }
+
+/* خطوط تتكيّف مع عرض الشاشة */
+h1 { font-size: clamp(1.5rem, 1.05rem + 2.2vw, 2.3rem); }
+h2 { font-size: clamp(1.2rem, 0.95rem + 1.2vw, 1.65rem); }
+.site-hero h1 { font-size: clamp(1.75rem, 1.1rem + 3vw, 3rem); }
+.site-hero p { font-size: clamp(0.95rem, 0.85rem + 0.5vw, 1.12rem); }
+
+/* لمس أنعم على الجوال */
+a, button, .btn, .pill, .guild-card {
+  -webkit-tap-highlight-color: rgba(91, 108, 255, 0.18);
+}
+.btn, .theme-toggle { min-height: 40px; }
+
+/* ماوس فقط: تأثيرات التحويم لا تُطبّق على اللمس */
+@media (hover: hover) and (pointer: fine) {
+  .guild-card:hover { transform: translateY(-2px); }
+}
+
+/* احترام تقليل الحركة */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* تابلت */
+@media (max-width: 1024px) {
+  .site-features, .site-steps { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .cmd-preview { grid-template-columns: 1fr; }
+}
+
+/* تابلت صغير / جوال كبير */
+@media (max-width: 860px) {
+  .topbar { flex-wrap: wrap; gap: 10px; row-gap: 12px; }
+  .nav {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 6px;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav a { white-space: nowrap; }
+  .auth { margin-inline-start: auto; }
+  .stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .site-cta .btn { flex: 1 1 auto; justify-content: center; }
+  .mock-bar { flex-wrap: wrap; }
+}
+
+/* جوال */
+@media (max-width: 620px) {
+  .container { padding-inline: 14px; }
+  .site-features, .site-steps, .stat-row { grid-template-columns: 1fr; }
+  .site-hero { padding-block: 26px 18px; text-align: center; }
+  .site-step { gap: 10px; }
+  .cmd-preview { font-size: .84rem; }
+  .cmd-line { flex-wrap: wrap; row-gap: 4px; }
+  .mock-panel { border-radius: 14px; }
+  .mock-row { font-size: .84rem; }
+  .search-wrap { flex: 1 1 100%; }
+  .head-actions { width: 100%; }
+  .head-actions .btn { flex: 1 1 auto; justify-content: center; }
+  .guild-card { flex-wrap: wrap; }
+  .guild-actions { width: 100%; }
+  .guild-actions .btn { width: 100%; justify-content: center; }
+  .footer { flex-direction: column; align-items: flex-start; gap: 6px; text-align: start; }
+  .footer .muted { white-space: normal; }
+  /* منع تكبير iOS التلقائي عند الكتابة */
+  input, select, textarea { font-size: 16px; }
+}
+
+/* جوال صغير جدًا */
+@media (max-width: 400px) {
+  .btn { padding-inline: 12px; font-size: .86rem; }
+  .brand-text { font-size: 1rem; }
+  .pill { font-size: .72rem; }
+  .container { padding-inline: 12px; }
+}
+
+/* شاشات كبيرة: لا يتمدّد النص بلا نهاية */
+@media (min-width: 1500px) {
+  .container { max-width: 1320px; }
+  .site-features { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* الشاشات الأفقية المنخفضة (جوال بالعرض) */
+@media (max-height: 480px) and (orientation: landscape) {
+  .site-hero { padding-block: 18px 10px; }
+  .topbar { padding-block: 8px; }
+}
+
+/* الطباعة */
+@media print {
+  .topbar, .footer, .site-cta, .theme-toggle, .auth { display: none !important; }
+  body { background: #fff; color: #000; }
+}
+
 </style>
 <script>
-  try {
-    var saved = localStorage.getItem('neverland-theme');
-    if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
-  } catch (e) {}
+  /* السمة: المفضّل المحفوظ ← وإلا إعداد الجهاز نفسه (ليلي/نهاري/تلقائي) */
+  (function () {
+    var root = document.documentElement;
+    var saved = null;
+    try { saved = localStorage.getItem('neverland-theme'); } catch (e) {}
+    function systemTheme() {
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    }
+    root.dataset.theme = saved === 'light' || saved === 'dark' ? saved : systemTheme();
+    if (window.matchMedia) {
+      try {
+        window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', function (e) {
+          var cur = null;
+          try { cur = localStorage.getItem('neverland-theme'); } catch (err) {}
+          if (cur !== 'light' && cur !== 'dark') root.dataset.theme = e.matches ? 'light' : 'dark';
+        });
+      } catch (e) {}
+    }
+  })();
 </script>
 
 </head>
@@ -497,7 +627,7 @@ code {
   </a>
   <nav class="nav">
     <a href="/">الرئيسية</a>
-    <a href="/dashboard">لوحة التحكم</a>
+    <a href="/dashboard">السيرفرات</a>
     <a href="/api/status" target="_blank" rel="noopener">حالة الخدمة</a>
   </nav>
   <div class="auth">
@@ -511,7 +641,7 @@ code {
 <div style="background:#5b6cff;color:#fff;padding:7px 16px;font-size:.8rem;font-weight:600;text-align:center">نسخة للقراءة دون اتصال — الموقع الفعلي يعمل على الخادم</div>
 <main class="container">
 
-  <div id="app" data-guild="100000000000000001">
+  <div id="app" data-guild="100000000000000001" data-edit="1">
     <div class="loading">جارٍ تحميل الإعدادات...</div>
   </div>
   </main>
@@ -525,21 +655,35 @@ code {
     if (!btn) return;
     var moon = "<svg class=\"ico\" viewBox=\"0 0 24 24\" width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M20 14.6A8.6 8.6 0 1 1 9.4 4a6.9 6.9 0 0 0 10.6 10.6z\"/></svg>";
     var sun = "<svg class=\"ico\" viewBox=\"0 0 24 24\" width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><circle cx=\"12\" cy=\"12\" r=\"4.2\"/><path d=\"M12 2.8v2.1M12 19.1v2.1M2.8 12h2.1M19.1 12h2.1M5.6 5.6l1.5 1.5M16.9 16.9l1.5 1.5M18.4 5.6l-1.5 1.5M7.1 16.9l-1.5 1.5\"/></svg>";
+    var autoIcon = "<svg class=\"ico\" viewBox=\"0 0 24 24\" width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M20 11.5a8 8 0 1 0-2.4 5.7\"/><path d=\"M20 4.5v7h-7\"/></svg>";
+    var root = document.documentElement;
+    var icon = { light: sun, dark: moon, auto: autoIcon };
+    var label = { light: 'الوضع النهاري', dark: 'الوضع الليلي', auto: 'حسب إعداد الجهاز' };
+    var stored = null;
+    try { stored = localStorage.getItem('neverland-theme'); } catch (e) {}
+    var mode = stored === 'light' || stored === 'dark' ? stored : 'auto';
     var paint = function () {
-      var light = document.documentElement.dataset.theme === 'light';
-      btn.innerHTML = light ? sun : moon;
+      var shown = mode === 'auto' ? (root.dataset.theme === 'light' ? 'light' : 'dark') : mode;
+      btn.innerHTML = mode === 'auto' ? autoIcon : icon[shown];
+      btn.title = label[mode] + ' — اضغط للتبديل';
+      btn.setAttribute('aria-label', label[mode]);
     };
     paint();
     btn.addEventListener('click', function () {
-      var next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
-      document.documentElement.dataset.theme = next;
-      try { localStorage.setItem('neverland-theme', next); } catch (e) {}
+      var order = { auto: 'light', light: 'dark', dark: 'auto' };
+      mode = order[mode];
+      try {
+        if (mode === 'auto') localStorage.removeItem('neverland-theme');
+        else localStorage.setItem('neverland-theme', mode);
+      } catch (e) {}
+      var system = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      root.dataset.theme = mode === 'auto' ? system : mode;
       paint();
     });
   })();
 </script>
 <script>
-window.__SNAPSHOT__={"payload":{"guild":{"id":"100000000000000001","name":"مجتمع Never Land","icon":null,"memberCount":4820,"ownerId":null,"botPresent":true,"botOnline":false,"createdAt":null},"settings":{"language":"ar","prefix":"!","welcome":{"enabled":true,"channelId":"100000000000000010","message":"أهلاً بك {user} في **{server}**، أنت العضو رقم **{memberCount}**.","embed":true,"dm":true,"dmMessage":"أهلاً بك في **{server}**. يُرجى الاطلاع على قوانين السيرفر قبل المشاركة.","autoDeleteAfter":0,"imageMode":"card","imageUrl":null,"cardBackground":null,"cardTheme":{"from":"#5865f2","to":"#2b2f6b","accent":"#ffffff"},"avatarThumbnail":true,"attachImage":true},"leave":{"enabled":true,"channelId":"100000000000000011","message":"غادر {user} السيرفر."},"boost":{"enabled":true,"channelId":"100000000000000012","message":"شكرًا {user} على دعم السيرفر. المستوى الحالي {level}."},"logs":{"enabled":true,"channelId":"100000000000000013","events":{"messageDelete":true,"messageEdit":true,"messageBulkDelete":true,"memberJoin":true,"memberLeave":true,"memberKick":true,"memberBan":true,"memberUnban":true,"memberTimeout":true,"memberBoost":true,"memberRoleUpdate":true,"memberNickname":true,"memberAvatar":true,"memberUsername":true,"roleCreate":true,"roleDelete":true,"roleUpdate":true,"channelCreate":true,"channelDelete":true,"channelUpdate":true,"channelPermissions":true,"serverUpdate":true,"emojiCreate":true,"emojiDelete":true,"stickerCreate":true,"stickerDelete":true,"inviteCreate":true,"inviteDelete":false,"threadCreate":false,"threadDelete":false,"voiceJoin":false,"voiceLeave":false,"voiceMove":false,"voiceMute":false,"voiceDeafen":false,"modActions":true,"automod":true,"ticket":true,"memberUpdate":true},"ignoredChannels":[],"ignoredRoles":[]},"autoline":{"enabled":true,"channels":["100000000000000014","100000000000000015"],"line":"────────────────────────","color":null,"deletePrevious":true,"deleteAfter":0,"deleteLineWithMessage":true},"autoreact":{"enabled":true,"channels":["100000000000000016"],"emojis":["👍","🔥"],"words":[{"word":"ترحيب","emoji":"👋"},{"word":"مبروك","emoji":"🎉"}],"ignoreBots":true},"autorole":{"enabled":true,"roleIds":["100000000000000021"],"botRoleIds":[]},"automod":{"enabled":true,"antiSpam":true,"spamMessages":5,"spamIntervalSeconds":4,"antiLink":true,"antiInvite":true,"antiEveryone":true,"antiCaps":false,"capsPercent":70,"antiMentionSpam":true,"mentionLimit":5,"bannedWords":["كلمة_ممنوعة","spam","اشتراك مقابل"],"whitelistChannels":["100000000000000014"],"whitelistRoles":["100000000000000020"],"whitelistDomains":["tenor.com","giphy.com"],"punishment":"timeout","timeoutMinutes":15,"antiRaid":true,"raidThreshold":10,"raidWindowSeconds":60,"raidAction":"alert","raidMinAccountAgeDays":7},"moderation":{"warnThreshold":3,"warnAction":"timeout"},"reports":{"channelId":null},"leveling":{"enabled":true,"minXp":15,"maxXp":25,"cooldownSeconds":45,"announceChannelId":"100000000000000010","levelUpMessage":"وصل {user} إلى المستوى **{level}**.","rewards":[{"level":5,"roleId":"100000000000000022"},{"level":10,"roleId":"100000000000000023"},{"level":25,"roleId":"100000000000000024"}],"voiceXp":true,"voiceMinXp":5,"voiceMaxXp":10,"ignoredChannels":[],"ignoredRoles":[],"silent":false},"tickets":{"enabled":true,"categoryId":"100000000000000030","supportRoleIds":["100000000000000031","100000000000000032"],"logChannelId":"100000000000000013","panelTitle":"مركز الدعم","panelDescription":"اختر نوع التذكرة من القائمة بالأسفل وسيتم فتح غرفة خاصة لك.","panelFooter":"Never Land • فريق الدعم جاهز لمساعدتك","responseTime":"24 ساعة","panelMode":"buttons","panelSeparateInfo":true,"panelInfoMessage":"**كيف أحصل على الدعم؟**\nاختر نوع الطلب من الأزرار أدناه، وسيُفتح لك روم خاص مع فريق الدعم.","types":[{"id":"support","label":"الدعم الفني","emoji":"🛠️","description":"مشكلة تقنية أو استفسار عن البوت والسيرفر","intro":"اكتب مشكلتك بالتفصيل (وصف المشكلة • متى حدثت • أي صور إن وُجدت) وسيساعدك فريق الدعم الفني.","buttonStyle":"Primary"},{"id":"verify","label":"التوثيق","emoji":"✅","description":"طلب توثيق حساب أو رتبة موثّق","intro":"لطلب التوثيق أرسل: من أنت • لماذا تطلب التوثيق • روابط حساباتك الرسمية.","buttonStyle":"Success"},{"id":"gift","label":"الهدايا","emoji":"🎁","description":"استلام جائزة أو مشكلة في هدية/سحب","intro":"اذكر اسم السحب/الهدية ورقم الرسالة وصورة من الفوز إن وُجدت.","buttonStyle":"Secondary"},{"id":"staff","label":"تقديم إدارة","emoji":"📋","description":"تقديم طلب للانضمام لفريق الإدارة","intro":"اضغط زر «تعبئة النموذج» أدناه، ثم املأ الخانات، وسيصل طلبك إلى الإدارة تلقائيًا.","buttonStyle":"Danger"}],"maxOpenPerUser":3,"transcriptOnClose":true},"staffApplication":{"enabled":true,"onlyForTypes":["staff"],"reviewChannelId":"100000000000000013","pingRoleIds":["100000000000000031"],"formTitle":"نموذج تقديم الإدارة","formIntro":"عبّئ الخانات أدناه بدقة، وسيصل رد الإدارة إلى بريدك الخاص.\n\n> التقديم الناقص أو غير الدقيق يُرفض.","formButtonLabel":"تعبئة النموذج","resendButtonLabel":"إعادة إرسال النموذج","fields":[{"id":"name_age","label":"الاسم والعمر","placeholder":"مثال: أحمد — 18","style":"short","required":true,"maxLength":100},{"id":"country","label":"من أي بلد أنت؟","placeholder":"مثال: المغرب","style":"short","required":true,"maxLength":60},{"id":"prev_servers","label":"سيرفرات كنت فيها إدارياً؟","placeholder":"اذكر أسماء السيرفرات وعدد الأعضاء ورتبتك فيها","style":"paragraph","required":true,"maxLength":700},{"id":"mic","label":"هل تقدر تفتح مايك؟","placeholder":"نعم / لا — مع ذكر الوقت المتاح يوميًا","style":"short","required":true,"maxLength":200},{"id":"logo_link","label":"هل تقدر تحط شعار ورابط؟","placeholder":"مثال: نعم — الشعار جاهز والرابط: https://...","style":"short","required":true,"maxLength":300}],"nameFieldId":"name_age","acceptMessage":"تم قبول طلبك للانضمام إلى فريق الإدارة.\nسيتواصل معك أحد المسؤولين لبدء التدريب.","rejectMessage":"نُشكر لك اهتمامك بالتقديم، ولم يتم قبول طلبك في هذه المرة.\nيمكنك إعادة التقديم لاحقًا.","askRejectReason":true,"onAccept":{"postInTicket":"{user} تم قبول عرضك، وسُجّلت تذكرتك في ملف الإدارة برقم **#{number}**.","dmApplicant":true,"renameChannel":true,"channelNameFormat":"إدارة-{number}-{name}","moveToCategoryId":"100000000000000030","addRoleIds":["100000000000000031"],"pingApplicant":true},"onReject":{"postInTicket":"{user} تم رفض تقديمك، ويمكنك إعادة المحاولة لاحقًا.","dmApplicant":true,"closeTicket":false}},"selfRoles":{"enabled":false,"panels":[]},"referral":{"enabled":false,"channelId":null}},"stats":{"cases":8,"warnings":3,"bans":1,"kicks":1,"timeouts":2,"tickets":5,"openTickets":2,"trackedMembers":10,"xpSum":72414,"messages":7950,"discordMembers":null,"botReady":false},"daily":[{"guild_id":"100000000000000001","day":"2026-09-03","messages":414,"joins":17,"leaves":12},{"guild_id":"100000000000000001","day":"2026-09-04","messages":692,"joins":19,"leaves":9},{"guild_id":"100000000000000001","day":"2026-09-05","messages":480,"joins":17,"leaves":5},{"guild_id":"100000000000000001","day":"2026-09-06","messages":517,"joins":4,"leaves":12},{"guild_id":"100000000000000001","day":"2026-09-07","messages":914,"joins":24,"leaves":9},{"guild_id":"100000000000000001","day":"2026-09-08","messages":1189,"joins":28,"leaves":11},{"guild_id":"100000000000000001","day":"2026-09-09","messages":832,"joins":12,"leaves":6},{"guild_id":"100000000000000001","day":"2026-09-10","messages":675,"joins":10,"leaves":7},{"guild_id":"100000000000000001","day":"2026-09-11","messages":841,"joins":17,"leaves":4},{"guild_id":"100000000000000001","day":"2026-09-12","messages":1020,"joins":10,"leaves":3},{"guild_id":"100000000000000001","day":"2026-09-13","messages":1029,"joins":12,"leaves":11},{"guild_id":"100000000000000001","day":"2026-09-14","messages":440,"joins":29,"leaves":8},{"guild_id":"100000000000000001","day":"2026-09-15","messages":670,"joins":26,"leaves":10},{"guild_id":"100000000000000001","day":"2026-09-16","messages":435,"joins":5,"leaves":6}],"meta":{"channels":[],"roles":[],"members":0,"emojis":[],"logGroups":{"messages":{"emoji":"💬","label":"الرسائل"},"members":{"emoji":"👥","label":"الأعضاء"},"roles":{"emoji":"🎭","label":"الرتب"},"channels":{"emoji":"📁","label":"القنوات"},"server":{"emoji":"⚙️","label":"السيرفر والإيموجيات"},"invites":{"emoji":"🔗","label":"الدعوات"},"threads":{"emoji":"🧵","label":"المواضيع"},"voice":{"emoji":"🔊","label":"الصوت"},"system":{"emoji":"🛡️","label":"الأنظمة"}},"logEvents":{"messageDelete":{"label":"حذف رسالة","emoji":"🗑️","group":"messages"},"messageEdit":{"label":"تعديل رسالة","emoji":"✏️","group":"messages"},"messageBulkDelete":{"label":"حذف جماعي للرسائل","emoji":"🧹","group":"messages"},"memberJoin":{"label":"دخول عضو","emoji":"📥","group":"members"},"memberLeave":{"label":"خروج عضو","emoji":"📤","group":"members"},"memberKick":{"label":"طرد عضو","emoji":"👢","group":"members"},"memberBan":{"label":"حظر عضو","emoji":"🔨","group":"members"},"memberUnban":{"label":"فك حظر","emoji":"♻️","group":"members"},"memberTimeout":{"label":"إسكات عضو (Timeout)","emoji":"🔇","group":"members"},"memberBoost":{"label":"دعم السيرفر (Boost)","emoji":"🚀","group":"members"},"memberRoleUpdate":{"label":"تغيير رتب عضو","emoji":"🎭","group":"members"},"memberNickname":{"label":"تغيير اسم عضو","emoji":"📝","group":"members"},"memberAvatar":{"label":"تغيير صورة عضو","emoji":"🖼️","group":"members"},"memberUsername":{"label":"تغيير اسم المستخدم","emoji":"🏷️","group":"members"},"roleCreate":{"label":"إنشاء رتبة","emoji":"🎭","group":"roles"},"roleDelete":{"label":"حذف رتبة","emoji":"🎭","group":"roles"},"roleUpdate":{"label":"تعديل رتبة","emoji":"🎭","group":"roles"},"channelCreate":{"label":"إنشاء قناة","emoji":"📁","group":"channels"},"channelDelete":{"label":"حذف قناة","emoji":"📁","group":"channels"},"channelUpdate":{"label":"تعديل قناة","emoji":"✏️","group":"channels"},"channelPermissions":{"label":"تغيير صلاحيات قناة","emoji":"🔐","group":"channels"},"serverUpdate":{"label":"تحديث السيرفر","emoji":"⚙️","group":"server"},"emojiCreate":{"label":"إضافة إيموجي","emoji":"😀","group":"server"},"emojiDelete":{"label":"حذف إيموجي","emoji":"😶","group":"server"},"stickerCreate":{"label":"إضافة ملصق","emoji":"🏷️","group":"server"},"stickerDelete":{"label":"حذف ملصق","emoji":"🏷️","group":"server"},"inviteCreate":{"label":"إنشاء دعوة","emoji":"🔗","group":"invites"},"inviteDelete":{"label":"حذف دعوة","emoji":"🔗","group":"invites"},"threadCreate":{"label":"إنشاء موضوع (Thread)","emoji":"🧵","group":"threads"},"threadDelete":{"label":"حذف موضوع (Thread)","emoji":"🧵","group":"threads"},"voiceJoin":{"label":"دخول قناة صوتية","emoji":"🔊","group":"voice"},"voiceLeave":{"label":"خروج من قناة صوتية","emoji":"🔇","group":"voice"},"voiceMove":{"label":"تنقّل بين قنوات صوتية","emoji":"↔️","group":"voice"},"voiceMute":{"label":"كتم صوتي","emoji":"🎙️","group":"voice"},"voiceDeafen":{"label":"إصمام صوتي","emoji":"🎧","group":"voice"},"modActions":{"label":"إجراء إداري","emoji":"🛡️","group":"system"},"automod":{"label":"الحماية التلقائية","emoji":"🚨","group":"system"},"ticket":{"label":"التذاكر","emoji":"🎫","group":"system"}},"cardAvailable":true}},"extra":{"cases":{"items":[{"id":8,"guild_id":"100000000000000001","type":"timeout","user_id":"200000000000000007","user_tag":"member_7#0007","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"إساءة للأعضاء","duration":600000,"active":1,"created_at":1789569871013},{"id":7,"guild_id":"100000000000000001","type":"unban","user_id":"200000000000000006","user_tag":"member_6#0006","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"سبام في الشات","duration":null,"active":1,"created_at":1789569871013},{"id":6,"guild_id":"100000000000000001","type":"timeout","user_id":"200000000000000005","user_tag":"member_5#0005","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"مخالفة القوانين","duration":600000,"active":1,"created_at":1789569871013},{"id":5,"guild_id":"100000000000000001","type":"kick","user_id":"200000000000000004","user_tag":"member_4#0004","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"تجاهل تحذيرات","duration":null,"active":1,"created_at":1789569871012},{"id":4,"guild_id":"100000000000000001","type":"ban","user_id":"200000000000000003","user_tag":"member_3#0003","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"نشر روابط","duration":null,"active":1,"created_at":1789569871012},{"id":3,"guild_id":"100000000000000001","type":"warn","user_id":"200000000000000002","user_tag":"member_2#0002","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"إساءة للأعضاء","duration":null,"active":1,"created_at":1789569871012},{"id":2,"guild_id":"100000000000000001","type":"warn","user_id":"200000000000000001","user_tag":"member_1#0001","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"سبام في الشات","duration":null,"active":1,"created_at":1789569871012},{"id":1,"guild_id":"100000000000000001","type":"warn","user_id":"200000000000000000","user_tag":"member_0#0000","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"مخالفة القوانين","duration":null,"active":1,"created_at":1789569871012}],"total":8,"page":1,"perPage":25,"pages":1},"tickets":{"items":[{"id":5,"guild_id":"100000000000000001","channel_id":"400000000000000004","user_id":"200000000000000014","type":"support","status":"closed","claimed_by":null,"transcript":null,"created_at":1789569871014,"closed_at":1789555471014},{"id":4,"guild_id":"100000000000000001","channel_id":"400000000000000003","user_id":"200000000000000013","type":"staff","status":"closed","claimed_by":null,"transcript":null,"created_at":1789569871013,"closed_at":1789559071013},{"id":3,"guild_id":"100000000000000001","channel_id":"400000000000000002","user_id":"200000000000000012","type":"gift","status":"closed","claimed_by":null,"transcript":null,"created_at":1789569871013,"closed_at":1789562671013},{"id":2,"guild_id":"100000000000000001","channel_id":"400000000000000001","user_id":"200000000000000011","type":"verify","status":"open","claimed_by":null,"transcript":null,"created_at":1789569871013,"closed_at":null},{"id":1,"guild_id":"100000000000000001","channel_id":"400000000000000000","user_id":"200000000000000010","type":"support","status":"open","claimed_by":"300000000000000001","transcript":null,"created_at":1789569871013,"closed_at":null}],"total":5},"levels":{"items":[{"guild_id":"100000000000000001","user_id":"200000000000000010","xp":24105,"level":20,"messages":1200,"voice_minutes":800,"last_xp_at":1789569871014,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000011","xp":12085,"level":15,"messages":1110,"voice_minutes":745,"last_xp_at":1789569811014,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000012","xp":8170,"level":12,"messages":1020,"voice_minutes":690,"last_xp_at":1789569751014,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000013","xp":6394,"level":11,"messages":930,"voice_minutes":635,"last_xp_at":1789569691014,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000014","xp":4988,"level":10,"messages":840,"voice_minutes":580,"last_xp_at":1789569631015,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000015","xp":4102,"level":9,"messages":750,"voice_minutes":525,"last_xp_at":1789569571015,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000016","xp":3478,"level":8,"messages":660,"voice_minutes":470,"last_xp_at":1789569511015,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000017","xp":3438,"level":8,"messages":570,"voice_minutes":415,"last_xp_at":1789569451015,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000018","xp":2844,"level":7,"messages":480,"voice_minutes":360,"last_xp_at":1789569391015,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000019","xp":2810,"level":7,"messages":390,"voice_minutes":305,"last_xp_at":1789569331015,"username":null,"displayName":null,"avatar":null}],"total":10}},"guild":"100000000000000001"};
+window.__SNAPSHOT__={"payload":{"guild":{"id":"100000000000000001","name":"مجتمع Never Land","icon":null,"memberCount":4820,"ownerId":null,"botPresent":true,"botOnline":false,"createdAt":null},"settings":{"language":"ar","prefix":"!","welcome":{"enabled":true,"channelId":"100000000000000010","message":"أهلاً بك {user} في **{server}**، أنت العضو رقم **{memberCount}**.","embed":true,"dm":true,"dmMessage":"أهلاً بك في **{server}**. يُرجى الاطلاع على قوانين السيرفر قبل المشاركة.","autoDeleteAfter":0,"imageMode":"card","imageUrl":null,"cardBackground":null,"cardTheme":{"from":"#5865f2","to":"#2b2f6b","accent":"#ffffff"},"avatarThumbnail":true,"attachImage":true},"leave":{"enabled":true,"channelId":"100000000000000011","message":"غادر {user} السيرفر."},"boost":{"enabled":true,"channelId":"100000000000000012","message":"شكرًا {user} على دعم السيرفر. المستوى الحالي {level}."},"logs":{"enabled":true,"channelId":"100000000000000013","events":{"messageDelete":true,"messageEdit":true,"messageBulkDelete":true,"memberJoin":true,"memberLeave":true,"memberKick":true,"memberBan":true,"memberUnban":true,"memberTimeout":true,"memberBoost":true,"memberRoleUpdate":true,"memberNickname":true,"memberAvatar":true,"memberUsername":true,"roleCreate":true,"roleDelete":true,"roleUpdate":true,"channelCreate":true,"channelDelete":true,"channelUpdate":true,"channelPermissions":true,"serverUpdate":true,"emojiCreate":true,"emojiDelete":true,"stickerCreate":true,"stickerDelete":true,"inviteCreate":true,"inviteDelete":false,"threadCreate":false,"threadDelete":false,"voiceJoin":false,"voiceLeave":false,"voiceMove":false,"voiceMute":false,"voiceDeafen":false,"modActions":true,"automod":true,"ticket":true,"memberUpdate":true},"ignoredChannels":[],"ignoredRoles":[]},"autoline":{"enabled":true,"channels":["100000000000000014","100000000000000015"],"line":"────────────────────────","color":null,"deletePrevious":true,"deleteAfter":0,"deleteLineWithMessage":true},"autoreact":{"enabled":true,"channels":["100000000000000016"],"emojis":["👍","🔥"],"words":[{"word":"ترحيب","emoji":"👋"},{"word":"مبروك","emoji":"🎉"}],"ignoreBots":true},"autorole":{"enabled":true,"roleIds":["100000000000000021"],"botRoleIds":[]},"automod":{"enabled":true,"antiSpam":true,"spamMessages":5,"spamIntervalSeconds":4,"antiLink":true,"antiInvite":true,"antiEveryone":true,"antiCaps":false,"capsPercent":70,"antiMentionSpam":true,"mentionLimit":5,"bannedWords":["كلمة_ممنوعة","spam","اشتراك مقابل"],"whitelistChannels":["100000000000000014"],"whitelistRoles":["100000000000000020"],"whitelistDomains":["tenor.com","giphy.com"],"punishment":"timeout","timeoutMinutes":15,"antiRaid":true,"raidThreshold":10,"raidWindowSeconds":60,"raidAction":"alert","raidMinAccountAgeDays":7},"moderation":{"warnThreshold":3,"warnAction":"timeout"},"reports":{"channelId":null},"leveling":{"enabled":true,"minXp":15,"maxXp":25,"cooldownSeconds":45,"announceChannelId":"100000000000000010","levelUpMessage":"وصل {user} إلى المستوى **{level}**.","rewards":[{"level":5,"roleId":"100000000000000022"},{"level":10,"roleId":"100000000000000023"},{"level":25,"roleId":"100000000000000024"}],"voiceXp":true,"voiceMinXp":5,"voiceMaxXp":10,"ignoredChannels":[],"ignoredRoles":[],"silent":false},"tickets":{"enabled":true,"categoryId":"100000000000000030","supportRoleIds":["100000000000000031","100000000000000032"],"logChannelId":"100000000000000013","panelTitle":"مركز الدعم","panelDescription":"اختر نوع التذكرة من القائمة بالأسفل وسيتم فتح غرفة خاصة لك.","panelFooter":"Never Land • فريق الدعم جاهز لمساعدتك","responseTime":"24 ساعة","panelMode":"buttons","panelSeparateInfo":true,"panelInfoMessage":"**كيف أحصل على الدعم؟**\nاختر نوع الطلب من الأزرار أدناه، وسيُفتح لك روم خاص مع فريق الدعم.","types":[{"id":"support","label":"الدعم الفني","emoji":"🛠️","description":"مشكلة تقنية أو استفسار عن البوت والسيرفر","intro":"اكتب مشكلتك بالتفصيل (وصف المشكلة • متى حدثت • أي صور إن وُجدت) وسيساعدك فريق الدعم الفني.","buttonStyle":"Primary"},{"id":"verify","label":"التوثيق","emoji":"✅","description":"طلب توثيق حساب أو رتبة موثّق","intro":"لطلب التوثيق أرسل: من أنت • لماذا تطلب التوثيق • روابط حساباتك الرسمية.","buttonStyle":"Success"},{"id":"gift","label":"الهدايا","emoji":"🎁","description":"استلام جائزة أو مشكلة في هدية/سحب","intro":"اذكر اسم السحب/الهدية ورقم الرسالة وصورة من الفوز إن وُجدت.","buttonStyle":"Secondary"},{"id":"staff","label":"تقديم إدارة","emoji":"📋","description":"تقديم طلب للانضمام لفريق الإدارة","intro":"اضغط زر «تعبئة النموذج» أدناه، ثم املأ الخانات، وسيصل طلبك إلى الإدارة تلقائيًا.","buttonStyle":"Danger"}],"maxOpenPerUser":3,"transcriptOnClose":true},"staffApplication":{"enabled":true,"onlyForTypes":["staff"],"reviewChannelId":"100000000000000013","pingRoleIds":["100000000000000031"],"formTitle":"نموذج تقديم الإدارة","formIntro":"عبّئ الخانات أدناه بدقة، وسيصل رد الإدارة إلى بريدك الخاص.\n\n> التقديم الناقص أو غير الدقيق يُرفض.","formButtonLabel":"تعبئة النموذج","resendButtonLabel":"إعادة إرسال النموذج","fields":[{"id":"name_age","label":"الاسم والعمر","placeholder":"مثال: أحمد — 18","style":"short","required":true,"maxLength":100},{"id":"country","label":"من أي بلد أنت؟","placeholder":"مثال: المغرب","style":"short","required":true,"maxLength":60},{"id":"prev_servers","label":"سيرفرات كنت فيها إدارياً؟","placeholder":"اذكر أسماء السيرفرات وعدد الأعضاء ورتبتك فيها","style":"paragraph","required":true,"maxLength":700},{"id":"mic","label":"هل تقدر تفتح مايك؟","placeholder":"نعم / لا — مع ذكر الوقت المتاح يوميًا","style":"short","required":true,"maxLength":200},{"id":"logo_link","label":"هل تقدر تحط شعار ورابط؟","placeholder":"مثال: نعم — الشعار جاهز والرابط: https://...","style":"short","required":true,"maxLength":300}],"nameFieldId":"name_age","acceptMessage":"تم قبول طلبك للانضمام إلى فريق الإدارة.\nسيتواصل معك أحد المسؤولين لبدء التدريب.","rejectMessage":"نُشكر لك اهتمامك بالتقديم، ولم يتم قبول طلبك في هذه المرة.\nيمكنك إعادة التقديم لاحقًا.","askRejectReason":true,"onAccept":{"postInTicket":"{user} تم قبول عرضك، وسُجّلت تذكرتك في ملف الإدارة برقم **#{number}**.","dmApplicant":true,"renameChannel":true,"channelNameFormat":"إدارة-{number}-{name}","moveToCategoryId":"100000000000000030","addRoleIds":["100000000000000031"],"pingApplicant":true},"onReject":{"postInTicket":"{user} تم رفض تقديمك، ويمكنك إعادة المحاولة لاحقًا.","dmApplicant":true,"closeTicket":false}},"selfRoles":{"enabled":false,"panels":[]},"referral":{"enabled":false,"channelId":null}},"stats":{"cases":8,"warnings":3,"bans":1,"kicks":1,"timeouts":2,"tickets":5,"openTickets":2,"trackedMembers":10,"xpSum":72414,"messages":7950,"discordMembers":null,"botReady":false},"daily":[{"guild_id":"100000000000000001","day":"2026-09-03","messages":414,"joins":17,"leaves":12},{"guild_id":"100000000000000001","day":"2026-09-04","messages":692,"joins":19,"leaves":9},{"guild_id":"100000000000000001","day":"2026-09-05","messages":480,"joins":17,"leaves":5},{"guild_id":"100000000000000001","day":"2026-09-06","messages":517,"joins":4,"leaves":12},{"guild_id":"100000000000000001","day":"2026-09-07","messages":914,"joins":24,"leaves":9},{"guild_id":"100000000000000001","day":"2026-09-08","messages":1189,"joins":28,"leaves":11},{"guild_id":"100000000000000001","day":"2026-09-09","messages":832,"joins":12,"leaves":6},{"guild_id":"100000000000000001","day":"2026-09-10","messages":675,"joins":10,"leaves":7},{"guild_id":"100000000000000001","day":"2026-09-11","messages":841,"joins":17,"leaves":4},{"guild_id":"100000000000000001","day":"2026-09-12","messages":1020,"joins":10,"leaves":3},{"guild_id":"100000000000000001","day":"2026-09-13","messages":1029,"joins":12,"leaves":11},{"guild_id":"100000000000000001","day":"2026-09-14","messages":440,"joins":29,"leaves":8},{"guild_id":"100000000000000001","day":"2026-09-15","messages":670,"joins":26,"leaves":10},{"guild_id":"100000000000000001","day":"2026-09-16","messages":435,"joins":5,"leaves":6}],"meta":{"channels":[],"roles":[],"members":0,"emojis":[],"logGroups":{"messages":{"emoji":"💬","label":"الرسائل"},"members":{"emoji":"👥","label":"الأعضاء"},"roles":{"emoji":"🎭","label":"الرتب"},"channels":{"emoji":"📁","label":"القنوات"},"server":{"emoji":"⚙️","label":"السيرفر والإيموجيات"},"invites":{"emoji":"🔗","label":"الدعوات"},"threads":{"emoji":"🧵","label":"المواضيع"},"voice":{"emoji":"🔊","label":"الصوت"},"system":{"emoji":"🛡️","label":"الأنظمة"}},"logEvents":{"messageDelete":{"label":"حذف رسالة","emoji":"🗑️","group":"messages"},"messageEdit":{"label":"تعديل رسالة","emoji":"✏️","group":"messages"},"messageBulkDelete":{"label":"حذف جماعي للرسائل","emoji":"🧹","group":"messages"},"memberJoin":{"label":"دخول عضو","emoji":"📥","group":"members"},"memberLeave":{"label":"خروج عضو","emoji":"📤","group":"members"},"memberKick":{"label":"طرد عضو","emoji":"👢","group":"members"},"memberBan":{"label":"حظر عضو","emoji":"🔨","group":"members"},"memberUnban":{"label":"فك حظر","emoji":"♻️","group":"members"},"memberTimeout":{"label":"إسكات عضو (Timeout)","emoji":"🔇","group":"members"},"memberBoost":{"label":"دعم السيرفر (Boost)","emoji":"🚀","group":"members"},"memberRoleUpdate":{"label":"تغيير رتب عضو","emoji":"🎭","group":"members"},"memberNickname":{"label":"تغيير اسم عضو","emoji":"📝","group":"members"},"memberAvatar":{"label":"تغيير صورة عضو","emoji":"🖼️","group":"members"},"memberUsername":{"label":"تغيير اسم المستخدم","emoji":"🏷️","group":"members"},"roleCreate":{"label":"إنشاء رتبة","emoji":"🎭","group":"roles"},"roleDelete":{"label":"حذف رتبة","emoji":"🎭","group":"roles"},"roleUpdate":{"label":"تعديل رتبة","emoji":"🎭","group":"roles"},"channelCreate":{"label":"إنشاء قناة","emoji":"📁","group":"channels"},"channelDelete":{"label":"حذف قناة","emoji":"📁","group":"channels"},"channelUpdate":{"label":"تعديل قناة","emoji":"✏️","group":"channels"},"channelPermissions":{"label":"تغيير صلاحيات قناة","emoji":"🔐","group":"channels"},"serverUpdate":{"label":"تحديث السيرفر","emoji":"⚙️","group":"server"},"emojiCreate":{"label":"إضافة إيموجي","emoji":"😀","group":"server"},"emojiDelete":{"label":"حذف إيموجي","emoji":"😶","group":"server"},"stickerCreate":{"label":"إضافة ملصق","emoji":"🏷️","group":"server"},"stickerDelete":{"label":"حذف ملصق","emoji":"🏷️","group":"server"},"inviteCreate":{"label":"إنشاء دعوة","emoji":"🔗","group":"invites"},"inviteDelete":{"label":"حذف دعوة","emoji":"🔗","group":"invites"},"threadCreate":{"label":"إنشاء موضوع (Thread)","emoji":"🧵","group":"threads"},"threadDelete":{"label":"حذف موضوع (Thread)","emoji":"🧵","group":"threads"},"voiceJoin":{"label":"دخول قناة صوتية","emoji":"🔊","group":"voice"},"voiceLeave":{"label":"خروج من قناة صوتية","emoji":"🔇","group":"voice"},"voiceMove":{"label":"تنقّل بين قنوات صوتية","emoji":"↔️","group":"voice"},"voiceMute":{"label":"كتم صوتي","emoji":"🎙️","group":"voice"},"voiceDeafen":{"label":"إصمام صوتي","emoji":"🎧","group":"voice"},"modActions":{"label":"إجراء إداري","emoji":"🛡️","group":"system"},"automod":{"label":"الحماية التلقائية","emoji":"🚨","group":"system"},"ticket":{"label":"التذاكر","emoji":"🎫","group":"system"}},"cardAvailable":true},"viewer":{"canEdit":true,"loggedIn":true,"demo":true,"publicAccess":true}},"extra":{"cases":{"items":[{"id":8,"guild_id":"100000000000000001","type":"timeout","user_id":"200000000000000007","user_tag":"member_7#0007","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"إساءة للأعضاء","duration":600000,"active":1,"created_at":1789569871013},{"id":7,"guild_id":"100000000000000001","type":"unban","user_id":"200000000000000006","user_tag":"member_6#0006","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"سبام في الشات","duration":null,"active":1,"created_at":1789569871013},{"id":6,"guild_id":"100000000000000001","type":"timeout","user_id":"200000000000000005","user_tag":"member_5#0005","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"مخالفة القوانين","duration":600000,"active":1,"created_at":1789569871013},{"id":5,"guild_id":"100000000000000001","type":"kick","user_id":"200000000000000004","user_tag":"member_4#0004","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"تجاهل تحذيرات","duration":null,"active":1,"created_at":1789569871012},{"id":4,"guild_id":"100000000000000001","type":"ban","user_id":"200000000000000003","user_tag":"member_3#0003","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"نشر روابط","duration":null,"active":1,"created_at":1789569871012},{"id":3,"guild_id":"100000000000000001","type":"warn","user_id":"200000000000000002","user_tag":"member_2#0002","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"إساءة للأعضاء","duration":null,"active":1,"created_at":1789569871012},{"id":2,"guild_id":"100000000000000001","type":"warn","user_id":"200000000000000001","user_tag":"member_1#0001","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"سبام في الشات","duration":null,"active":1,"created_at":1789569871012},{"id":1,"guild_id":"100000000000000001","type":"warn","user_id":"200000000000000000","user_tag":"member_0#0000","moderator_id":"300000000000000001","moderator_tag":"Admin#0001","reason":"مخالفة القوانين","duration":null,"active":1,"created_at":1789569871012}],"total":8,"page":1,"perPage":25,"pages":1},"tickets":{"items":[{"id":5,"guild_id":"100000000000000001","channel_id":"400000000000000004","user_id":"200000000000000014","type":"support","status":"closed","claimed_by":null,"transcript":null,"created_at":1789569871014,"closed_at":1789555471014},{"id":4,"guild_id":"100000000000000001","channel_id":"400000000000000003","user_id":"200000000000000013","type":"staff","status":"closed","claimed_by":null,"transcript":null,"created_at":1789569871013,"closed_at":1789559071013},{"id":3,"guild_id":"100000000000000001","channel_id":"400000000000000002","user_id":"200000000000000012","type":"gift","status":"closed","claimed_by":null,"transcript":null,"created_at":1789569871013,"closed_at":1789562671013},{"id":2,"guild_id":"100000000000000001","channel_id":"400000000000000001","user_id":"200000000000000011","type":"verify","status":"open","claimed_by":null,"transcript":null,"created_at":1789569871013,"closed_at":null},{"id":1,"guild_id":"100000000000000001","channel_id":"400000000000000000","user_id":"200000000000000010","type":"support","status":"open","claimed_by":"300000000000000001","transcript":null,"created_at":1789569871013,"closed_at":null}],"total":5},"levels":{"items":[{"guild_id":"100000000000000001","user_id":"200000000000000010","xp":24105,"level":20,"messages":1200,"voice_minutes":800,"last_xp_at":1789569871014,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000011","xp":12085,"level":15,"messages":1110,"voice_minutes":745,"last_xp_at":1789569811014,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000012","xp":8170,"level":12,"messages":1020,"voice_minutes":690,"last_xp_at":1789569751014,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000013","xp":6394,"level":11,"messages":930,"voice_minutes":635,"last_xp_at":1789569691014,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000014","xp":4988,"level":10,"messages":840,"voice_minutes":580,"last_xp_at":1789569631015,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000015","xp":4102,"level":9,"messages":750,"voice_minutes":525,"last_xp_at":1789569571015,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000016","xp":3478,"level":8,"messages":660,"voice_minutes":470,"last_xp_at":1789569511015,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000017","xp":3438,"level":8,"messages":570,"voice_minutes":415,"last_xp_at":1789569451015,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000018","xp":2844,"level":7,"messages":480,"voice_minutes":360,"last_xp_at":1789569391015,"username":null,"displayName":null,"avatar":null},{"guild_id":"100000000000000001","user_id":"200000000000000019","xp":2810,"level":7,"messages":390,"voice_minutes":305,"last_xp_at":1789569331015,"username":null,"displayName":null,"avatar":null}],"total":10}},"guild":"100000000000000001"};
 window.fetch=async function(u,o){o=o||{};var s=window.__SNAPSHOT__,p=String(u).replace('/api',''),d;
 if(o.method==='POST')d={ok:true,settings:s.payload.settings,message:'تم'};
 else if(p==='/guilds/'+s.guild)d=s.payload;
@@ -741,6 +885,8 @@ function iconForEvent(key = '') {
 
 /* ============================ الحالة ============================ */
 const state = {
+  /** هل الزائر يقدر يعدّل؟ (الوصول العام = مشاهدة فقط) */
+  canEdit: true,
   guildId: null,
   settings: null,
   meta: { channels: [], roles: [], logGroups: {}, logEvents: {}, emojis: [], cardAvailable: false },
@@ -813,6 +959,7 @@ function setPath(path, value) {
 function markDirty() {
   state.dirty = true;
   const bar = document.querySelector('.d-savebar');
+  if (!state.canEdit) return;
   if (bar) {
     bar.classList.add('show');
     const msg = bar.querySelector('.msg');
@@ -2061,16 +2208,30 @@ function buildHeader() {
   head.appendChild(info);
 
   const actions = el('div', { class: 'd-head-actions' });
-  const themeBtn = el('button', { class: 'd-btn ghost sm', title: 'تبديل الوضع الليلي/النهاري' });
-  const paintTheme = (theme) => {
-    themeBtn.innerHTML = `${ic(theme === 'light' ? 'sun' : 'moon', 16)} ${theme === 'light' ? 'الوضع النهاري' : 'الوضع الليلي'}`;
+  const themeBtn = el('button', { class: 'd-btn ghost sm' });
+  const themeMode = () => {
+    try {
+      const saved = localStorage.getItem('neverland-theme');
+      return saved === 'light' || saved === 'dark' ? saved : 'auto';
+    } catch { return 'auto'; }
   };
-  paintTheme(currentTheme());
+  const paintTheme = () => {
+    const mode = themeMode();
+    const shown = mode === 'auto' ? currentTheme() : mode;
+    const label = mode === 'auto' ? 'حسب الجهاز' : shown === 'light' ? 'الوضع النهاري' : 'الوضع الليلي';
+    themeBtn.innerHTML = `${ic(mode === 'auto' ? 'refresh' : shown === 'light' ? 'sun' : 'moon', 16)} ${label}`;
+    themeBtn.title = 'السمة: ' + label + ' — اضغط للتبديل';
+  };
+  paintTheme();
   themeBtn.addEventListener('click', () => {
-    const next = currentTheme() === 'light' ? 'dark' : 'light';
-    document.documentElement.dataset.theme = next;
-    try { localStorage.setItem('neverland-theme', next); } catch { /* تجاهل */ }
-    paintTheme(next);
+    const order = { auto: 'light', light: 'dark', dark: 'auto' };
+    const next = order[themeMode()];
+    try {
+      if (next === 'auto') localStorage.removeItem('neverland-theme');
+      else localStorage.setItem('neverland-theme', next);
+    } catch { /* تجاهل */ }
+    document.documentElement.dataset.theme = next === 'auto' ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : next;
+    paintTheme();
   });
   actions.appendChild(themeBtn);
 
@@ -2130,6 +2291,7 @@ async function boot() {
 
   try {
     const data = await api(`/guilds/${state.guildId}`);
+    state.canEdit = data.viewer ? Boolean(data.viewer.canEdit) : root.dataset.edit !== '0';
     state.settings = data.settings;
     state.guild = data.guild;
     state.stats = data.stats;
@@ -2138,7 +2300,16 @@ async function boot() {
     state.dirty = false;
 
     root.innerHTML = '';
-    const shell = el('div', { class: 'd-shell' });
+    const shell = el('div', { class: `d-shell${state.canEdit ? '' : ' readonly'}` });
+    if (!state.canEdit) {
+      shell.appendChild(
+        el('div', {
+          class: 'd-readonly-note',
+          html: `${ic('shield', 17)} <b>عرض عام</b> — تقدر تتصفّح الإعدادات بحرية، أما التعديل فيحتاج تسجيل دخول بحساب Discord.
+            <a class="d-btn primary sm" href="/auth/login">${ic('login', 15)} تسجيل الدخول</a>`,
+        }),
+      );
+    }
     const { side, items } = buildSidebar();
     window.__dashItems = items;
     shell.appendChild(side);
@@ -2150,7 +2321,8 @@ async function boot() {
     shell.appendChild(main);
     root.appendChild(shell);
 
-    /* شريط الحفظ */
+    /* شريط الحفظ (للمسجّلين فقط) */
+    if (state.canEdit) {
     const bar = el('div', { class: 'd-savebar' });
     const msg = el('span', { class: 'msg', text: 'تغييرات غير محفوظة' });
     const grow = el('span', { class: 'grow' });
@@ -2174,6 +2346,7 @@ async function boot() {
     });
     [msg, grow, reset, save].forEach((n) => bar.appendChild(n));
     main.appendChild(bar);
+    }
 
     items.forEach(({ item }) => item.classList.toggle('active', item.dataset.id === state.section));
     renderSection(state.section);

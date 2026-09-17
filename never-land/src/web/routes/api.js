@@ -16,6 +16,7 @@
  */
 
 const express = require('express');
+const access = require('../access');
 const config = require('../../config');
 const db = require('../../database');
 const { mergeSettings } = require('../../database/defaults');
@@ -59,21 +60,74 @@ function safeClient() {
 /** هل المستخدم يملك صلاحية الوصول لهذا السيرفر؟ */
 function canAccess(req, guildId) {
   if (config.web.demoMode) return true;
-  if (!req.session.user) return false;
-  if (config.bot.developerIds.includes(req.session.user.id)) return true;
-  return (req.session.guilds || []).some((g) => g.id === guildId);
+  if (req.session.user) {
+    if (config.bot.developerIds.includes(req.session.user.id)) return true;
+    return (req.session.guilds || []).some((g) => g.id === guildId);
+  }
+  // زائر (عرض عام): قراءة فقط لسيرفر مُدرَج فيه البوت
+  if (config.web.publicAccess && req.method === 'GET') {
+    try {
+      const client = require('../../client');
+      return Boolean(client?.guilds?.cache?.has?.(guildId));
+    } catch {
+      return false;
+    }
+  }
+  return false;
 }
 
-/** حماية كل مسارات /api */
-router.use((req, res, next) => {
-  if (config.web.demoMode) return next();
-  if (!req.session.user) return res.status(401).json({ error: 'unauthorized', message: 'يجب تسجيل الدخول أولًا' });
-  return next();
+/** هل يملك المشاهد صلاحية التعديل؟ */
+function canEdit(req) {
+  if (config.web.demoMode) return true;
+  return Boolean(req.roleOk);
+}
+
+/**
+ * حماية مسارات /api:
+ *  - القراءة (GET) متاحة للجميع عند تفعيل الوصول العام
+ *  - الكتابة (POST/PATCH/DELETE) تحتاج تسجيل دخول Discord
+ */
+router.use(async (req, res, next) => {
+  if (config.web.demoMode) {
+    req.roleOk = true;
+    return next();
+  }
+
+  const isWrite = !['GET', 'HEAD', 'OPTIONS'].includes(req.method);
+
+  if (req.session.user) {
+    const result = await access.checkAccess(req.session, req.session.user.id);
+    req.roleResult = result;
+    if (!result.ok) {
+      return res.status(403).json({
+        error: 'role_required',
+        message: access.explain(result),
+        requiredRoleId: config.web.requiredRoleId,
+        reason: result.reason,
+      });
+    }
+    req.roleOk = true;
+    return next();
+  }
+
+  if (!isWrite && config.web.publicAccess && !config.web.loginRequired) return next();
+
+  return res.status(401).json({
+    error: 'unauthorized',
+    message: isWrite ? 'التعديل يحتاج تأكيد الدخول بحساب Discord.' : 'يجب تأكيد الدخول أولًا.',
+  });
 });
 
 /* ------------------------------------ بيانات المستخدم ------------------------------------ */
 router.get('/me', (req, res) => {
-  res.json({ user: currentUser(req), guilds: availableGuilds(req), demo: config.web.demoMode });
+  res.json({
+    user: currentUser(req),
+    guilds: availableGuilds(req),
+    demo: config.web.demoMode,
+    loginRequired: config.web.loginRequired,
+    requiredRoleId: config.web.requiredRoleId || null,
+    roleOk: config.web.demoMode ? true : Boolean(req.roleOk),
+  });
 });
 
 router.get('/guilds', (req, res) => {
@@ -132,10 +186,22 @@ router.get('/guilds/:guildId', (req, res) => {
       logEvents: Object.fromEntries(Object.entries(loggingSystem.EVENT_META).map(([key, meta]) => [key, { label: meta.label, emoji: meta.emoji, group: meta.group }])),
       cardAvailable: require('../../lib/welcomeCard').available(),
     },
+    viewer: {
+      canEdit: canEdit(req),
+      loggedIn: Boolean(req.session.user) || config.web.demoMode,
+      demo: config.web.demoMode,
+      publicAccess: config.web.publicAccess,
+      loginRequired: config.web.loginRequired,
+      requiredRoleId: config.web.requiredRoleId || null,
+      roleReason: req.roleResult?.reason || null,
+      roleMessage: req.roleResult && !req.roleResult.ok ? access.explain(req.roleResult) : null,
+    },
   });
 });
 
 router.post('/guilds/:guildId/settings', (req, res) => {
+  if (!canEdit(req)) return res.status(403).json({ error: 'readonly', message: 'هذا الإجراء يحتاج تسجيل دخول Discord.' });
+
   const { guildId } = req.params;
   if (!canAccess(req, guildId)) return res.status(403).json({ error: 'forbidden' });
 
@@ -182,6 +248,8 @@ router.get('/guilds/:guildId/tickets', (req, res) => {
 });
 
 router.post('/guilds/:guildId/tickets/:ticketId/close', async (req, res) => {
+  if (!canEdit(req)) return res.status(403).json({ error: 'readonly', message: 'هذا الإجراء يحتاج تسجيل دخول Discord.' });
+
   const { guildId, ticketId } = req.params;
   if (!canAccess(req, guildId)) return res.status(403).json({ error: 'forbidden' });
 
@@ -279,6 +347,8 @@ router.get('/guilds/:guildId/members', async (req, res) => {
  * يعمل فقط عندما يكون البوت متصلًا بديسكورد (وإلا يرجع رسالة واضحة).
  */
 router.post('/guilds/:guildId/actions/:action', async (req, res) => {
+  if (!canEdit(req)) return res.status(403).json({ error: 'readonly', message: 'هذا الإجراء يحتاج تسجيل دخول Discord.' });
+
   const { guildId, action } = req.params;
   if (!canAccess(req, guildId)) return res.status(403).json({ error: 'forbidden' });
 

@@ -4,7 +4,9 @@
  * web/routes/auth.js
  * -------------------------------------------------------------
  * تسجيل الدخول عبر ديسكورد (OAuth2):
- *   القسم (0x20) = MANAGE_GUILD — شرط الوصول للوحة.
+ *   1) الصلاحية العامة للوحة: القسم 0x20 (MANAGE_GUILD) أو 0x8 (ADMIN).
+ *   2) شرط الاستخدام الفعلي: الرول المطلوب (REQUIRED_ROLE_ID) — يُفحص في
+ *      web/access.js بعد الدخول، ومَن لا يملكه يرى صفحة «الوصول مقيّد».
  * -------------------------------------------------------------
  */
 
@@ -82,8 +84,11 @@ router.get('/callback', async (req, res) => {
     };
     req.session.guilds = manageable;
     req.session.accessToken = token.access_token;
+    req.session.roleCheck = null; // فحص جديد للرول بعد كل دخول
 
-    return res.redirect('/dashboard');
+    const back = req.session.returnTo && req.session.returnTo.startsWith('/') ? req.session.returnTo : '/dashboard';
+    delete req.session.returnTo;
+    return res.redirect(back);
   } catch (err) {
     console.error('خطأ OAuth:', err);
     return res.status(500).send('حدث خطأ أثناء تسجيل الدخول. جرّب مرة أخرى.');

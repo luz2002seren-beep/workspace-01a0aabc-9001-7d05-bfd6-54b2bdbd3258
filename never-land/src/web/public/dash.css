@@ -375,3 +375,99 @@ html[dir='rtl'] .d-switch input:checked + span::after { transform: translateX(-2
 /* شرائح تعرض قيمًا يحدّدها المستخدم (إيموجيات التفاعل مثلًا) */
 .d-chip-value { font-family: 'Segoe UI Emoji', system-ui, sans-serif; }
 .d-chip-value::before { content: none; }
+
+/* =====================================================================
+   اللوحة على الأجهزة: جوال • تابلت • سطح المكتب + وضع العرض العام
+   ===================================================================== */
+.d-readable { display: none; }
+
+/* شارة «عرض عام» لزائر ما سجّل دخول */
+.d-readonly-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
+  font-size: .9rem;
+  line-height: 1.6;
+}
+.d-readonly-note svg { color: var(--primary); flex: 0 0 auto; }
+.d-readonly-note .d-btn { margin-inline-start: auto; }
+
+/* كل عناصر التعديل معطّلة بصريًا في وضع العرض */
+.d-shell.readonly .d-content input,
+.d-shell.readonly .d-content select,
+.d-shell.readonly .d-content textarea,
+.d-shell.readonly .d-content .d-switch,
+.d-shell.readonly .d-content .d-card-head .d-btn,
+.d-shell.readonly .d-content .word-remove {
+  pointer-events: none;
+  opacity: .82;
+}
+.d-shell.readonly .d-content .d-btn.primary { display: none; }
+
+/* جوال/تابلت: الشريط الجانبي يتكيّف */
+@media (max-width: 1000px) {
+  .d-side {
+    width: 100%;
+    max-width: none;
+    border-inline-end: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .d-side .d-nav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  .d-side .d-nav::-webkit-scrollbar { display: none; }
+  .d-side .d-nav-item { white-space: nowrap; flex: 0 0 auto; }
+  .d-side .d-dots { display: none; }
+  .d-main { padding-inline: 14px; }
+  .d-head { flex-wrap: wrap; }
+  .d-head-actions { width: 100%; }
+  .d-head-actions .d-btn { flex: 1 1 auto; justify-content: center; }
+  .d-savebar { padding-inline: 14px; }
+  .d-savebar .d-btn { flex: 1 1 auto; justify-content: center; }
+}
+
+@media (max-width: 700px) {
+  .d-content { grid-template-columns: 1fr !important; }
+  .d-card { padding: 14px; border-radius: 12px; }
+  .d-card-head { flex-wrap: wrap; }
+  .d-row, .d-grid-2, .d-stats { grid-template-columns: 1fr; }
+  .d-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .d-btn { min-height: 42px; }
+  .d-input, .d-select { min-height: 42px; }
+  input, select, textarea { font-size: 16px; }
+  .d-table, .d-transcript { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
+  .d-kbd { word-break: break-all; }
+  .d-readonly-note { font-size: .86rem; }
+  .d-readonly-note .d-btn { width: 100%; justify-content: center; margin-inline-start: 0; }
+}
+
+@media (max-width: 420px) {
+  .d-stats { grid-template-columns: 1fr; }
+  .d-side .d-nav-item span { display: none; }
+  .d-side .d-nav-item { padding: 10px; }
+}
+
+/* لمس: أهداف أكبر + بلا تحويم عالق */
+@media (hover: none) {
+  .d-nav-item:hover, .d-card:hover { transform: none; }
+  .d-btn, .d-nav-item, .d-switch { -webkit-tap-highlight-color: rgba(91, 108, 255, .2); }
+}
+
+/* احترام تقليل الحركة */
+@media (prefers-reduced-motion: reduce) {
+  .d-shell *, .d-savebar { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+
+/* آيفون: شريط الحفظ فوق الحافة السفلية */
+.d-savebar { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
