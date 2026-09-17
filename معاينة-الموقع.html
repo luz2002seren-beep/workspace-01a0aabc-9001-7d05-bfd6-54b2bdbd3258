@@ -17,7 +17,7 @@
 <meta property="og:title" content="بوت إدارة سيرفرات ديسكورد | Never Land">
 <meta property="og:description" content="نظام إدارة سيرفرات ديسكورد متكامل مع لوحة تحكم عربية.">
 <meta property="og:url" content="https://never-land-production.up.railway.app/">
-<meta property="og:image" content="https://never-land-production.up.railway.app/icon.svg">
+<meta property="og:image" content="https://never-land-production.up.railway.appdata:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNDAgNDAiIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgYXJpYS1oaWRkZW49InRydWUiIGZvY3VzYWJsZT0iZmFsc2UiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJwYkdyYWQiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNWI2Y2ZmIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjM2Y0OWI4Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSIxMSIgZmlsbD0idXJsKCNwYkdyYWQpIi8+CiAgPHBhdGggZD0iTTIwIDguNSAyOSAxMnY2LjZjMCA1LjEtMy41IDguOC05IDEwLjktNS41LTIuMS05LTUuOC05LTEwLjlWMTJ6IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMi4xIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHBhdGggZD0iTTIwLjkgMTMuNiAxNS40IDIwLjRoMy42bC0xIDYgNS43LTcuMWgtMy42eiIgZmlsbD0iI2ZmZiIvPgo8L3N2Zz4=">
 <meta name="twitter:card" content="summary">
 <link rel="canonical" href="https://never-land-production.up.railway.app/">
 <title>بوت إدارة سيرفرات ديسكورد | Never Land</title>
@@ -658,15 +658,12 @@ img.guild-icon:not([src]), img.guild-icon[src=""] { visibility: hidden; }
   </a>
   <nav class="nav">
     <a href="/">الرئيسية</a>
-    <a href="/dashboard">لوحة التحكم</a>
+    <a href="/dashboard">السيرفرات</a>
     <a href="/api/status" target="_blank" rel="noopener">حالة الخدمة</a>
   </nav>
   <div class="auth">
     <button class="theme-toggle" id="themeToggle" title="تبديل الوضع الليلي والنهاري" aria-label="تبديل الوضع"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 14.6A8.6 8.6 0 1 1 9.4 4a6.9 6.9 0 0 0 10.6 10.6z"/></svg></button>
-    <div class="user-box">
-         <span class="user-name">مسؤول السيرفر</span>
-         <a class="btn btn-ghost" href="/auth/logout"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 4.5h2.8A1.7 1.7 0 0 1 19.5 6.2v11.6a1.7 1.7 0 0 1-1.7 1.7H15"/><path d="M10 12h9"/><path d="m13 9-3 3 3 3"/></svg> خروج</a>
-       </div>
+    <a class="btn btn-primary" href="/auth/login"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 4.5H6.2A1.7 1.7 0 0 0 4.5 6.2v11.6a1.7 1.7 0 0 0 1.7 1.7H9"/><path d="M14 12H5"/><path d="m11 9-3 3 3 3"/><path d="M17 8.5v7"/></svg> تسجيل الدخول بـ Discord</a>
   </div>
 </header>
 <main class="container">
@@ -680,8 +677,8 @@ img.guild-icon:not([src]), img.guild-icon[src=""] { visibility: hidden; }
         ويُدار بالكامل من لوحة تحكم عربية بسيطة بدون أوامر إجبارية.
       </p>
       <div class="site-cta">
-        <a class="btn btn-primary btn-lg" href="/dashboard">
-          <svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg> لوحة التحكم
+        <a class="btn btn-primary btn-lg" href="/auth/login">
+          <svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 4.5H6.2A1.7 1.7 0 0 0 4.5 6.2v11.6a1.7 1.7 0 0 0 1.7 1.7H9"/><path d="M14 12H5"/><path d="m11 9-3 3 3 3"/><path d="M17 8.5v7"/></svg> تسجيل الدخول
         </a>
         <a class="btn btn-ghost btn-lg" href="/api/status" target="_blank" rel="noopener">
           <svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 12h3.6l2.6-6 4.2 12 2.5-6H21"/></svg> حالة الخدمة

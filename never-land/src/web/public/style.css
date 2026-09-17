@@ -180,7 +180,7 @@ code {
 .stat b { display: block; font-size: 1.6rem; color: var(--info); }
 .stat span { color: var(--muted); font-size: .9rem; }
 
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin: 40px 0; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: 16px; margin: 40px 0; }
 .card {
   background: linear-gradient(180deg, var(--bg-card), #171b27);
   border: 1px solid var(--border);
@@ -202,7 +202,7 @@ code {
 /* ----------------------------- قائمة السيرفرات ----------------------------- */
 .page-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
 .page-head h1 { margin: 0; }
-.guild-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+.guild-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 14px; }
 .guild-card {
   display: flex;
   align-items: center;
@@ -242,7 +242,7 @@ code {
 .dash-head .sub { color: var(--muted); font-size: .9rem; }
 .dash-actions { margin-inline-start: auto; display: flex; gap: 10px; flex-wrap: wrap; }
 
-.stats-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.stats-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr)); gap: 12px; margin-bottom: 20px; }
 .stat-box {
   background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px;
   text-align: center;
@@ -370,7 +370,7 @@ code {
 .site-hero-art .mock-row .lbl { flex: 1; color: var(--text); }
 .site-hero-art .mock-row .val { color: var(--muted); font-size: .82rem; }
 
-.site-features { display: grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap: 14px; margin: 20px 0 10px; }
+.site-features { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(255px, 100%), 1fr)); gap: 14px; margin: 20px 0 10px; }
 .site-feature {
   background: var(--bg-soft); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 16px 16px 14px;
@@ -379,7 +379,7 @@ code {
 .site-feature b { display: block; margin: 8px 0 5px; color: var(--text); font-size: 1rem; }
 .site-feature p { margin: 0; color: var(--muted); font-size: .9rem; line-height: 1.75; }
 
-.site-steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.site-steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr)); gap: 14px; }
 .site-step { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
 .site-step .n {
   width: 30px; height: 30px; border-radius: 9px; background: var(--primary); color: #fff;
@@ -488,7 +488,7 @@ a, button, .btn, .pill, .guild-card {
 
 /* تابلت */
 @media (max-width: 1024px) {
-  .site-features, .site-steps { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .site-features, .site-steps { grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr)); }
   .cmd-preview { grid-template-columns: 1fr; }
 }
 

@@ -17,7 +17,7 @@
 <meta property="og:title" content="إعدادات السيرفر | Never Land">
 <meta property="og:description" content="نظام إدارة سيرفرات ديسكورد متكامل مع لوحة تحكم عربية.">
 <meta property="og:url" content="https://never-land-production.up.railway.app/">
-<meta property="og:image" content="https://never-land-production.up.railway.app/icon.svg">
+<meta property="og:image" content="https://never-land-production.up.railway.appdata:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNDAgNDAiIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgYXJpYS1oaWRkZW49InRydWUiIGZvY3VzYWJsZT0iZmFsc2UiPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJwYkdyYWQiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNWI2Y2ZmIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjM2Y0OWI4Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSIxMSIgZmlsbD0idXJsKCNwYkdyYWQpIi8+CiAgPHBhdGggZD0iTTIwIDguNSAyOSAxMnY2LjZjMCA1LjEtMy41IDguOC05IDEwLjktNS41LTIuMS05LTUuOC05LTEwLjlWMTJ6IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMi4xIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHBhdGggZD0iTTIwLjkgMTMuNiAxNS40IDIwLjRoMy42bC0xIDYgNS43LTcuMWgtMy42eiIgZmlsbD0iI2ZmZiIvPgo8L3N2Zz4=">
 <meta name="twitter:card" content="summary">
 <link rel="canonical" href="https://never-land-production.up.railway.app/">
 <title>إعدادات السيرفر | Never Land</title>
@@ -617,517 +617,7 @@ img.guild-icon:not([src]), img.guild-icon[src=""] { visibility: hidden; }
 .site-hero > *, .page-head > *, .site-cta > * { min-width: 0; }
 
 </style>
-<style>
-/* ==========================================================
-   Never Land  |  dash.css — أنماط لوحة التحكم
-   تُحمَّل في صفحة /dashboard/:id فقط
-   ========================================================== */
 
-body.dashboard { display: block; }
-body.dashboard .topbar { display: none; }
-body.dashboard .container { padding: 0; width: 100%; }
-
-/* ============================ الهيكل ============================ */
-.d-shell {
-  display: grid;
-  grid-template-columns: 268px 1fr;
-  min-height: 100vh;
-  background: var(--shell);
-}
-
-/* ============================ الشريط الجانبي ============================ */
-.d-side {
-  background: var(--panel-2);
-  border-inline-start: 1px solid var(--border-soft);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 16px 14px;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow-y: auto;
-}
-
-.d-side-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 800;
-  font-size: 1.15rem;
-  color: #fff;
-  padding: 4px 6px 12px;
-}
-.d-side-brand .logo { font-size: 1.5rem; }
-.d-side-brand .back {
-  margin-inline-start: auto;
-  font-size: .75rem;
-  color: var(--muted);
-  text-decoration: none;
-  border: 1px solid var(--border);
-  padding: 4px 8px;
-  border-radius: 8px;
-}
-.d-side-brand .back:hover { color: var(--text); border-color: var(--primary); }
-
-.d-search { position: relative; margin-bottom: 8px; }
-.d-search input {
-  width: 100%;
-  padding: 10px 34px 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--bg-input);
-  color: var(--text);
-  font: inherit;
-  font-size: .9rem;
-}
-.d-search input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(88,101,242,.18); }
-.d-search .ico { position: absolute; inset-inline-start: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: .9rem; }
-
-.d-group { margin-top: 10px; }
-.d-group-title {
-  font-size: .7rem;
-  font-weight: 700;
-  letter-spacing: .04em;
-  color: var(--muted);
-  padding: 6px 8px;
-  text-transform: uppercase;
-}
-
-.d-nav-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 10px;
-  border-radius: 10px;
-  color: var(--muted);
-  cursor: pointer;
-  font-size: .93rem;
-  font-weight: 600;
-  border: 1px solid transparent;
-  user-select: none;
-}
-.d-nav-item:hover { background: var(--hover); color: var(--text); }
-.d-nav-item.active { background: var(--chip); color: var(--text); border-color: var(--primary); }
-.d-nav-item .ico { width: 20px; text-align: center; }
-.d-nav-item .dot {
-  margin-inline-start: auto;
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--success);
-}
-.d-nav-item .dot.off { background: var(--track); }
-
-.d-side-foot {
-  margin-top: auto;
-  padding: 12px 8px 4px;
-  border-top: 1px solid var(--border-soft);
-  font-size: .78rem;
-  color: var(--muted);
-  line-height: 1.9;
-}
-
-/* ============================ المنطقة الرئيسية ============================ */
-.d-main { display: flex; flex-direction: column; min-width: 0; }
-
-.d-head {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px 26px;
-  border-bottom: 1px solid var(--border-soft);
-  background: var(--panel-2);
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  flex-wrap: wrap;
-}
-.d-head .guild-icon {
-  width: 42px; height: 42px; border-radius: 12px; object-fit: cover;
-  background: var(--chip); display: grid; place-items: center; font-weight: 800; color: var(--muted);
-}
-.d-head h1 { margin: 0; font-size: 1.12rem; color: var(--text); }
-.d-head .sub { font-size: .8rem; color: var(--muted); margin-top: 2px; }
-.d-head-actions { margin-inline-start: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-
-.d-content { padding: 22px 26px 120px; max-width: 1080px; width: 100%; }
-
-.d-page-title { margin: 0 0 4px; font-size: 1.5rem; color: var(--text); }
-.d-page-desc { margin: 0 0 20px; color: var(--muted); font-size: .92rem; line-height: 1.7; }
-
-/* ============================ الأزرار ============================ */
-.d-btn {
-  display: inline-flex; align-items: center; gap: 7px;
-  padding: 9px 15px; border-radius: 10px; border: 1px solid transparent;
-  font: inherit; font-size: .9rem; font-weight: 700; cursor: pointer;
-  background: var(--chip); color: var(--text);
-  transition: transform .08s ease, background .15s ease, border-color .15s ease;
-}
-.d-btn:hover { background: var(--hover); }
-.d-btn:active { transform: translateY(1px); }
-.d-btn.primary { background: var(--primary); color: #fff; }
-.d-btn.primary:hover { background: var(--primary-hover); }
-.d-btn.success { background: var(--success); color: #06240f; }
-.d-btn.success:hover { filter: brightness(.93); }
-.d-btn.danger { background: var(--danger); color: #fff; }
-.d-btn.danger:hover { filter: brightness(.93); }
-.d-btn.ghost { background: transparent; border-color: var(--border); color: var(--muted); }
-.d-btn.ghost:hover { background: var(--hover); color: var(--text); }
-.d-btn.sm { padding: 6px 11px; font-size: .82rem; border-radius: 8px; }
-.d-btn:disabled { opacity: .5; cursor: not-allowed; }
-
-/* ============================ البطاقات ============================ */
-.d-card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  margin-bottom: 16px;
-  overflow: hidden;
-}
-.d-card-head {
-  display: flex; align-items: flex-start; gap: 12px;
-  padding: 16px 18px;
-  border-bottom: 1px solid var(--border-soft);
-  background: var(--panel-3);
-}
-.d-card-head .ico {
-  width: 34px; height: 34px; border-radius: 10px;
-  background: var(--chip); display: grid; place-items: center; font-size: 1.05rem; flex: 0 0 auto;
-}
-.d-card-head h3 { margin: 0; font-size: 1rem; color: var(--text); }
-.d-card-head p { margin: 3px 0 0; font-size: .82rem; color: var(--muted); line-height: 1.6; }
-.d-card-head .tail { margin-inline-start: auto; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.d-card-body { padding: 4px 18px; }
-.d-card-body.no-pad { padding: 16px 18px; }
-
-/* ============================ الحقول ============================ */
-.d-field {
-  display: flex; align-items: center; gap: 16px;
-  padding: 13px 0;
-  border-bottom: 1px solid var(--border-soft);
-  flex-wrap: wrap;
-}
-.d-field:last-child { border-bottom: none; }
-.d-field-label { flex: 1 1 260px; min-width: 220px; }
-.d-field-label b { display: block; color: var(--text); font-size: .93rem; font-weight: 700; }
-.d-field-label span { display: block; color: var(--muted); font-size: .79rem; margin-top: 3px; line-height: 1.6; }
-.d-field-control { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-
-.d-input, .d-select, .d-textarea {
-  background: var(--bg-input);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 10px;
-  padding: 9px 12px;
-  font: inherit;
-  font-size: .9rem;
-  min-width: 170px;
-  max-width: 100%;
-}
-.d-input::placeholder, .d-textarea::placeholder { color: var(--muted); }
-.d-input:focus, .d-select:focus, .d-textarea:focus {
-  outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(88,101,242,.18);
-}
-.d-textarea { min-height: 82px; resize: vertical; width: 100%; min-width: 100%; line-height: 1.7; }
-.d-input.full { min-width: 100%; }
-.d-input.narrow, .d-select.narrow { min-width: 110px; width: 130px; }
-.d-field.wide { flex-direction: column; align-items: stretch; gap: 8px; }
-.d-field.wide .d-field-label { flex: none; }
-
-/* مفتاح تبديل */
-.d-switch { position: relative; width: 48px; height: 27px; flex: 0 0 auto; }
-.d-switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
-.d-switch span {
-  position: absolute; inset: 0; border-radius: 999px; background: var(--track); transition: background .18s;
-  pointer-events: none;
-}
-.d-switch span::after {
-  content: ''; position: absolute; top: 3px; inset-inline-end: 3px;
-  width: 21px; height: 21px; border-radius: 50%; background: #fff; transition: transform .18s;
-}
-.d-switch input:checked + span { background: var(--success); }
-.d-switch input:checked + span::after { transform: translateX(21px); }
-html[dir='rtl'] .d-switch input:checked + span::after { transform: translateX(-21px); }
-
-/* شرائح */
-.d-chips { display: flex; flex-wrap: wrap; gap: 7px; }
-.d-chip {
-  display: inline-flex; align-items: center; gap: 7px;
-  background: var(--chip); border: 1px solid var(--border); color: var(--text);
-  border-radius: 999px; padding: 5px 11px; font-size: .83rem; font-weight: 600;
-}
-.d-chip button {
-  background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; line-height: 1;
-  padding: 0 2px;
-}
-.d-chip button:hover { color: var(--danger); }
-
-/* ============================ الإحصاءات ============================ */
-.d-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
-.d-stat {
-  background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 15px 16px;
-}
-.d-stat b { display: block; font-size: 1.6rem; color: var(--info); line-height: 1.2; }
-.d-stat span { color: var(--muted); font-size: .8rem; }
-
-.d-quick { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
-.d-quick-card {
-  background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 14px 15px;
-  display: flex; align-items: center; gap: 12px;
-}
-.d-quick-card .ico { font-size: 1.3rem; }
-.d-quick-card .txt { flex: 1; min-width: 0; }
-.d-quick-card b { display: block; color: var(--text); font-size: .93rem; }
-.d-quick-card span { color: var(--muted); font-size: .78rem; }
-
-/* ============================ الجداول ============================ */
-.d-table-wrap { overflow-x: auto; }
-.d-table { width: 100%; border-collapse: collapse; font-size: .87rem; }
-.d-table th {
-  text-align: start; padding: 11px 12px; color: var(--muted); font-weight: 700;
-  border-bottom: 1px solid var(--border); background: var(--panel-3); white-space: nowrap;
-}
-.d-table td { padding: 11px 12px; border-bottom: 1px solid var(--border-soft); color: var(--text); }
-.d-table tr:hover td { background: var(--panel-3); }
-.d-table code { background: var(--bg-input); padding: 2px 6px; border-radius: 6px; font-size: .82rem; color: #9fb0d0; }
-.d-member { display: flex; align-items: center; gap: 8px; }
-.d-member img { width: 26px; height: 26px; border-radius: 50%; background: var(--chip); }
-.d-member .nm { font-weight: 700; color: var(--text); }
-.d-member .tg { color: var(--muted); font-size: .78rem; }
-
-/* تبويبات داخلية (بيانات) */
-.d-seg { display: inline-flex; background: var(--panel-2); border: 1px solid var(--border); border-radius: 11px; padding: 3px; gap: 3px; margin-bottom: 16px; flex-wrap: wrap; }
-.d-seg button {
-  background: none; border: none; color: var(--muted); font: inherit; font-size: .87rem; font-weight: 700;
-  padding: 8px 14px; border-radius: 9px; cursor: pointer;
-}
-.d-seg button.active { background: var(--chip); color: var(--text); }
-
-/* ============================ السجلات ============================ */
-.d-log-group { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; background: var(--panel); overflow: hidden; }
-.d-log-group > summary {
-  cursor: pointer; padding: 13px 16px; font-weight: 700; color: var(--text);
-  display: flex; align-items: center; gap: 10px; list-style: none;
-}
-.d-log-group > summary::-webkit-details-marker { display: none; }
-.d-log-group > summary .badge {
-  margin-inline-start: auto; font-size: .76rem; color: var(--muted); background: var(--chip);
-  padding: 3px 9px; border-radius: 999px; font-weight: 700;
-}
-.d-log-group[open] > summary { border-bottom: 1px solid var(--border); background: var(--panel-3); }
-.d-log-group .d-card-body { padding: 2px 16px 8px; }
-.d-log-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 4px 16px; }
-.d-log-grid .d-field { border-bottom: none; padding: 8px 0; gap: 10px; }
-.d-log-grid .d-field-label { flex: 1 1 120px; min-width: 0; }
-.d-log-grid .d-field-label b { font-size: .86rem; font-weight: 600; }
-
-/* ============================ شريط الحفظ ============================ */
-.d-savebar {
-  position: fixed; inset-inline: 0; bottom: 0; z-index: 20;
-  display: flex; align-items: center; gap: 12px;
-  padding: 13px 26px;
-  background: var(--overlay);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid var(--border);
-  transform: translateY(110%);
-  transition: transform .2s ease;
-}
-.d-savebar.show { transform: translateY(0); }
-.d-savebar .msg { color: var(--warning); font-weight: 700; font-size: .9rem; }
-.d-savebar .msg.ok { color: #3ba55d; }
-.d-savebar .grow { flex: 1; }
-
-/* ============================ حالات ============================ */
-.d-empty { text-align: center; padding: 34px 16px; color: var(--muted); }
-.d-empty .big { font-size: 2rem; display: block; margin-bottom: 8px; }
-.d-loading { display: grid; place-items: center; min-height: 60vh; color: var(--muted); gap: 12px; }
-.d-spinner {
-  width: 34px; height: 34px; border-radius: 50%;
-  border: 3px solid var(--border); border-top-color: var(--primary); animation: d-spin .8s linear infinite;
-}
-@keyframes d-spin { to { transform: rotate(360deg); } }
-.d-alert {
-  border-radius: 12px; padding: 12px 15px; font-size: .88rem; margin-bottom: 14px;
-  border: 1px solid var(--border); background: var(--panel-3); color: var(--muted); line-height: 1.7;
-}
-.d-alert.warn { border-color: var(--warning); background: transparent; color: var(--warning); }
-.d-alert.ok { border-color: #1f5138; background: var(--success-bg); color: #a5e6c0; }
-.d-alert.danger { border-color: var(--danger); background: transparent; color: var(--danger); }
-
-.d-kbd { background: var(--chip); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; font-size: .78rem; }
-
-/* ============================ استجابة الشاشات ============================ */
-@media (max-width: 900px) {
-  .d-shell { grid-template-columns: 1fr; }
-  .d-side { position: static; height: auto; border-inline-start: none; border-bottom: 1px solid var(--border-soft); }
-  .d-side nav { display: flex; overflow-x: auto; gap: 6px; padding-bottom: 6px; }
-  .d-group { margin-top: 4px; min-width: max-content; }
-  .d-group-title { display: none; }
-  .d-nav-item { white-space: nowrap; }
-  .d-content, .d-head { padding-inline: 16px; }
-  .d-savebar { padding-inline: 16px; }
-  .d-field { flex-direction: column; align-items: stretch; gap: 8px; }
-  .d-field-control { justify-content: flex-start; }
-  .d-input, .d-select { width: 100%; }
-}
-
-/* ============================ أيقونات وحالات (نسخة رسمية) ============================ */
-.d-nav-item .ico svg, .d-card-head .ico svg, .d-stat span svg, .d-btn svg, .log-ico svg {
-  vertical-align: -3px;
-}
-.d-nav-item .ico { display: inline-flex; align-items: center; justify-content: center; }
-.d-card-head .ico { color: var(--primary); }
-.d-stat span { display: inline-flex; align-items: center; gap: 6px; }
-.d-stat span svg { opacity: .85; }
-.d-btn svg { flex: 0 0 auto; }
-.log-ico { display: inline-flex; color: var(--muted); margin-inline-end: 2px; }
-
-.state-on { color: var(--success); font-weight: 700; }
-.state-off { color: var(--danger); font-weight: 700; }
-
-.rank { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 8px; font-size: .82rem; }
-.rank-1 { background: rgba(234, 179, 8, .18); color: #eab308; }
-.rank-2 { background: rgba(148, 163, 184, .18); color: #94a3b8; }
-.rank-3 { background: rgba(180, 83, 9, .18); color: #b45309; }
-
-.d-empty-ico { color: var(--warning); }
-.d-search .ico { display: inline-flex; align-items: center; }
-
-/* شرائح تعرض قيمًا يحدّدها المستخدم (إيموجيات التفاعل مثلًا) */
-.d-chip-value { font-family: 'Segoe UI Emoji', system-ui, sans-serif; }
-.d-chip-value::before { content: none; }
-
-/* =====================================================================
-   اللوحة على الأجهزة: جوال • تابلت • سطح المكتب + وضع العرض العام
-   ===================================================================== */
-.d-readable { display: none; }
-
-/* شارة «عرض عام» لزائر ما سجّل دخول */
-/* شريط المزامنة الحيّ */
-.d-syncbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin: 0 0 14px;
-  padding: 10px 14px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--panel);
-  font-size: 13px;
-}
-.d-sync-info { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; opacity: 0.95; }
-.d-sync-info svg { color: var(--primary); }
-.d-sync-ok { color: #3ba55d; }
-.d-sync-warn { color: #e0a02a; }
-.d-sync-count { opacity: 0.7; }
-.d-syncbar .d-btn { margin-inline-start: auto; }
-
-.d-readonly-note {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 14px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--primary) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
-  font-size: .9rem;
-  line-height: 1.6;
-}
-.d-readonly-note svg { color: var(--primary); flex: 0 0 auto; }
-.d-readonly-note .d-btn { margin-inline-start: auto; }
-
-/* كل عناصر التعديل معطّلة بصريًا في وضع العرض */
-.d-shell.readonly .d-content input,
-.d-shell.readonly .d-content select,
-.d-shell.readonly .d-content textarea,
-.d-shell.readonly .d-content .d-switch,
-.d-shell.readonly .d-content .d-card-head .d-btn,
-.d-shell.readonly .d-content .word-remove {
-  pointer-events: none;
-  opacity: .82;
-}
-.d-shell.readonly .d-content .d-btn.primary { display: none; }
-
-/* جوال/تابلت: الشريط الجانبي يتكيّف */
-@media (max-width: 1000px) {
-  .d-side {
-    width: 100%;
-    max-width: none;
-    border-inline-end: none;
-    border-bottom: 1px solid var(--border);
-  }
-  .d-side .d-nav {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding-bottom: 4px;
-  }
-  .d-side .d-nav::-webkit-scrollbar { display: none; }
-  .d-side .d-nav-item { white-space: nowrap; flex: 0 0 auto; }
-  .d-side .d-dots { display: none; }
-  .d-main { padding-inline: 14px; }
-  .d-head { flex-wrap: wrap; }
-  .d-head-actions { width: 100%; }
-  .d-head-actions .d-btn { flex: 1 1 auto; justify-content: center; }
-  .d-savebar { padding-inline: 14px; }
-  .d-savebar .d-btn { flex: 1 1 auto; justify-content: center; }
-}
-
-@media (max-width: 700px) {
-  .d-content { grid-template-columns: 1fr !important; }
-  .d-card { padding: 14px; border-radius: 12px; }
-  .d-card-head { flex-wrap: wrap; }
-  .d-row, .d-grid-2, .d-stats { grid-template-columns: 1fr; }
-  .d-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .d-btn { min-height: 42px; }
-  .d-input, .d-select { min-height: 42px; }
-  input, select, textarea { font-size: 16px; }
-  .d-table, .d-transcript { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
-  .d-kbd { word-break: break-all; }
-  .d-readonly-note { font-size: .86rem; }
-  .d-readonly-note .d-btn { width: 100%; justify-content: center; margin-inline-start: 0; }
-}
-
-@media (max-width: 420px) {
-  .d-stats { grid-template-columns: 1fr; }
-  .d-side .d-nav-item span { display: none; }
-  .d-side .d-nav-item { padding: 10px; }
-}
-
-/* لمس: أهداف أكبر + بلا تحويم عالق */
-@media (hover: none) {
-  .d-nav-item:hover, .d-card:hover { transform: none; }
-  .d-btn, .d-nav-item, .d-switch { -webkit-tap-highlight-color: rgba(91, 108, 255, .2); }
-}
-
-/* احترام تقليل الحركة */
-@media (prefers-reduced-motion: reduce) {
-  .d-shell *, .d-savebar { transition-duration: .01ms !important; animation-duration: .01ms !important; }
-}
-
-/* آيفون: شريط الحفظ فوق الحافة السفلية */
-.d-savebar { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
-
-/* ================= حماية الشكل في اللوحة: لا خروج عن الإطار ================= */
-.d-shell, .d-main, .d-content { max-width: 100%; }
-.d-content { overflow-x: clip; }
-.d-head h1 { overflow-wrap: anywhere; }
-.d-head .sub { overflow-wrap: anywhere; }
-.d-syncbar { overflow-wrap: anywhere; }
-.d-sync-info { overflow-wrap: anywhere; }
-.d-card { overflow: hidden; }
-.d-card-head h3, .d-card-head p { overflow-wrap: anywhere; }
-.d-field { min-width: 0; }
-.d-field .label, .d-field .hint { overflow-wrap: anywhere; }
-.d-row { flex-wrap: wrap; }
-.d-content input, .d-content select, .d-content textarea { max-width: 100%; }
-img.guild-icon { background: var(--panel); border: 1px solid var(--border-soft); }
-
-</style>
 <script>
   /* السمة: المفضّل المحفوظ ← وإلا إعداد الجهاز نفسه (ليلي/نهاري/تلقائي) */
   (function () {
@@ -1151,7 +641,7 @@ img.guild-icon { background: var(--panel); border: 1px solid var(--border-soft);
 </script>
 
 </head>
-<body class="dashboard">
+<body class="dashboard dashboard-readonly">
 <header class="topbar">
   <a class="brand" href="/" aria-label="Never Land">
     <span class="brand-logo"><svg viewBox="0 0 40 40" width="32" height="32" aria-hidden="true" focusable="false">
@@ -1168,23 +658,37 @@ img.guild-icon { background: var(--panel); border: 1px solid var(--border-soft);
   </a>
   <nav class="nav">
     <a href="/">الرئيسية</a>
-    <a href="/dashboard">لوحة التحكم</a>
+    <a href="/dashboard">السيرفرات</a>
     <a href="/api/status" target="_blank" rel="noopener">حالة الخدمة</a>
   </nav>
   <div class="auth">
     <button class="theme-toggle" id="themeToggle" title="تبديل الوضع الليلي والنهاري" aria-label="تبديل الوضع"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 14.6A8.6 8.6 0 1 1 9.4 4a6.9 6.9 0 0 0 10.6 10.6z"/></svg></button>
-    <div class="user-box">
-         <span class="user-name">مسؤول السيرفر</span>
-         <a class="btn btn-ghost" href="/auth/logout"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 4.5h2.8A1.7 1.7 0 0 1 19.5 6.2v11.6a1.7 1.7 0 0 1-1.7 1.7H15"/><path d="M10 12h9"/><path d="m13 9-3 3 3 3"/></svg> خروج</a>
-       </div>
+    <a class="btn btn-primary" href="/auth/login"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 4.5H6.2A1.7 1.7 0 0 0 4.5 6.2v11.6a1.7 1.7 0 0 0 1.7 1.7H9"/><path d="M14 12H5"/><path d="m11 9-3 3 3 3"/><path d="M17 8.5v7"/></svg> تسجيل الدخول بـ Discord</a>
   </div>
 </header>
 <main class="container">
 
-  <div id="app" data-guild="1" data-edit="1">
+  <div id="app" data-guild="1542345715949506630" data-edit="0">
     <div class="loading">جارٍ تحميل الإعدادات...</div>
   </div>
   <script>
+(function(){
+  var DATA = {"guild":{"id":"1542345715949506630","name":"Never Land","icon":"https://cdn.discordapp.com/icons/1542345715949506630/0ae6617c364028de691fe523598be4dc.png?size=128","memberCount":61,"ownerId":"728878603156193310","botPresent":true,"botOnline":true,"createdAt":1787794274080,"syncedAt":1789680539538,"syncSource":"client"},"sync":{"ok":true,"running":false,"source":"client","guilds":1,"at":1789680539538,"error":null,"intervalSeconds":300,"hasToken":true,"botOnline":true,"guildsKnown":1},"settings":{"language":"ar","prefix":null,"welcome":{"enabled":false,"channelId":null,"message":"أهلاً بك {user} في **{server}**، عدد الأعضاء الآن **{memberCount}**.","embed":true,"dm":false,"dmMessage":"أهلاً بك في **{server}**. يُرجى الاطلاع على قوانين السيرفر قبل المشاركة.","autoDeleteAfter":0,"imageMode":"card","imageUrl":null,"cardBackground":null,"cardTheme":{"from":"#5865f2","to":"#2b2f6b","accent":"#ffffff"},"avatarThumbnail":true,"attachImage":true},"leave":{"enabled":false,"channelId":null,"message":"غادر {user} السيرفر."},"boost":{"enabled":false,"channelId":null,"message":"شكرًا {user} على دعم السيرفر. المستوى الحالي {level}."},"logs":{"enabled":false,"channelId":null,"events":{"messageDelete":true,"messageEdit":true,"messageBulkDelete":true,"memberJoin":true,"memberLeave":true,"memberKick":true,"memberBan":true,"memberUnban":true,"memberTimeout":true,"memberBoost":true,"memberRoleUpdate":true,"memberNickname":true,"memberAvatar":true,"memberUsername":true,"roleCreate":true,"roleDelete":true,"roleUpdate":true,"channelCreate":true,"channelDelete":true,"channelUpdate":true,"channelPermissions":true,"serverUpdate":true,"emojiCreate":true,"emojiDelete":true,"stickerCreate":true,"stickerDelete":true,"inviteCreate":true,"inviteDelete":false,"threadCreate":false,"threadDelete":false,"voiceJoin":false,"voiceLeave":false,"voiceMove":false,"voiceMute":false,"voiceDeafen":false,"modActions":true,"automod":true,"ticket":true},"ignoredChannels":[],"ignoredRoles":[]},"autoline":{"enabled":false,"channels":[],"line":"────────────────────────","color":null,"deletePrevious":true,"deleteAfter":0,"deleteLineWithMessage":true},"autoreact":{"enabled":false,"channels":[],"emojis":["👍"],"words":[],"ignoreBots":true},"autorole":{"enabled":true,"roleIds":["1549364901535948820"],"botRoleIds":["1549364902638915614"]},"automod":{"enabled":true,"antiSpam":true,"spamMessages":6,"spamIntervalSeconds":5,"antiLink":false,"antiInvite":true,"antiEveryone":true,"antiCaps":false,"capsPercent":70,"antiMentionSpam":true,"mentionLimit":5,"bannedWords":[],"whitelistChannels":[],"whitelistRoles":[],"whitelistDomains":["tenor.com","giphy.com"],"punishment":"delete","timeoutMinutes":10,"antiRaid":true,"raidThreshold":10,"raidWindowSeconds":60,"raidAction":"alert","raidMinAccountAgeDays":7},"moderation":{"warnThreshold":0,"warnAction":"none"},"reports":{"channelId":null},"leveling":{"enabled":false,"minXp":15,"maxXp":25,"cooldownSeconds":60,"announceChannelId":null,"levelUpMessage":"وصل {user} إلى المستوى **{level}**.","rewards":[],"voiceXp":false,"voiceMinXp":5,"voiceMaxXp":10,"ignoredChannels":[],"ignoredRoles":[],"silent":false},"tickets":{"enabled":false,"categoryId":null,"supportRoleIds":[],"logChannelId":null,"panelTitle":"مركز الدعم","panelDescription":"اختر نوع التذكرة من القائمة بالأسفل وسيتم فتح غرفة خاصة لك.","panelFooter":"Never Land — فريق الدعم","responseTime":"24 ساعة","panelMode":"buttons","panelSeparateInfo":true,"panelInfoMessage":"**كيف أحصل على الدعم؟**\nاختر نوع الطلب من الأزرار أدناه، وسيُفتح لك روم خاص مع فريق الدعم.","types":[{"id":"support","label":"الدعم الفني","emoji":"🛠️","description":"مشكلة تقنية أو استفسار عن البوت والسيرفر","intro":"اكتب مشكلتك بالتفصيل (وصف المشكلة • متى حدثت • أي صور إن وُجدت) وسيساعدك فريق الدعم الفني.","buttonStyle":"Primary"},{"id":"verify","label":"التوثيق","emoji":"✅","description":"طلب توثيق حساب أو رتبة موثّق","intro":"لطلب التوثيق أرسل: من أنت • لماذا تطلب التوثيق • روابط حساباتك الرسمية.","buttonStyle":"Success"},{"id":"gift","label":"الهدايا","emoji":"🎁","description":"استلام جائزة أو مشكلة في هدية/سحب","intro":"اذكر اسم السحب/الهدية ورقم الرسالة وصورة من الفوز إن وُجدت.","buttonStyle":"Secondary"},{"id":"staff","label":"تقديم إدارة","emoji":"📋","description":"تقديم طلب للانضمام لفريق الإدارة","intro":"اضغط زر «تعبئة النموذج» أدناه، ثم املأ الخانات، وسيصل طلبك إلى الإدارة تلقائيًا.","buttonStyle":"Danger"}],"maxOpenPerUser":3,"transcriptOnClose":true},"staffApplication":{"enabled":true,"onlyForTypes":["staff"],"reviewChannelId":null,"pingRoleIds":[],"formTitle":"نموذج تقديم الإدارة","formIntro":"عبّئ الخانات أدناه بدقة، وسيصل رد الإدارة إلى بريدك الخاص.\n\n> التقديم الناقص أو غير الدقيق يُرفض.","formButtonLabel":"تعبئة النموذج","resendButtonLabel":"إعادة إرسال النموذج","fields":[{"id":"name_age","label":"الاسم والعمر","placeholder":"مثال: أحمد — 18","style":"short","required":true,"maxLength":100},{"id":"country","label":"من أي بلد أنت؟","placeholder":"مثال: المغرب","style":"short","required":true,"maxLength":60},{"id":"prev_servers","label":"سيرفرات كنت فيها إدارياً؟","placeholder":"اذكر أسماء السيرفرات وعدد الأعضاء ورتبتك فيها","style":"paragraph","required":true,"maxLength":700},{"id":"mic","label":"هل تقدر تفتح مايك؟","placeholder":"نعم / لا — مع ذكر الوقت المتاح يوميًا","style":"short","required":true,"maxLength":200},{"id":"logo_link","label":"هل تقدر تحط شعار ورابط؟","placeholder":"مثال: نعم — الشعار جاهز والرابط: https://...","style":"short","required":true,"maxLength":300}],"nameFieldId":"name_age","acceptMessage":"تم قبول طلبك للانضمام إلى فريق الإدارة.\nسيتواصل معك أحد المسؤولين لبدء التدريب.","rejectMessage":"نُشكر لك اهتمامك بالتقديم، ولم يتم قبول طلبك في هذه المرة.\nيمكنك إعادة التقديم لاحقًا.","askRejectReason":true,"onAccept":{"postInTicket":"{user} تم قبول عرضك، وسُجّلت تذكرتك في ملف الإدارة برقم **#{number}**.","dmApplicant":true,"renameChannel":true,"channelNameFormat":"إدارة-{number}-{name}","moveToCategoryId":null,"addRoleIds":[],"pingApplicant":true},"onReject":{"postInTicket":"{user} تم رفض تقديمك، ويمكنك إعادة المحاولة لاحقًا.","dmApplicant":true,"closeTicket":false}},"selfRoles":{"enabled":false,"panels":[]},"referral":{"enabled":false,"channelId":null}},"stats":{"cases":0,"warnings":0,"bans":0,"kicks":0,"timeouts":0,"tickets":0,"openTickets":0,"trackedMembers":0,"xpSum":0,"messages":0,"discordMembers":61,"botReady":true},"daily":[{"guild_id":"1542345715949506630","day":"2026-09-17","messages":0,"joins":2,"leaves":0}],"meta":{"channels":[{"id":"1549365030120595476","name":"・صـلـي・عـلـى・مـحـمـد","type":0,"parentId":null},{"id":"1550156761770631338","name":"إدارة-001-ايدن","type":0,"parentId":"1549365021534986343"},{"id":"1550157501268369468","name":"إدارة-004-بحر","type":0,"parentId":"1549365021534986343"},{"id":"1550197564442415184","name":"إدارة-1-عفروتو","type":0,"parentId":"1549365021534986343"},{"id":"1550157160845942834","name":"staff-ou6ol","type":0,"parentId":"1549365021534986343"},{"id":"1549365127642357800","name":"ོ・𝑨𝒖𝒕𝒐・𝑴𝒐𝒅","type":0,"parentId":"1549365027100950678"},{"id":"1549365116716195941","name":"ོ・𝑩𝒐𝒐𝒔𝒕・𝑳𝒐𝒈𝒔","type":0,"parentId":"1549365027100950678"},{"id":"1549365052765765642","name":"ོ・𝑩𝒐𝒐𝒔𝒕𝒔","type":0,"parentId":"1549364978849677342"},{"id":"1549365134097391686","name":"ོ・𝑩𝒐𝒕・𝑳𝒐𝒈𝒔","type":0,"parentId":"1549365027100950678"},{"id":"1549365077239398511","name":"ོ・𝑪𝒉𝒂𝒕","type":0,"parentId":"1549364989306081280"},{"id":"1549365061275877386","name":"ོ・𝑪𝒉𝒂𝒕","type":0,"parentId":"1549364981496287313"},{"id":"1549365089092632637","name":"ོ・𝑪𝒉𝒂𝒕・𝑨𝒅𝒎𝒊𝒏","type":0,"parentId":"1549365023892176907"},{"id":"1549365035204091964","name":"ོ・𝑪𝒉𝒂𝒕・𝑶𝒘𝒏𝒆𝒓𝒔","type":0,"parentId":"1549364975720599593"},{"id":"1549365063708573817","name":"ོ・𝑪𝒎𝒅","type":0,"parentId":"1549364981496287313"},{"id":"1549365091835715696","name":"ོ・𝑪𝒎𝒅・𝑨𝒅𝒎𝒊𝒏","type":0,"parentId":"1549365023892176907"},{"id":"1549365071506051123","name":"ོ・𝑪𝒐𝒏𝒕𝒓𝒐𝒍","type":0,"parentId":"1549364983731847230"},{"id":"1549365069274546286","name":"ོ・𝑭𝒆𝒆𝒍𝒊𝒏𝒈𝒔","type":0,"parentId":"1549364981496287313"},{"id":"1549365050152587334","name":"ོ・𝑮𝒊𝒇𝒕𝒔","type":0,"parentId":"1549364978849677342"},{"id":"1549365119690215484","name":"ོ・𝑰𝒏𝒗𝒊𝒕𝒆・𝑳𝒐𝒈𝒔","type":0,"parentId":"1549365027100950678"},{"id":"1549365058633736243","name":"ོ・𝑱𝒐𝒊𝒏","type":0,"parentId":"1549364978849677342"},{"id":"1549365055286542346","name":"ོ・𝑳𝒆𝒗𝒆𝒍𝒔","type":0,"parentId":"1549364978849677342"},{"id":"1549365105764991046","name":"ོ・𝑴𝒆𝒎𝒃𝒆𝒓・𝑳𝒐𝒈𝒔","type":0,"parentId":"1549365027100950678"},{"id":"1549365099419144213","name":"ོ・𝑴𝒆𝒔𝒔𝒂𝒈𝒆・𝑳𝒐𝒈𝒔","type":0,"parentId":"1549365027100950678"},{"id":"1549365095346344087","name":"ོ・𝑴𝒐𝒅・𝑳𝒐𝒈𝒔","type":0,"parentId":"1549365027100950678"},{"id":"1549365074374959114","name":"ོ・𝑵𝒆𝒘𝒔","type":0,"parentId":"1549364989306081280"},{"id":"1549365044482154577","name":"ོ・𝑵𝒆𝒘𝒔","type":0,"parentId":"1549364978849677342"},{"id":"1549365083308818452","name":"ོ・𝑵𝒆𝒘𝒔・𝑨𝒅𝒎𝒊𝒏","type":0,"parentId":"1549365023892176907"},{"id":"1549365032389836881","name":"ོ・𝑵𝒆𝒘𝒔・𝑶𝒘𝒏𝒆𝒓𝒔","type":0,"parentId":"1549364975720599593"},{"id":"1549365047053262888","name":"ོ・𝑹𝒐𝒍𝒆𝒔","type":0,"parentId":"1549364978849677342"},{"id":"1549365041034436658","name":"ོ・𝑹𝒖𝒍𝒆𝒔","type":0,"parentId":"1549364978849677342"},{"id":"1549365086374600735","name":"ོ・𝑹𝒖𝒍𝒆𝒔・𝑨𝒅𝒎𝒊𝒏","type":0,"parentId":"1549365023892176907"},{"id":"1549365123054047252","name":"ོ・𝑺𝒆𝒄𝒖𝒓𝒊𝒕𝒚","type":0,"parentId":"1549365027100950678"},{"id":"1549365108604543047","name":"ོ・𝑺𝒆𝒓𝒗𝒆𝒓・𝑳𝒐𝒈𝒔","type":0,"parentId":"1549365027100950678"},{"id":"1549365066808168448","name":"ོ・𝑺𝒕𝒓𝒆𝒂𝒌","type":0,"parentId":"1549364981496287313"},{"id":"1549365037477666948","name":"ོ・𝑻𝒆𝒔𝒕𝒔","type":0,"parentId":"1549364975720599593"},{"id":"1549365130339418253","name":"ོ・𝑻𝒆𝒔𝒕𝒔","type":0,"parentId":"1549365027100950678"},{"id":"1549365112966488134","name":"ོ・𝑻𝒊𝒄𝒌𝒆𝒕・𝑳𝒐𝒈𝒔","type":0,"parentId":"1549365027100950678"},{"id":"1549365079991132204","name":"ོ・𝑻𝒊𝒄𝒌𝒆𝒕𝒔","type":0,"parentId":"1549365021534986343"},{"id":"1549365102191583242","name":"ོ・𝑽𝒐𝒊𝒄𝒆・𝑳𝒐𝒈𝒔","type":0,"parentId":"1549365027100950678"},{"id":"1549365151688564796","name":"☥ الـــقـــيــاده ☥","type":2,"parentId":"1549364983731847230"},{"id":"1549365184307527770","name":"ོ・𝑨𝒅𝒎𝒊𝒏・𝑽𝒐𝒊𝒄𝒆","type":2,"parentId":"1549365023892176907"},{"id":"1549365155526348820","name":"ོ・𝑪𝒉𝒊𝒍𝒍","type":2,"parentId":"1549364983731847230"},{"id":"1549365148139913226","name":"ོ・𝑪𝒓𝒆𝒂𝒕𝒆","type":2,"parentId":"1549364983731847230"},{"id":"1549365158869213304","name":"ོ・𝑮𝒂𝒕𝒉𝒆𝒓𝒊𝒏𝒈","type":2,"parentId":"1549364983731847230"},{"id":"1549365143958462464","name":"ོ・𝑳𝒐𝒃𝒃𝒚","type":2,"parentId":"1549364981496287313"},{"id":"1549365141240283146","name":"ོ・𝑴𝒆𝒆𝒕𝒊𝒏𝒈","type":2,"parentId":"1549364975720599593"},{"id":"1549365177365954621","name":"ོ・𝑴𝒖𝒔𝒊𝒄","type":2,"parentId":"1549364986386579507"},{"id":"1549365162333573150","name":"ོ・𝑴𝒖𝒔𝒊𝒄","type":2,"parentId":"1549364986386579507"},{"id":"1549365168578756648","name":"ོ・𝑴𝒖𝒔𝒊𝒄","type":2,"parentId":"1549364986386579507"},{"id":"1549365172249034762","name":"ོ・𝑴𝒖𝒔𝒊𝒄","type":2,"parentId":"1549364986386579507"},{"id":"1549365165768581181","name":"ོ・𝑴𝒖𝒔𝒊𝒄","type":2,"parentId":"1549364986386579507"},{"id":"1549365137088057345","name":"ོ・𝑶𝒘𝒏𝒆𝒓𝒔","type":2,"parentId":"1549364975720599593"},{"id":"1549365181094821898","name":"ོ・𝑺𝒘𝒆𝒆𝒕","type":2,"parentId":"1549364989306081280"},{"id":"1549365023892176907","name":"ོ・𝑨𝑫𝑴𝑰𝑵","type":4,"parentId":null},{"id":"1549364981496287313","name":"ོ・𝑪𝑶𝑴𝑴𝑼𝑵𝑰𝑻𝒀","type":4,"parentId":null},{"id":"1549364989306081280","name":"ོ・𝑮𝑰𝑹𝑳𝑺","type":4,"parentId":null},{"id":"1549364978849677342","name":"ོ・𝑰𝑵𝑭𝑶","type":4,"parentId":null},{"id":"1549365027100950678","name":"ོ・𝑳𝑶𝑮𝑺","type":4,"parentId":null},{"id":"1549364986386579507","name":"ོ・𝑴𝑼𝑺𝑰𝑪","type":4,"parentId":null},{"id":"1549364975720599593","name":"ོ・𝑶𝒘𝒏𝒆𝒓𝒔","type":4,"parentId":null},{"id":"1549364983731847230","name":"ོ・𝑻𝑬𝑴𝑷𝑽𝑶𝑰𝑪𝑬","type":4,"parentId":null},{"id":"1549365021534986343","name":"ོ・𝑻𝑰𝑪𝑲𝑬𝑻𝑺","type":4,"parentId":null}],"roles":[{"id":"1549026925710802955","name":"☥","color":"#000000","position":115},{"id":"1549805293263790221","name":"𝐁","color":"#2f2f2f","position":114},{"id":"1549364848608153690","name":"⚚ 𝑳𝒆𝒂𝒅𝒆𝒓 𝒔𝒉𝒊𝒑 ⚚","color":"#4cadd0","position":113},{"id":"1549797393027964958","name":"☬・𝑫𝒊𝒄𝒕𝒂𝒕𝒐𝒓","color":"#9e6bff","position":112},{"id":"1549364852433354792","name":".","color":"#000000","position":111},{"id":"1549364850189144144","name":"☬・𝑶𝒗𝒆𝒓𝒍𝒐𝒓𝒅","color":"#bab7c0","position":110},{"id":"1549364854157213787","name":"=——––——–ϟϟϟ——––——––=","color":"#000000","position":109},{"id":"1549364855058858065","name":"☬・𝑹𝒆𝒂𝒑𝒆𝒓","color":"#53645d","position":108},{"id":"1549364856111759411","name":"☬・𝑴𝒐𝒏𝒂𝒓𝒄𝒉","color":"#ff5722","position":107},{"id":"1549364857571115028","name":"☬・𝑫𝒐𝒎𝒊𝒏𝒊𝒐𝒏","color":"#ff9800","position":106},{"id":"1549364858712236103","name":"£","color":"#000000","position":105},{"id":"1549364860108935272","name":"=——––——–ϟϟϟ——––——––=","color":"#000000","position":104},{"id":"1549364861249781784","name":"☬・𝑹𝒆𝒈𝒆𝒏𝒕","color":"#9c27b0","position":103},{"id":"1549364862524854272","name":"☬・𝑺𝒖𝒑𝒓𝒆𝒎𝒆","color":"#673ab7","position":102},{"id":"1549364863380361227","name":"☬・𝑨𝒔𝒄𝒆𝒏𝒅𝒂𝒏𝒕","color":"#4cadd0","position":101},{"id":"1549364865024401518","name":"☬・𝑨𝒑𝒆𝒙","color":"#283593","position":100},{"id":"1549364866513641472","name":"☬・𝒁𝒆𝒏𝒊𝒕𝒉","color":"#1e88e5","position":99},{"id":"1549364868250075167","name":"☬・𝑰𝒎𝒑𝒆𝒓𝒊𝒂𝒍","color":"#2196f3","position":98},{"id":"1549364869298651148","name":"=——––——–ϟϟϟ——––——––=","color":"#000000","position":97},{"id":"1549364870661673051","name":"☬・𝑽𝒂𝒏𝒈𝒖𝒂𝒓𝒅","color":"#00acc1","position":96},{"id":"1549364872104513596","name":"☬・𝑾𝒂𝒓𝒅𝒆𝒏","color":"#00897b","position":95},{"id":"1549364873237102592","name":"☬・𝑺𝒆𝒏𝒕𝒊𝒏𝒆𝒍","color":"#5c6bc0","position":94},{"id":"1549364874293809152","name":"☬・𝑴𝒂𝒓𝒔𝒉𝒂𝒍","color":"#2196f3","position":93},{"id":"1549364875350777927","name":"☬・𝑶𝒗𝒆𝒓𝒔𝒆𝒆𝒓","color":"#00bcd4","position":92},{"id":"1549364878110892102","name":"☬・𝑮𝒖𝒂𝒓𝒅𝒊𝒂𝒏","color":"#26c6da","position":91},{"id":"1549364879318851604","name":"☬・𝑲𝒆𝒆𝒑𝒆𝒓","color":"#26a69a","position":90},{"id":"1549364880442794024","name":"☬・𝑬𝒙𝒆𝒄𝒖𝒕𝒐𝒓","color":"#4caf50","position":89},{"id":"1549364882086953051","name":"☬・𝑬𝒏𝒇𝒐𝒓𝒄𝒆𝒓","color":"#8bc34a","position":88},{"id":"1549364883211030528","name":"☬・𝑳𝒆𝒈𝒊𝒐𝒏","color":"#7cb342","position":87},{"id":"1549364884280578098","name":"=——––——–ϟϟϟ——––——––=","color":"#000000","position":86},{"id":"1549364885442535434","name":"☬・𝒏𝒍","color":"#d4843d","position":85},{"id":"1549364886650363914","name":"☥ ᴏɴʟʏ ᴅɪᴠᴀ ☥","color":"#e52121","position":84},{"id":"1549814409923264612","name":"# Special for 7rb","color":"#830000","position":83},{"id":"1549364892023263242","name":"☬・𝑫 𝑶𝒘𝒏𝒆𝒓","color":"#ff0000","position":82},{"id":"1549364899203907664","name":"☬・𝑬𝒙𝒂𝒍𝒕𝒆𝒅","color":"#ff6f00","position":80},{"id":"1549364892853739545","name":"☬・𝑩𝒆𝒂𝒖𝒕𝒊𝒇𝒖𝒍","color":"#ffc107","position":79},{"id":"1549364896767025262","name":"☬・𝑰𝒄𝒐𝒏","color":"#673ab7","position":78},{"id":"1549364898083901510","name":"☬・𝑺𝒑𝒆𝒄𝒊𝒂𝒍","color":"#f47fff","position":77},{"id":"1549364889682706512","name":"☬・𝑭𝒂𝒎𝒊𝒍𝒆","color":"#66bb6a","position":76},{"id":"1549364900319600710","name":"☬・𝑽𝑰𝑷","color":"#ffd700","position":75},{"id":"1549364901535948820","name":"☬・𝑴𝒆𝒎𝒃𝒆𝒓","color":"#95a5a6","position":74},{"id":"1549364903805190277","name":"☬・𝑩𝒐𝒚","color":"#4fa3ff","position":73},{"id":"1549364905113555087","name":"☬・𝑫𝒊𝒗𝒂𝒔","color":"#71368a","position":72},{"id":"1549364902638915614","name":"☬・𝑩𝒐𝒕","color":"#607d8b","position":71},{"id":"1549364906292285450","name":"☬・𝑴𝒖𝒕𝒆𝒅","color":"#000000","position":70},{"id":"1549364907386994718","name":"=——––——–ϟϟϟ——––——––=","color":"#000000","position":69},{"id":"1549364908498489396","name":"☬・𝑴𝒊𝒏𝒆𝒄𝒓𝒂𝒇𝒕","color":"#000000","position":68},{"id":"1549364909605920808","name":"☬・𝑽𝒂𝒍𝒐𝒓𝒂𝒏𝒕","color":"#000000","position":67},{"id":"1549364910771675186","name":"☬・𝑭𝒐𝒓𝒕𝒏𝒊𝒕𝒆","color":"#000000","position":66},{"id":"1549364912071901306","name":"☬・𝑹𝒐𝒃𝒍𝒐𝒙","color":"#000000","position":65},{"id":"1549364913728913438","name":"=——––——–ϟϟϟ——––——––=","color":"#000000","position":64},{"id":"1549364914857181234","name":"☬・𝑴𝒐𝒓𝒐𝒄𝒄𝒐","color":"#000000","position":63},{"id":"1549364916111155262","name":"☬・𝑼𝒏𝒊𝒕𝒆𝒅 𝑨𝒓𝒂𝒃 𝑬𝒎𝒊𝒓𝒂𝒕𝒆𝒔","color":"#000000","position":62},{"id":"1549364917331828757","name":"☬・𝑲𝒖𝒘𝒂𝒊𝒕","color":"#000000","position":61},{"id":"1549364918502035466","name":"☬・𝑰𝒓𝒂𝒒","color":"#000000","position":60},{"id":"1549364919588356218","name":"☬・𝑳𝒆𝒃𝒂𝒏𝒐𝒏","color":"#000000","position":59},{"id":"1549364921404493904","name":"☬・𝑱𝒐𝒓𝒅𝒂𝒏","color":"#000000","position":58},{"id":"1549364922973159524","name":"☬・𝑩𝒂𝒉𝒓𝒂𝒊𝒏","color":"#000000","position":57},{"id":"1549364924185321472","name":"☬・𝑸𝒂𝒕𝒂𝒓","color":"#000000","position":56},{"id":"1549364925451870279","name":"☬・𝑬𝒈𝒚𝒑𝒕","color":"#000000","position":55},{"id":"1549364926651572244","name":"☬・𝑶𝒎𝒂𝒏","color":"#000000","position":54},{"id":"1549364927834357812","name":"☬・𝒀𝒆𝒎𝒆𝒏","color":"#000000","position":53},{"id":"1549364928991723651","name":"☬・𝑺𝒂𝒖𝒅𝒊 𝑨𝒓𝒂𝒃𝒊𝒂","color":"#000000","position":52},{"id":"1549364930095087697","name":"☬・𝑺𝒚𝒓𝒊𝒂","color":"#000000","position":51},{"id":"1549364931533475850","name":"☬・𝑷𝒂𝒍𝒆𝒔𝒕𝒊𝒏𝒆","color":"#000000","position":50},{"id":"1549364932754022440","name":"☬・𝑻𝒖𝒏𝒊𝒔𝒊𝒂","color":"#000000","position":49},{"id":"1549364934125821952","name":"☬・𝑨𝒍𝒈𝒆𝒓𝒊𝒂","color":"#000000","position":48},{"id":"1549364935518330910","name":"☬・𝑳𝒊𝒃𝒚𝒂","color":"#000000","position":47},{"id":"1549364936755515472","name":"=——––——–ϟϟϟ——––——––=","color":"#000000","position":46},{"id":"1549364938047234128","name":"☬・18 - 20","color":"#000000","position":45},{"id":"1549364939129487380","name":"☬・21 - 25","color":"#000000","position":44},{"id":"1549364940299833394","name":"☬・26 - 30+","color":"#000000","position":43},{"id":"1549364941465591838","name":"=——––——–ϟϟϟ——––——––=","color":"#000000","position":42},{"id":"1549364942178885694","name":"☬・𝑮𝒂𝒎𝒆","color":"#000000","position":41},{"id":"1549364943717924954","name":"☬・𝑬𝒗𝒆𝒏𝒕","color":"#000000","position":40},{"id":"1549364944955252899","name":"☬・𝑫𝒂𝒊𝒍𝒚","color":"#000000","position":39},{"id":"1549364946754740327","name":"☬・𝑮𝒊𝒗𝒆𝒂𝒘𝒂𝒚","color":"#000000","position":38},{"id":"1549364948302307338","name":"☬・𝑪𝒓𝒆𝒅𝒊𝒕","color":"#000000","position":37},{"id":"1549364949833351198","name":"=——––——–ϟϟϟ——––——––=","color":"#000000","position":36},{"id":"1549364951259549736","name":"Boogie","color":"#000000","position":35},{"id":"1549364953000058970","name":"Diva","color":"#000000","position":34},{"id":"1549364954128326696","name":"Booster Bot","color":"#000000","position":33},{"id":"1549364955235745792","name":"Clover","color":"#000000","position":32},{"id":"1549364956309491752","name":"LunaBot 🌙","color":"#000000","position":31},{"id":"1549364957412335676","name":"Valor","color":"#000000","position":26},{"id":"1549364958318567526","name":"Boogie Basic I","color":"#000000","position":23},{"id":"1549364959643959318","name":"Nova","color":"#000000","position":22},{"id":"1549364960935678012","name":"YAGPDB.xyz","color":"#000000","position":20},{"id":"1549364962043105290","name":"Boogie Basic II","color":"#000000","position":17},{"id":"1549364963095609485","name":"Ticket Tool","color":"#000000","position":16},{"id":"1549364964362289182","name":"TempVoice","color":"#000000","position":15},{"id":"1549364965402746882","name":"InviteLogger","color":"#000000","position":11},{"id":"1549364967789035590","name":"diva","color":"#000000","position":9},{"id":"1549364970007961681","name":"Security","color":"#000000","position":8},{"id":"1549364971098603530","name":"تيكت","color":"#000000","position":7},{"id":"1549364968950988830","name":"=——––——–ϟϟϟ——––——––=","color":"#000000","position":5},{"id":"1549364972532928624","name":"admin","color":"#000000","position":4},{"id":"1549364974093344859","name":"tic","color":"#000000","position":3},{"id":"1549824712702562515","name":"permission","color":"#000000","position":2}],"members":1,"emojis":[{"id":"1544078002172723312","name":"102117discordopalabadge","animated":false,"url":"https://cdn.discordapp.com/emojis/1544078002172723312.webp"},{"id":"1544078007218737222","name":"Wa_rose","animated":true,"url":"https://cdn.discordapp.com/emojis/1544078007218737222.webp"},{"id":"1544078010381111466","name":"Scroll","animated":false,"url":"https://cdn.discordapp.com/emojis/1544078010381111466.webp"},{"id":"1544078014663630928","name":"emoji","animated":true,"url":"https://cdn.discordapp.com/emojis/1544078014663630928.webp"},{"id":"1544078018136379552","name":"Mar","animated":false,"url":"https://cdn.discordapp.com/emojis/1544078018136379552.webp"},{"id":"1544078021844144188","name":"d_hearts2","animated":true,"url":"https://cdn.discordapp.com/emojis/1544078021844144188.webp"},{"id":"1544078026034127019","name":"d_butterflies","animated":true,"url":"https://cdn.discordapp.com/emojis/1544078026034127019.webp"},{"id":"1544078032157802536","name":"d_sparkles1","animated":true,"url":"https://cdn.discordapp.com/emojis/1544078032157802536.webp"},{"id":"1544078035211391077","name":"d_hearts4","animated":true,"url":"https://cdn.discordapp.com/emojis/1544078035211391077.webp"},{"id":"1544078038017249340","name":"vodafone","animated":false,"url":"https://cdn.discordapp.com/emojis/1544078038017249340.webp"},{"id":"1545128231051591691","name":"emoji_11","animated":false,"url":"https://cdn.discordapp.com/emojis/1545128231051591691.webp"}],"logGroups":{"messages":{"emoji":"💬","label":"الرسائل"},"members":{"emoji":"👥","label":"الأعضاء"},"roles":{"emoji":"🎭","label":"الرتب"},"channels":{"emoji":"📁","label":"القنوات"},"server":{"emoji":"⚙️","label":"السيرفر والإيموجيات"},"invites":{"emoji":"🔗","label":"الدعوات"},"threads":{"emoji":"🧵","label":"المواضيع"},"voice":{"emoji":"🔊","label":"الصوت"},"system":{"emoji":"🛡️","label":"الأنظمة"}},"logEvents":{"messageDelete":{"label":"حذف رسالة","emoji":"🗑️","group":"messages"},"messageEdit":{"label":"تعديل رسالة","emoji":"✏️","group":"messages"},"messageBulkDelete":{"label":"حذف جماعي للرسائل","emoji":"🧹","group":"messages"},"memberJoin":{"label":"دخول عضو","emoji":"📥","group":"members"},"memberLeave":{"label":"خروج عضو","emoji":"📤","group":"members"},"memberKick":{"label":"طرد عضو","emoji":"👢","group":"members"},"memberBan":{"label":"حظر عضو","emoji":"🔨","group":"members"},"memberUnban":{"label":"فك حظر","emoji":"♻️","group":"members"},"memberTimeout":{"label":"إسكات عضو (Timeout)","emoji":"🔇","group":"members"},"memberBoost":{"label":"دعم السيرفر (Boost)","emoji":"🚀","group":"members"},"memberRoleUpdate":{"label":"تغيير رتب عضو","emoji":"🎭","group":"members"},"memberNickname":{"label":"تغيير اسم عضو","emoji":"📝","group":"members"},"memberAvatar":{"label":"تغيير صورة عضو","emoji":"🖼️","group":"members"},"memberUsername":{"label":"تغيير اسم المستخدم","emoji":"🏷️","group":"members"},"roleCreate":{"label":"إنشاء رتبة","emoji":"🎭","group":"roles"},"roleDelete":{"label":"حذف رتبة","emoji":"🎭","group":"roles"},"roleUpdate":{"label":"تعديل رتبة","emoji":"🎭","group":"roles"},"channelCreate":{"label":"إنشاء قناة","emoji":"📁","group":"channels"},"channelDelete":{"label":"حذف قناة","emoji":"📁","group":"channels"},"channelUpdate":{"label":"تعديل قناة","emoji":"✏️","group":"channels"},"channelPermissions":{"label":"تغيير صلاحيات قناة","emoji":"🔐","group":"channels"},"serverUpdate":{"label":"تحديث السيرفر","emoji":"⚙️","group":"server"},"emojiCreate":{"label":"إضافة إيموجي","emoji":"😀","group":"server"},"emojiDelete":{"label":"حذف إيموجي","emoji":"😶","group":"server"},"stickerCreate":{"label":"إضافة ملصق","emoji":"🏷️","group":"server"},"stickerDelete":{"label":"حذف ملصق","emoji":"🏷️","group":"server"},"inviteCreate":{"label":"إنشاء دعوة","emoji":"🔗","group":"invites"},"inviteDelete":{"label":"حذف دعوة","emoji":"🔗","group":"invites"},"threadCreate":{"label":"إنشاء موضوع (Thread)","emoji":"🧵","group":"threads"},"threadDelete":{"label":"حذف موضوع (Thread)","emoji":"🧵","group":"threads"},"voiceJoin":{"label":"دخول قناة صوتية","emoji":"🔊","group":"voice"},"voiceLeave":{"label":"خروج من قناة صوتية","emoji":"🔇","group":"voice"},"voiceMove":{"label":"تنقّل بين قنوات صوتية","emoji":"↔️","group":"voice"},"voiceMute":{"label":"كتم صوتي","emoji":"🎙️","group":"voice"},"voiceDeafen":{"label":"إصمام صوتي","emoji":"🎧","group":"voice"},"modActions":{"label":"إجراء إداري","emoji":"🛡️","group":"system"},"automod":{"label":"الحماية التلقائية","emoji":"🚨","group":"system"},"ticket":{"label":"التذاكر","emoji":"🎫","group":"system"}},"cardAvailable":true},"viewer":{"canEdit":false,"loggedIn":false,"demo":false,"publicAccess":true,"loginRequired":false,"requiredRoleId":"1549364852433354792","roleReason":null,"roleMessage":null}};
+  var orig = window.fetch ? window.fetch.bind(window) : null;
+  window.fetch = function (input, init) {
+    var url = typeof input === 'string' ? input : (input && input.url) || '';
+    var method = ((init && init.method) || 'GET').toUpperCase();
+    if (url.indexOf('/api/guilds/' + DATA.guild.id) === 0) {
+      if (method === 'GET') return Promise.resolve(new Response(JSON.stringify(DATA), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+      return Promise.resolve(new Response(JSON.stringify({ ok: true, syncedAt: DATA.guild.syncedAt, status: DATA.sync }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    }
+    if (url.indexOf('/api/') === 0) return Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    return orig ? orig(input, init) : Promise.reject(new Error('offline'));
+  };
+  window.EventSource = function () { return { addEventListener: function(){}, close: function(){} }; };
+})();
+</script>
+<script>
 /* ==========================================================
    Never Land  |  لوحة التحكم — واجهة عربية
    ----------------------------------------------------------
