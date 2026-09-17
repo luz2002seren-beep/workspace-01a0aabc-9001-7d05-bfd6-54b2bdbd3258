@@ -1495,11 +1495,14 @@ function buildSidebar() {
 
 function buildHeader() {
   const head = el('div', { class: 'd-head' });
-  head.appendChild(
-    state.guild.icon
-      ? el('img', { class: 'guild-icon', src: `https://cdn.discordapp.com/icons/${state.guild.id}/${state.guild.icon}.png?size=128`, alt: '' })
-      : el('div', { class: 'guild-icon', html: esc((state.guild.name || '?').slice(0, 2)) }),
-  );
+  const headIcon = guildIconUrl(state.guild.id, state.guild.icon);
+  if (headIcon) {
+    const img = el('img', { class: 'guild-icon', src: headIcon, alt: '' });
+    img.addEventListener('error', () => img.replaceWith(iconFallback(state.guild.name)));
+    head.appendChild(img);
+  } else {
+    head.appendChild(iconFallback(state.guild.name));
+  }
   const info = el('div');
   info.appendChild(el('h1', { text: state.guild.name }));
   info.appendChild(
@@ -1584,6 +1587,34 @@ function updateDots(items) {
     if (!key) dot.style.display = 'none';
     else dot.style.display = '';
   });
+}
+
+/* ============================ أيقونات ديسكورد ============================ */
+
+/**
+ * رابط أيقونة سيرفر آمن: يقبل هاشًا أو رابطًا كاملًا (ويتعامل مع المتحرك a_).
+ * يمنع تكرار البادئة الذي كان يُنتج صورة مكسورة.
+ */
+function guildIconUrl(guildId, icon, size = 128) {
+  if (!icon || !guildId) return null;
+  const v = String(icon).trim();
+  if (!v) return null;
+  if (/^https?:\/\//i.test(v)) return v;
+  const ext = v.startsWith('a_') ? 'gif' : 'png';
+  return `https://cdn.discordapp.com/icons/${guildId}/${v}.${ext}?size=${size}`;
+}
+
+/** بديل مصوّر عند فشل تحميل الصورة (أحرف أولى) */
+function iconFallback(name) {
+  return el('div', { class: 'guild-icon placeholder', text: initialsOf(name) });
+}
+
+/** الأحرف الأولى من الاسم */
+function initialsOf(name) {
+  const clean = String(name || '?').trim();
+  const words = clean.split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return (words[0][0] + words[1][0]);
+  return clean.slice(0, 2);
 }
 
 /* ============================ المزامنة الحيّة ============================ */

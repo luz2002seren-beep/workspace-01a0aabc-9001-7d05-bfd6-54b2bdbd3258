@@ -831,6 +831,61 @@ console.log('[نجاح] كل الاختبارات نجحت!');
   console.log('  [تم] الجلسة تبقى بعد النشر/التحديث (ملف داخل الـVolume) + خروج نظيف');
   }
 
+ console.log('[اختبار] اختبار 28: أيقونات سليمة + شكل ما يخرج عن الإطار');
+  {
+    const fs13 = require('node:fs');
+    const path13 = require('node:path');
+    const root13 = path13.join(__dirname, '..');
+    const { guildIconUrl, initials } = require('../src/lib/discordIcon');
+
+    // ١) بناء رابط الأيقونة: هاش • رابط كامل (لا يتكرر) • متحرك • فاضي
+    const hash = '0ae6617c364028de691fe523598be4dc';
+    assert.strictEqual(guildIconUrl('123', hash), `https://cdn.discordapp.com/icons/123/${hash}.png?size=128`, 'رابط الهاش غير صحيح');
+    const full = `https://cdn.discordapp.com/icons/123/${hash}.png?size=128`;
+    assert.strictEqual(guildIconUrl('123', full), full, 'الرابط الكامل يجب أن يبقى كما هو (بلا تكرار)');
+    assert.ok(!guildIconUrl('123', full).includes('/https://'), 'تكرار البادئة ما زال ممكنًا');
+    assert.ok(guildIconUrl('123', `a_${hash}`).endsWith('.gif?size=128'), 'الأيقونة المتحركة يجب أن تكون gif');
+    assert.strictEqual(guildIconUrl('123', null), null, 'الأيقونة الفارغة يجب أن تكون null');
+    assert.strictEqual(guildIconUrl(null, hash), null, 'بلا معرّف سيرفر = بلا أيقونة');
+    assert.strictEqual(initials('Never Land'), 'NL', 'الأحرف الأولى غير صحيحة');
+
+    // ٢) كل ملفات الواجهة تستخدم الدالة الموحّدة (لا تركيب يدوي قديم للرابط)
+    const read13 = (f) => fs13.readFileSync(path13.join(root13, ...f), 'utf8');
+    for (const f of [['src', 'web', 'routes', 'pages.js'], ['src', 'web', 'public', 'app.js'], ['src', 'web', 'guilds.js'], ['src', 'sync.js']]) {
+      const src = read13(f);
+      for (const oldForm of ['${g.icon}.png?size=128', '${state.guild.icon}.png', '${discordGuild.icon}', '${guild.icon}.png?size=128', '${g.id}/${g.icon}']) {
+        assert.ok(!src.includes(oldForm), `تركيب يدوي قديم لرابط الأيقونة في ${f.join('/')}: ${oldForm}`);
+      }
+    }
+    // المسارات تستعمل الدالة الموحّدة
+    assert.ok(read13(['src', 'web', 'routes', 'pages.js']).includes('guildIconUrl('), 'صفحة السيرفرات لا تستخدم دالة الأيقونة الموحّدة');
+    assert.ok(read13(['src', 'web', 'guilds.js']).includes("require('../lib/discordIcon')"), 'وحدة السيرفرات لا تستخدم دالة الأيقونة');
+    assert.ok(read13(['src', 'sync.js']).includes("require('./lib/discordIcon')"), 'المزامنة لا تستخدم دالة الأيقونة');
+    const appSrc13 = read13(['src', 'web', 'public', 'app.js']);
+    assert.ok(appSrc13.includes('function guildIconUrl'), 'دالة الأيقونة ناقصة من واجهة اللوحة');
+    assert.ok(appSrc13.includes('guildIconUrl(state.guild.id'), 'ترويسة اللوحة لا تستخدم دالة الأيقونة');
+    assert.ok(appSrc13.includes('iconFallback'), 'البديل عند فشل الصورة ناقص');
+
+    // ٣) أنماط الحماية من الخروج عن الإطار
+    const styleCss = fs13.readFileSync(path13.join(root13, 'src', 'web', 'public', 'style.css'), 'utf8');
+    const dashCss = fs13.readFileSync(path13.join(root13, 'src', 'web', 'public', 'dash.css'), 'utf8');
+    for (const rule of ['overflow-x: hidden', '.guild-info', 'overflow-wrap: anywhere']) {
+      assert.ok(styleCss.includes(rule), `قاعدة «${rule}» ناقصة من style.css`);
+    }
+    assert.ok(styleCss.includes('.guild-card { overflow: hidden; }'), 'بطاقة السيرفر غير محميّة من التجاوز');
+    assert.ok(!/^\s*\*\s*\{[^}]*min-width:\s*0/m.test(styleCss), 'قاعدة عامة خطرة ما زالت موجودة');
+    for (const rule of ['.d-head h1 { overflow-wrap', '.d-syncbar { overflow-wrap', '.d-card { overflow: hidden; }']) {
+      assert.ok(dashCss.includes(rule), `قاعدة «${rule}» ناقصة من dash.css`);
+    }
+    assert.ok(dashCss.includes('.d-row { flex-wrap: wrap; }'), 'صفوف اللوحة لا تلتف');
+
+    // ٤) أيقونة مكسورة في القائمة يجب أن يكون لها بديل (onerror) في صفحة السيرفرات
+    const pagesSrc13 = fs13.readFileSync(path13.join(root13, 'src', 'web', 'routes', 'pages.js'), 'utf8');
+    assert.ok(pagesSrc13.includes('onerror='), 'لا بديل عند فشل تحميل أيقونة السيرفر');
+
+  console.log('  [تم] أيقونات: هاش/رابط/متحرك/فارغ + بديل عند الفشل + أنماط منع التجاوز (4 ملفات)');
+  }
+
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');
 
   process.exit(0);

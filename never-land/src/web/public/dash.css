@@ -491,3 +491,18 @@ html[dir='rtl'] .d-switch input:checked + span::after { transform: translateX(-2
 
 /* آيفون: شريط الحفظ فوق الحافة السفلية */
 .d-savebar { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+
+/* ================= حماية الشكل في اللوحة: لا خروج عن الإطار ================= */
+.d-shell, .d-main, .d-content { max-width: 100%; }
+.d-content { overflow-x: clip; }
+.d-head h1 { overflow-wrap: anywhere; }
+.d-head .sub { overflow-wrap: anywhere; }
+.d-syncbar { overflow-wrap: anywhere; }
+.d-sync-info { overflow-wrap: anywhere; }
+.d-card { overflow: hidden; }
+.d-card-head h3, .d-card-head p { overflow-wrap: anywhere; }
+.d-field { min-width: 0; }
+.d-field .label, .d-field .hint { overflow-wrap: anywhere; }
+.d-row { flex-wrap: wrap; }
+.d-content input, .d-content select, .d-content textarea { max-width: 100%; }
+img.guild-icon { background: var(--panel); border: 1px solid var(--border-soft); }

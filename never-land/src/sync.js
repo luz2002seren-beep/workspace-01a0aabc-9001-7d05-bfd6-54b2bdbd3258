@@ -24,6 +24,7 @@
 
 const config = require('./config');
 const db = require('./database');
+const { guildIconUrl } = require('./lib/discordIcon');
 
 const KEY_STATUS = 'sync:status';
 const keyGuild = (id) => `sync:guild:${id}`;
@@ -166,9 +167,7 @@ function serializeGuild(guild, previous = null) {
 
 /** لقطة مبسّطة من واجهة REST (عند توقّف البوت): الأسماء والأيقونات على الأقل */
 function mergeRestGuild(restGuild, previous = null) {
-  const icon = restGuild.icon
-    ? `https://cdn.discordapp.com/icons/${restGuild.id}/${restGuild.icon}.png?size=128`
-    : previous?.icon ?? null;
+  const icon = guildIconUrl(restGuild.id, restGuild.icon) || guildIconUrl(restGuild.id, previous?.icon) || null;
   return {
     ...(previous || {}),
     id: restGuild.id,

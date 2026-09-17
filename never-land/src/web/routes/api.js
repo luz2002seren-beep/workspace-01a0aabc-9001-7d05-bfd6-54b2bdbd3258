@@ -22,6 +22,7 @@ const db = require('../../database');
 const { mergeSettings } = require('../../database/defaults');
 const sync = require('../../sync');
 const webGuilds = require('../guilds');
+const { guildIconUrl, initials } = require('../../lib/discordIcon');
 
 const router = express.Router();
 
@@ -142,7 +143,7 @@ router.get('/guilds/:guildId', async (req, res) => {
     guild: {
       id: guildId,
       name: discordGuild?.name ?? snapshot?.name ?? guildId,
-      icon: discordGuild?.iconURL?.({ size: 128, extension: 'png' }) ?? snapshot?.icon ?? null,
+      icon: guildIconUrl(guildId, discordGuild?.iconURL?.({ size: 128, extension: 'png' }) || discordGuild?.icon) || guildIconUrl(guildId, snapshot?.icon) || null,
       memberCount: discordGuild?.memberCount ?? snapshot?.memberCount ?? null,
       ownerId: discordGuild?.ownerId ?? snapshot?.ownerId ?? null,
       botPresent: Boolean(discordGuild) || Boolean(snapshot),

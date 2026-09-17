@@ -562,3 +562,29 @@ a, button, .btn, .pill, .guild-card {
 /* سطر «آخر مزامنة» في بطاقات السيرفرات */
 .sync-line { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; opacity: 0.75; }
 .sync-line svg { color: var(--primary, #5b6cff); }
+
+/* ================= حماية الشكل: لا خروج عن الإطار ================= */
+html, body { max-width: 100%; overflow-x: hidden; }
+img, svg, video, canvas { max-width: 100%; }
+
+/* أيقونة السيرفر: صورة سليمة أو بديل أنيق (بلا إطار مكسور) */
+img.guild-icon { background: var(--bg-card); border: 1px solid var(--border); }
+img.guild-icon:not([src]), img.guild-icon[src=""] { visibility: hidden; }
+
+/* بطاقة السيرفر: النصوص الطويلة تلتف بدل ما تخرج */
+.guild-card { overflow: hidden; }
+.guild-info { min-width: 0; flex: 1 1 auto; display: flex; flex-direction: column; gap: 3px; }
+.guild-info b { display: block; overflow-wrap: anywhere; line-height: 1.35; }
+.guild-info .muted { display: block; overflow-wrap: anywhere; }
+.guild-card .guild-actions { flex: 0 0 auto; }
+
+/* شريط حالة المزامنة في الصفحة الرئيسية */
+.sync-line { flex-wrap: wrap; }
+
+/* الشبكات والبطاقات لا تتجاوز عرض الشاشة */
+.guild-grid, .site-features, .site-steps { max-width: 100%; }
+.mock-row, .mock-title { overflow-wrap: anywhere; }
+
+/* أي صف مرن: عناصره ما تخرج عن الإطار */
+.site-hero, .page-head, .dash-head, .site-cta, .servers-toolbar, .guild-card { max-width: 100%; }
+.site-hero > *, .page-head > *, .site-cta > * { min-width: 0; }

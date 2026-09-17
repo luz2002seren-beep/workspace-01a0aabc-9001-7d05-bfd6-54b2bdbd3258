@@ -13,6 +13,7 @@
 const express = require('express');
 const config = require('../../config');
 const webGuilds = require('../guilds');
+const { guildIconUrl, initials } = require('../../lib/discordIcon');
 const db = require('../../database');
 
 const router = express.Router();
@@ -235,7 +236,7 @@ function publicGuilds(req) {
     return [...client.guilds.cache.values()].map((g) => ({
       id: g.id,
       name: g.name,
-      icon: g.iconURL({ size: 128, extension: 'png' }) || null,
+      icon: guildIconUrl(g.id, g.iconURL?.({ size: 128, extension: 'png' }) || g.icon),
       memberCount: g.memberCount,
       ownerName: null,
       botPresent: true,
@@ -434,9 +435,10 @@ router.get('/dashboard', requireAuth, async (req, res) => {
   const cards = guilds.length
     ? guilds
         .map((g) => {
-          const thumb = g.icon
-            ? `<img class="guild-icon" src="https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png?size=128" alt="">`
-            : `<div class="guild-icon placeholder">${escapeHtml((g.name || '?').slice(0, 2))}</div>`;
+          const iconUrl = guildIconUrl(g.id, g.icon);
+          const thumb = iconUrl
+            ? `<img class="guild-icon" src="${escapeHtml(iconUrl)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'guild-icon placeholder',textContent:this.dataset.initials}))" data-initials="${escapeHtml(initials(g.name))}">`
+            : `<div class="guild-icon placeholder">${escapeHtml(initials(g.name))}</div>`;
           return `
       <div class="guild-card${g.botPresent ? '' : ' disabled'}" data-name="${escapeHtml(String(g.name || '').toLowerCase())}" data-bot="${g.botPresent ? '1' : '0'}">
         ${thumb}

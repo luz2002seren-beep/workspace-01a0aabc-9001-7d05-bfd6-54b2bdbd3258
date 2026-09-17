@@ -19,6 +19,7 @@
 
 const config = require('../config');
 const sync = require('../sync');
+const { guildIconUrl } = require('../lib/discordIcon');
 
 /** عميل البوت (قد لا يكون محمّلًا في وضع الموقع فقط) */
 function botClient() {
@@ -91,7 +92,7 @@ async function listUserGuilds(req) {
     out.set(id, {
       id,
       name: lg?.name || snap?.name || g.name,
-      icon: lg?.iconURL?.({ size: 128, extension: 'png' }) || snap?.icon || g.icon || null,
+      icon: guildIconUrl(id, lg?.iconURL?.({ size: 128, extension: 'png' }) || g.icon) || snap?.icon || null,
       owner: Boolean(g.owner) || (lg && String(lg.ownerId) === String(user?.id)),
       memberCount: lg?.memberCount ?? snap?.memberCount ?? null,
       botPresent: Boolean(lg) || Boolean(snap),
@@ -122,7 +123,7 @@ async function listUserGuilds(req) {
       out.set(id, {
         id,
         name: guild.name,
-        icon: guild.iconURL?.({ size: 128, extension: 'png' }) || null,
+        icon: guildIconUrl(id, guild.iconURL?.({ size: 128, extension: 'png' }) || guild.icon),
         owner: String(guild.ownerId) === String(user.id),
         memberCount: guild.memberCount ?? snap?.memberCount ?? null,
         botPresent: true,
@@ -141,7 +142,7 @@ async function listUserGuilds(req) {
       out.set(id, {
         id,
         name: snap.name,
-        icon: snap.icon,
+        icon: guildIconUrl(id, snap.icon),
         owner: false,
         memberCount: snap.memberCount,
         botPresent: true,
