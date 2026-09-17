@@ -730,22 +730,28 @@ console.log('[نجاح] كل الاختبارات نجحت!');
   console.log(`  [تم] لقطة كاملة (قنوات/رتب/أعضاء) + /api/sync + بث حيّ + شريط مزامنة في اللوحة (كل ${cfg9.sync.intervalSeconds} ثانية)`);
   }
 
- console.log('[اختبار] اختبار 25: إرشاد الدخول عند نقص رابط العودة (OAuth)');
+ console.log('[اختبار] اختبار 25: مسار الدخول بحساب Discord (بلا صفحات إرشاد)');
   {
     const fs10 = require('node:fs');
     const path10 = require('node:path');
     const root10 = path10.join(__dirname, '..');
     const authSrc = fs10.readFileSync(path10.join(root10, 'src', 'web', 'routes', 'auth.js'), 'utf8');
 
-    assert.ok(authSrc.includes('async function registeredRedirects'), 'فحص روابط العودة المسجّلة ناقص');
-    assert.ok(authSrc.includes('applications/@me'), 'فحص تطبيق ديسكورد ناقص');
-    assert.ok(authSrc.includes('function redirectHelpPage'), 'صفحة الإرشاد ناقصة');
-    assert.ok(authSrc.includes('/auth/callback'), 'رابط العودة غير مذكور');
-    assert.ok(authSrc.includes('Redirects'), 'تعليمات Redirects ناقصة');
-    assert.ok(/router\.get\('\/login',\s*async/.test(authSrc), 'مسار الدخول لا يفحص رابط العودة قبل التحويل');
-    assert.ok(authSrc.includes('redirectCache'), 'كاش فحص روابط العودة ناقص');
+    // الدخول يحوّل مباشرة إلى ديسكورد (لا صفحات وسطية)
+    assert.ok(!authSrc.includes('redirectHelpPage'), 'صفحة الإرشاد ما زالت موجودة');
+    assert.ok(!authSrc.includes('registeredRedirects'), 'فحص روابط العودة ما زال موجودًا');
+    assert.ok(/router\.get\('\/login',\s*\(req, res\)/.test(authSrc), 'مسار الدخول لم يعد مباشرًا');
+    assert.ok(authSrc.includes('discord.com/oauth2/authorize'), 'وجهة الدخول إلى ديسكورد ناقصة');
+    assert.ok(authSrc.includes('/auth/callback'), 'رابط العودة غير مستخدم');
+    assert.ok(authSrc.includes('identify') && authSrc.includes('guilds'), 'نطاقات OAuth ناقصة');
 
-  console.log('  [تم] صفحة إرشاد عربية بدل خطأ ديسكورد + كاش 5 دقائق لفحص روابط العودة');
+    // رسالة عربية واضحة عند فشل التبادل بدل خطأ مبهم
+    assert.ok(authSrc.includes('تعذّر إكمال الدخول'), 'رسالة فشل الدخول العربية ناقصة');
+
+    // رابط العودة يُبنى من الرابط العام في كل الحالات
+    assert.ok(authSrc.includes('${config.web.url}/auth/callback'), 'رابط العودة لا يتبع الرابط العام');
+
+  console.log('  [تم] الدخول يحوّل لديسكورد مباشرة + رسالة عربية عند الفشل (بلا صفحات وسطية)');
   }
 
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');
