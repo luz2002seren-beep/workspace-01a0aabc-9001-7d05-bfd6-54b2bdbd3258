@@ -878,6 +878,9 @@ console.log('[نجاح] كل الاختبارات نجحت!');
       assert.ok(dashCss.includes(rule), `قاعدة «${rule}» ناقصة من dash.css`);
     }
     assert.ok(dashCss.includes('.d-row { flex-wrap: wrap; }'), 'صفوف اللوحة لا تلتف');
+    assert.ok(dashCss.includes('minmax(min(150px, 100%), 1fr)'), 'شبكة الإحصاءات قد تخرج عن الشاشة الصغيرة');
+    assert.ok(dashCss.includes('minmax(min(240px, 100%), 1fr)'), 'شبكة البطاقات قد تخرج عن الشاشة الصغيرة');
+    assert.ok(dashCss.includes('scroll-margin-top: 84px'), 'المحتوى قد يختفي تحت الترويسة عند التمرير');
 
     // ٤) أيقونة مكسورة في القائمة يجب أن يكون لها بديل (onerror) في صفحة السيرفرات
     const pagesSrc13 = fs13.readFileSync(path13.join(root13, 'src', 'web', 'routes', 'pages.js'), 'utf8');
