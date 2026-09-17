@@ -28,10 +28,17 @@ function createApp() {
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true }));
 
+  // جلسات محفوظة على القرص (تبقى بعد إعادة التشغيل) — داخل نفس مجلد قاعدة البيانات/الـVolume
+  const { FileSessionStore } = require('./sessionStore');
+  const sessionFile = path.join(path.dirname(config.database.path), 'sessions.json');
+  const store = new FileSessionStore(sessionFile, 7 * 24 * 60 * 60 * 1000);
+  setInterval(() => store.cleanup(), 3600 * 1000).unref?.();
+
   app.use(
     session({
       name: 'neverland.sid',
       secret: config.web.sessionSecret,
+      store,
       resave: false,
       saveUninitialized: false,
       cookie: {

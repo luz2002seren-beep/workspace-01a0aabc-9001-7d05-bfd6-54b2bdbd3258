@@ -789,6 +789,48 @@ console.log('[نجاح] كل الاختبارات نجحت!');
   console.log('  [تم] سيرفرات المستخدم: دمج الجلسة + البوت الحيّ + الصلاحية الحقيقية (8 حالات)');
   }
 
+ console.log('[اختبار] اختبار 27: جلسات الموقع تبقى بعد إعادة التشغيل (على القرص)');
+  {
+    const fs12 = require('node:fs');
+    const path12 = require('node:path');
+    const root12 = path12.join(__dirname, '..');
+    const { FileSessionStore } = require('../src/web/sessionStore');
+
+    const dir12 = path12.join(require('node:os').tmpdir(), `nl-sessions-${Date.now()}`);
+    const file12 = path12.join(dir12, 'sessions.json');
+
+    // ١) تُحفظ على القرص وتُقرأ من مخزن جديد (محاكاة إعادة تشغيل الخدمة)
+    const store1 = new FileSessionStore(file12);
+    store1.set('sid-test', { user: { id: '777', username: 'loki' }, cookie: {} }, () => {});
+    store1.saveNow();
+    assert.ok(fs12.existsSync(file12), 'ملف الجلسات لم يُكتب على القرص');
+
+    const store2 = new FileSessionStore(file12);
+    let restored = null;
+    store2.get('sid-test', (_e, sess) => { restored = sess; });
+    assert.ok(restored && restored.user && restored.user.username === 'loki', 'الجلسة لم تُستعد بعد إعادة الإنشاء');
+
+    // ٢) الخروج يحذف الجلسة فعليًا
+    store2.destroy('sid-test', () => {});
+    let after = 'x';
+    store2.get('sid-test', (_e, sess) => { after = sess; });
+    assert.strictEqual(after, null, 'الجلسة لم تُحذف بعد الخروج');
+
+    // ٣) الجلسات المنتهية تُنظَّف
+    const store3 = new FileSessionStore(path12.join(dir12, 'expired.json'), 1);
+    store3.set('old', { user: { id: '1' } }, () => {});
+    store3.data.get('old').expires = Date.now() - 1000;
+    assert.ok(store3.cleanup() >= 1, 'تنظيف الجلسات المنتهية لا يعمل');
+
+    // ٤) الخادم يستخدم المخزن (لا MemoryStore)
+    const srv12 = fs12.readFileSync(path12.join(root12, 'src', 'web', 'server.js'), 'utf8');
+    assert.ok(srv12.includes('FileSessionStore'), 'الخادم لا يستخدم مخزن الجلسات على القرص');
+    assert.ok(srv12.includes('store,'), 'المخزن غير مربوط بإعدادات الجلسة');
+
+    fs12.rmSync(dir12, { recursive: true, force: true });
+  console.log('  [تم] الجلسة تبقى بعد النشر/التحديث (ملف داخل الـVolume) + خروج نظيف');
+  }
+
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');
 
   process.exit(0);
