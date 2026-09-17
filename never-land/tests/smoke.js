@@ -1,0 +1,541 @@
+'use strict';
+/**
+ * اختبار سريع: يتحقق أن كل الأوامر والأحداث تُحمَّل بدون أخطاء،
+ * وأن بيانات كل أمر صالحة (اسم + وصف + خيارات).
+ * التشغيل:  node tests/smoke.js
+ */
+const assert = require('node:assert');
+const path = require('node:path');
+
+process.env.DEMO_MODE = 'true';
+process.env.DATABASE_PATH = './data/test.db';
+
+// قاعدة اختبار نظيفة في كل تشغيل (حتى لا تتكدّس الحالات بين الاختبارات)
+const fs = require('node:fs');
+for (const suffix of ['', '-wal', '-shm']) {
+  try {
+    fs.unlinkSync(path.join(__dirname, '..', 'data', `test.db${suffix}`));
+  } catch {
+    /* الملف غير موجود */
+  }
+}
+
+const db = require('../src/database');
+const { loadCommands, walk } = require('../src/handlers/commands');
+
+const fakeClient = { commands: new Map(), guilds: { cache: new Map() }, on() {}, once() {} };
+
+console.log('🧪 اختبار 1: تحميل الأوامر');
+const { loaded, problems } = loadCommands(fakeClient);
+assert.ok(loaded >= 20, `يجب تحميل 20 أمرًا على الأقل، تم تحميل ${loaded}`);
+assert.deepStrictEqual(problems, [], `مشاكل في الأوامر: ${problems.join(', ')}`);
+console.log(`   ✅ ${loaded} أمر`);
+
+console.log('🧪 اختبار 2: صحة بيانات الأوامر');
+for (const command of fakeClient.commands.values()) {
+  const json = command.data.toJSON();
+  assert.ok(json.name && json.name === json.name.toLowerCase(), `اسم غير صالح: ${json.name}`);
+  assert.ok(json.description && json.description.length > 3, `وصف ناقص في ${json.name}`);
+  assert.ok(typeof command.run === 'function', `run غير موجود في ${json.name}`);
+  if (json.options) {
+    for (const option of json.options) {
+      assert.ok(option.name && option.description, `خيار ناقص في ${json.name}`);
+      assert.ok(!/\s/.test(option.name), `اسم خيار يحتوي مسافة في ${json.name}`);
+    }
+  }
+}
+console.log('   ✅ كل الأوامر صحيحة');
+
+console.log('🧪 اختبار 3: تحميل الأحداث');
+const eventFiles = walk(path.join(__dirname, '..', 'src', 'events'));
+assert.ok(eventFiles.length >= 6, 'يجب وجود ملفات أحداث');
+let eventsCount = 0;
+for (const file of eventFiles) {
+  const exported = require(file);
+  const events = Array.isArray(exported) ? exported : [exported];
+  for (const event of events) {
+    assert.ok(event.name, `حدث بدون اسم في ${path.basename(file)}`);
+    assertEquals(typeof event.execute, 'function', `execute ناقص في ${path.basename(file)}`);
+    eventsCount += 1;
+  }
+}
+console.log(`   ✅ ${eventsCount} حدث`);
+
+console.log('🧪 اختبار 4: قاعدة البيانات');
+db.init();
+const guild = db.getGuild('999999999999999999');
+assert.ok(guild.settings.automod.enabled !== undefined, 'الإعدادات الافتراضية ناقصة');
+assert.ok(guild.settings.tickets.types.length > 0, 'أنواع التذاكر الافتراضية ناقصة');
+
+const record = db.addCase({ guildId: '999999999999999999', type: 'warn', userId: '1', moderatorId: '2', reason: 'اختبار' });
+assert.ok(record.id > 0, 'فشل إنشاء حالة');
+assert.strictEqual(db.countCases('999999999999999999', { type: 'warn' }), 1, 'عدّ التحذيرات خطأ');
+
+const ticket = db.createTicket({ guildId: '999999999999999999', channelId: '123', userId: '1', type: 'general' });
+assert.strictEqual(db.getTicketByChannel('123').id, ticket.id, 'فشل إنشاء تذكرة');
+db.updateTicket(ticket.id, { status: 'closed' });
+assert.strictEqual(db.countTickets('999999999999999999', 'open'), 0, 'عدّ التذاكر المفتوحة خطأ');
+
+db.upsertLevel('999999999999999999', '1', { xp: 500, level: 2, messages: 10, voiceMinutes: 3, lastXpAt: Date.now() });
+const leaderboard = db.getLeaderboard('999999999999999999', 10);
+assert.strictEqual(leaderboard.length, 1, 'فشل نظام المستويات');
+
+db.updateGuildSettings('999999999999999999', { welcome: { enabled: true, channelId: '555' } });
+assert.strictEqual(db.getGuildSettings('999999999999999999').welcome.enabled, true, 'فشل تحديث الإعدادات');
+assert.strictEqual(db.getGuildSettings('999999999999999999').automod.enabled, true, 'فُقدت الإعدادات الافتراضية بعد التحديث!');
+console.log('   ✅ قاعدة البيانات تعمل بشكل صحيح');
+
+console.log('🧪 اختبار 5: أدوات مساعدة');
+const utils = require('../src/lib/utils');
+const levels = require('../src/lib/levels');
+const i18n = require('../src/lib/i18n');
+assert.strictEqual(utils.parseDuration('10m'), 600000);
+assert.strictEqual(utils.parseDuration('2h30m'), 9000000);
+assert.strictEqual(utils.parseDuration('نص غلط'), null);
+assert.ok(utils.parseDuration('3 أيام') === 3 * 86400000);
+assert.strictEqual(levels.levelFromXp(0).level, 0);
+assert.ok(levels.levelFromXp(100000).level > 10);
+assert.strictEqual(i18n.t('ar', 'mod.banned', { user: 'X', reason: 'Y', caseId: 1 }).includes('X'), true);
+assert.strictEqual(i18n.t('en', 'common.noPermission').startsWith('❌'), true);
+console.log('   ✅ الأدوات تعمل');
+
+console.log('🧪 اختبار 6: نظام الحماية');
+const automod = require('../src/systems/automod');
+const settings = { automod: { ...db.getGuildSettings('999999999999999999').automod } };
+const fakeMessage = {
+  guild: { id: '999999999999999999' },
+  author: { id: '777', bot: false },
+  member: { id: '777', roles: { cache: new Map() }, permissions: { has: () => false } },
+  mentions: { users: { size: 0 } },
+  content: 'شوف هذا الرابط https://evil-site.com/free-nitro',
+  channelId: '1',
+  attachments: { size: 0 },
+};
+const violations = automod.collectViolations({ cache: new Map(), spamTracker: new Map() }, fakeMessage, { automod: { ...settings.automod, enabled: true, antiLink: true, antiInvite: true, antiSpam: false, antiEveryone: true, antiMentionSpam: true, antiCaps: false, bannedWords: ['nitro'] } });
+assert.ok(violations.some((v) => v.key === 'link'), 'لم يُرصد الرابط');
+assert.ok(violations.some((v) => v.key === 'bannedWord'), 'لم تُرصد الكلمة الممنوعة');
+assert.strictEqual(automod.normalizeArabic('أَهْـلًا'), 'اهلا');
+console.log('   ✅ الحماية التلقائية تعمل');
+
+function assertEquals(actual, expected, message) {
+  assert.strictEqual(actual, expected, message);
+}
+
+console.log('');
+console.log('🎉 كل الاختبارات نجحت!');
+
+/* ------------------------- اختبارات متقدّمة (7 → 15) ------------------------- */
+(async () => {
+
+  console.log('🧪 اختبار 7: تطابق مفاتيح الترجمة (ar ↔ en)');
+  const { strings } = require('../src/lib/i18n');
+  const flatten = (obj, prefix = '') =>
+    Object.entries(obj).flatMap(([key, value]) =>
+      typeof value === 'object' ? flatten(value, `${prefix}${key}.`) : [`${prefix}${key}`]);
+  const arKeys = new Set(flatten(strings.ar));
+  const enKeys = new Set(flatten(strings.en));
+  const missingEn = [...arKeys].filter((k) => !enKeys.has(k));
+  const missingAr = [...enKeys].filter((k) => !arKeys.has(k));
+  assert.deepStrictEqual(missingEn, [], `مفاتيح ناقصة في الإنجليزية: ${missingEn.join(', ')}`);
+  assert.deepStrictEqual(missingAr, [], `مفاتيح ناقصة في العربية: ${missingAr.join(', ')}`);
+  console.log(`   ✅ ${arKeys.size} مفتاح متطابق في اللغتين`);
+
+  console.log('🧪 اختبار 8: بناء اللوحات (بدون اتصال بديسكورد)');
+  const settings = db.getGuildSettings('999999999999999999');
+  const setupWizard = require('../src/systems/setupWizard');
+  const panel = setupWizard.mainPanel(settings);
+  assert.ok(panel.embeds?.[0] && panel.components.length >= 2, 'لوحة /setup غير مكتملة');
+  const modulePanel = setupWizard.modulePanel('automod', settings);
+  assert.ok(modulePanel.embeds?.[0]?.data?.title?.includes('الحماية'), 'لوحة قسم الحماية خطأ');
+
+  const tickets = require('../src/systems/tickets');
+  const ticketPanel = tickets.buildPanel(settings, { id: '1' });
+  assert.ok(ticketPanel.embeds[0].data.title.includes('الدعم'), 'لوحة التذاكر خطأ');
+  const firstControl = ticketPanel.components[0].components[0];
+  const controlCount = ticketPanel.components.flatMap((row) => row.components).length;
+  assert.ok(
+    controlCount > 0 && (firstControl.options?.length > 0 || firstControl.data?.custom_id?.startsWith('ticket:open:')),
+    'عناصر فتح التذاكر ناقصة',
+  );
+  console.log('   ✅ لوحات الإعداد والتذاكر سليمة');
+
+  console.log('🧪 اختبار 9: اللوقات والحماية (مسارات آمنة)');
+  const logging = require('../src/systems/logging');
+  const result = await logging.send({ guilds: { cache: new Map() } }, { id: '1' }, 'messageDelete', { title: 'اختبار' });
+  assert.strictEqual(result, null, 'يجب أن يعود null عند تعطيل اللوقات');
+  assert.ok(logging.EVENT_META.messageDelete.emoji, 'بيانات الحدث ناقصة');
+  const transcript = logging.buildTranscript(
+    [{ createdTimestamp: Date.now(), content: 'مرحبا', author: { tag: 'tester#0001', id: '1' } }],
+    { id: 5, user_id: '1', type: 'general', created_at: Date.now() },
+  );
+  assert.ok(transcript.includes('مرحبا') && transcript.includes('#5'), 'الأرشيف النصي خطأ');
+  console.log('   ✅ اللوقات والأرشيف سليمة');
+
+  console.log('🧪 اختبار 10: أوامر السلاش قابلة للتسلسل إلى JSON');
+  for (const command of fakeClient.commands.values()) {
+    const json = command.data.toJSON();
+    assert.ok(json.name, 'فشل التسلسل');
+    JSON.stringify(json);
+  }
+  console.log(`   ✅ ${fakeClient.commands.size} أمر جاهز للتسجيل في ديسكورد`);
+
+  console.log('');
+  console.log('🎉 جميع الاختبارات الإضافية نجحت!');
+
+
+  console.log('');
+  console.log('🧪 اختبار 11: دعم الإيموجيات الخارجية');
+  const emojis = require('../src/lib/emojis');
+  assert.deepStrictEqual(emojis.parseEmoji('<:fire:123456789012345678>'), { id: '123456789012345678', animated: false });
+  assert.deepStrictEqual(emojis.parseEmoji('<a:party:987654321098765432>'), { id: '987654321098765432', animated: true });
+  assert.deepStrictEqual(emojis.parseEmoji('🔥'), { name: '🔥' });
+  assert.strictEqual(emojis.parseEmoji('نص طويل ليس إيموجي'), null);
+  assert.ok(emojis.customEmojiUrl('<a:party:987654321098765432>').includes('.gif'));
+  assert.ok(emojis.extractCustomEmojis('مرحبا <:ok:123456789012345678> و<:no:987654321098765432>').length === 2);
+  console.log('   ✅ الإيموجيات الخارجية تعمل');
+
+  console.log('🧪 اختبار 12: بطاقة الترحيب (Canvas)');
+  const welcomeCard = require('../src/lib/welcomeCard');
+  assert.ok(welcomeCard.available(), 'مولّد البطاقات غير متاح');
+  const fakeUser = {
+    username: 'أحمد',
+    displayAvatarURL: () => 'https://cdn.discordapp.com/embed/avatars/0.png',
+  };
+  const cardBuffer = await welcomeCard.generateWelcomeCard({
+    user: fakeUser,
+    memberCount: 4820,
+    guildName: 'سيرفر التجربة',
+    title: 'أهلاً بك في',
+  });
+  assert.ok(cardBuffer && cardBuffer.length > 5000, 'فشل توليد البطاقة');
+  assert.strictEqual(cardBuffer.slice(1, 4).toString(), 'PNG', 'الناتج ليس PNG');
+  console.log(`   ✅ تم توليد بطاقة ترحيب (${Math.round(cardBuffer.length / 1024)}KB)`);
+
+  console.log('🧪 اختبار 13: لوحة التذاكر (أزرار + قائمة + 4 أنواع)');
+  const ticketsSystem = require('../src/systems/tickets');
+  const tSettings = db.getGuildSettings('999999999999999999');
+  const payloads = ticketsSystem.buildPanelPayloads(tSettings, { id: '1', iconURL: () => null }, null);
+  assert.ok(payloads.length >= 1, 'لا توجد رسائل للوحة');
+  const tPanel = payloads[payloads.length - 1];
+  assert.ok(tPanel.embeds[0], 'البنل بدون embed');
+  const tTypes = tSettings.tickets.types;
+  assert.strictEqual(tTypes.length, 4, 'يجب أن تكون الأنواع 4');
+  assert.deepStrictEqual(tTypes.map((t2) => t2.id), ['support', 'verify', 'gift', 'staff']);
+  const tRows = tPanel.components;
+  const flatButtons = tRows.flatMap((r) => r.components);
+  assert.strictEqual(flatButtons.length, 4, 'يجب 4 أزرار للأنواع');
+  assert.ok(flatButtons[0].data.custom_id.startsWith('ticket:open:'), 'customId خاطئ');
+
+  // وضع القائمة المنسدلة
+  const selectPayload = ticketsSystem.buildPanelPayloads({ ...tSettings, tickets: { ...tSettings.tickets, panelMode: 'select' } }, {}).pop();
+  assert.strictEqual(selectPayload.components[0].components[0].options.length, 4, 'القائمة المنسدلة لا تحتوي 4 أنواع');
+  console.log('   ✅ اللوحة تعمل بالأزرار والقائمة مع 4 أنواع');
+
+  console.log('🧪 اختبار 14: الخط الفاصل والتفاعلات التلقائية');
+  const autolineSystem = require('../src/systems/autoline');
+  const lineContent = autolineSystem.buildLineContent({ autoline: { line: '─'.repeat(10), color: null } });
+  assert.ok(lineContent.content.includes('─'));
+  const autoreactSystem = require('../src/systems/autoreact');
+  const tValues = autoreactSystem.toReactionValues(['👍', '<:fire:123456789012345678>', 'نص ليس إيموجي طويل here']);
+  assert.strictEqual(tValues.length, 2, 'تحويل الإيموجيات خطأ');
+  console.log('   ✅ AutoLine و AutoReaction يعملان');
+
+  console.log('🧪 اختبار 15: أحداث اللوقات الشاملة');
+  const loggingSystem = require('../src/systems/logging');
+  const tTotal = Object.keys(loggingSystem.EVENT_META).length;
+  assert.ok(tTotal >= 38, `عدد الأحداث ${tTotal} أقل من المطلوب`);
+  const tGroups = loggingSystem.groupedEvents();
+  assert.strictEqual(Object.keys(tGroups).length, 9, 'عدد مجموعات اللوقات خطأ');
+  for (const [key, meta] of Object.entries(loggingSystem.EVENT_META)) {
+    assert.ok(meta.label && meta.emoji && meta.group && loggingSystem.EVENT_GROUPS[meta.group], `بيانات الحدث ${key} ناقصة`);
+  }
+  const tSettings15 = db.getGuildSettings('999999999999999999');
+  assert.strictEqual(Object.keys(tSettings15.logs.events).length, tTotal, 'أحداث الإعدادات لا تطابق الأحداث المتاحة');
+  console.log(`   ✅ ${tTotal} حدثًا في ${Object.keys(tGroups).length} مجموعات`);
+
+  console.log('');
+
+  console.log('🧪 اختبار 16: نظام تقديم الإدارة (نموذج 5 خانات + قبول/رفض)');
+  {
+    const applications = require('../src/systems/applications');
+    const GUILD16 = '100000000000000001';
+    const REVIEW16 = '100000000000000013';
+
+    assert.strictEqual(applications.isApplicationType(db.getGuildSettings(GUILD16), 'staff'), true, 'تقديم الإدارة لا يُفعّل النموذج');
+    assert.strictEqual(applications.isApplicationType(db.getGuildSettings(GUILD16), 'support'), false, 'الدعم الفني لا يجب أن يفتح النموذج');
+
+    // النموذج = 5 خانات (حد ديسكورد الأقصى)
+    const appTicket = db.createTicket({ guildId: GUILD16, channelId: '100000000000000090', userId: '200000000000000010', type: 'staff' });
+    const modal = applications.buildFormModal(db.getGuildSettings(GUILD16), appTicket).toJSON();
+    assert.strictEqual(modal.components.length, 5, 'النموذج يجب أن يحتوي 5 خانات');
+    assert.ok(modal.components.every((c) => (c.components[0].label || '').length <= 45), 'عنوان خانة أطول من 45 حرفًا');
+    assert.strictEqual(modal.custom_id, 'ticket:apply:submit:' + appTicket.id);
+
+    // بنل التقديم داخل التذكرة
+    const form = applications.buildFormMessage(db.getGuildSettings(GUILD16), appTicket);
+    assert.strictEqual(form.components[0].components[0].data.custom_id, 'ticket:apply:open:' + appTicket.id);
+
+    // استخراج الاسم لإعادة تسمية التذكرة
+    assert.strictEqual(applications.extractName('أحمد — 18'), 'أحمد');
+    assert.strictEqual(applications.extractName('Ahmed Ali, 17 سنة'), 'ahmed-ali');
+    assert.strictEqual(applications.padNumber(7), '007');
+    assert.ok(!applications.sanitizeChannelName('إدارة #001 / أحمد؟').includes('#'));
+
+    // محاكاة كاملة: إرسال الطلب ➜ قبول ➜ رفض
+    const sentTo = { review: [], ticket: [], dm: [] };
+    const renamed = [];
+    const movedTo = [];
+    const rolesGiven = [];
+    const makeChannel = (id) => ({
+      id,
+      send: async (p) => {
+        sentTo[id === REVIEW16 ? 'review' : 'ticket'].push(p);
+        return { id: 'm1', editable: true, edit: async () => {} };
+      },
+      setName: async (n) => { renamed.push(n); },
+      setParent: async (pid) => { movedTo.push(pid); },
+      toString: () => '<#' + id + '>',
+    });
+    const reviewChan = makeChannel(REVIEW16);
+    const ticketChan = makeChannel('100000000000000090');
+    const guild16 = {
+      id: GUILD16,
+      name: 'سيرفر التجربة',
+      channels: {
+        cache: new Map([
+          [REVIEW16, reviewChan],
+          ['100000000000000030', { id: '100000000000000030' }],
+          ['100000000000000090', ticketChan],
+        ]),
+        fetch: async () => null,
+      },
+      members: { fetch: async () => ({ id: '200000000000000010', roles: { cache: new Map(), add: async (r) => rolesGiven.push(r) } }) },
+    };
+    const client16 = {
+      guilds: { cache: new Map([[GUILD16, guild16]]) },
+      channels: { cache: new Map([[REVIEW16, reviewChan]]), fetch: async () => null },
+      users: { fetch: async () => ({ id: '200000000000000010', username: 'Ahmed', send: async (p) => { sentTo.dm.push(p); return true; } }) },
+    };
+    db.updateGuildSettings(GUILD16, {
+      staffApplication: { reviewChannelId: REVIEW16, onAccept: { moveToCategoryId: '100000000000000030', addRoleIds: ['100000000000000031'] } },
+    });
+
+    const answers16 = {
+      name_age: 'أحمد — 18',
+      country: 'المغرب',
+      prev_servers: 'سيرفر تجريبي — إداري عام',
+      mic: 'نعم',
+      logo_link: 'نعم + رابط',
+    };
+    const replies16 = [];
+    const interaction16 = {
+      guildId: GUILD16,
+      guild: guild16,
+      channel: ticketChan,
+      user: { id: '200000000000000010', username: 'Ahmed', toString: () => '<@200000000000000010>' },
+      member: { roles: { cache: new Map() }, permissions: { has: () => true } },
+      fields: { getTextInputValue: (k) => answers16[k] ?? '' },
+      deferReply: async () => {},
+      editReply: async (p) => replies16.push(p),
+      reply: async (p) => replies16.push(p),
+    };
+
+    const submitted = await applications.submitApplication(client16, interaction16, appTicket);
+    assert.ok(submitted.ok, 'فشل إرسال التقديم');
+    const reviewPayload = sentTo.review[0];
+    assert.strictEqual(reviewPayload.embeds[0].data.fields.length, 5, 'إجابات المراجعة ناقصة');
+    const reviewButtons = reviewPayload.components[0].components.map((b) => b.data.custom_id).filter(Boolean);
+    assert.deepStrictEqual(
+      reviewButtons.slice(0, 2),
+      ['apply:review:accept:' + appTicket.id, 'apply:review:reject:' + appTicket.id],
+      'أزرار المراجعة خطأ',
+    );
+
+    const reviewMsgMock = {
+      embeds: [reviewPayload.embeds[0]],
+      editable: true,
+      edit: async (p) => { reviewMsgMock.edited = p; },
+    };
+    const accepted = await applications.reviewApplication(client16, interaction16, appTicket, 'accept', { message: reviewMsgMock });
+    assert.strictEqual(accepted.decision, 'accept');
+    assert.ok(/ahmed|أحمد/.test(renamed[0] || ''), 'اسم القناة الجديد غير صحيح: ' + renamed[0]);
+    assert.ok(String(renamed[0]).startsWith('إدارة-'), 'الترقيم في اسم القناة ناقص');
+    assert.deepStrictEqual(movedTo, ['100000000000000030'], 'لم تُنقل التذكرة لقسم الإدارة');
+    assert.deepStrictEqual(rolesGiven, ['100000000000000031'], 'لم تُعطَ رتبة القبول');
+    assert.ok(sentTo.dm.some((p) => p.embeds?.[0]?.data?.title?.includes('قبول')), 'لم تُرسل رسالة قبول على الخاص');
+    assert.ok(reviewMsgMock.edited?.components?.[0]?.components?.[0]?.data?.disabled, 'لم تُعطّل أزرار المراجعة بعد القرار');
+
+    // الرفض مع السبب
+    sentTo.dm.length = 0;
+    const rejected = await applications.reviewApplication(client16, interaction16, appTicket, 'reject', { reason: 'تحتاج خبرة أكبر' });
+    const rejectDm = sentTo.dm[0]?.embeds?.[0]?.data;
+    assert.strictEqual(rejected.decision, 'reject');
+    assert.ok(rejectDm?.title?.includes('رفض'), 'لم تُرسل رسالة رفض على الخاص');
+    assert.ok(rejectDm?.fields?.some((f) => f.value.includes('تحتاج خبرة أكبر')), 'سبب الرفض غير مذكور في الخاص');
+    console.log('   ✅ النموذج 5 خانات + القبول (تسمية/ترقيم/نقل/رتبة/خاص) + الرفض بالسبب');
+  }
+
+  console.log('🧪 اختبار 17: لوحة التحكم الجديدة');
+  {
+    const fs2 = require('node:fs');
+    const path2 = require('node:path');
+    const publicDir = path2.join(__dirname, '..', 'src', 'web', 'public');
+    const appSource = fs2.readFileSync(path2.join(publicDir, 'app.js'), 'utf8');
+
+    // الأقسام المطلوبة موجودة
+    const expectedSections = [
+      'overview', 'general', 'welcome', 'autorole', 'leveling',
+      'automod', 'moderation', 'autoline', 'autoreact',
+      'tickets', 'staffapp', 'logs', 'data',
+    ];
+    for (const id of expectedSections) {
+      assert.ok(new RegExp(`^\\s{2}${id}: \\{`, 'm').test(appSource), `قسم ${id} غير موجود في اللوحة`);
+    }
+    assert.ok(appSource.includes('GROUP_ORDER'), 'مجموعات الشريط الجانبي ناقصة');
+    assert.ok(appSource.includes('d-savebar'), 'شريط الحفظ ناقص');
+    assert.ok(appSource.includes('loadDataView'), 'جداول البيانات ناقصة');
+
+    // مطابقة كل مسار إعداد في اللوحة مع الإعدادات الفعلية
+    const paths = [...appSource.matchAll(/['"`]((?:[a-zA-Z]+\.)+(?:[a-zA-Z]+|[0-9]+))['"`]/g)]
+      .map((m) => m[1])
+      .filter((p) => !p.includes('discord.com') && !p.includes('http'))
+      .filter((p) => /^(welcome|leave|boost|logs|autoline|autoreact|automod|moderation|leveling|tickets|staffApplication|autorole|referral|reports)\./.test(p));
+    const uniquePaths = [...new Set(paths)];
+    const settings = db.getGuildSettings('999999999999999999');
+    const missing = uniquePaths.filter((p2) => {
+      const keys = p2.split('.');
+      let cursor = settings;
+      for (const key of keys) {
+        if (cursor === null || cursor === undefined) return false;
+        if (Number.isInteger(Number(key)) && Array.isArray(cursor)) { cursor = cursor[0]; continue; }
+        if (!(key in cursor)) return true;
+        cursor = cursor[key];
+      }
+      return false;
+    });
+    assert.deepStrictEqual(missing, [], `مسارات إعدادات غير موجودة: ${missing.join(', ')}`);
+
+    // الملفات المطلوبة تُقدَّم بشكل صحيح
+    assert.ok(fs2.existsSync(path2.join(publicDir, 'dash.css')), 'ملف dash.css ناقص');
+    assert.ok(fs2.readFileSync(path2.join(publicDir, 'dash.css'), 'utf8').includes('.d-shell'), 'أنماط اللوحة ناقصة');
+    const pagesSource = fs2.readFileSync(path2.join(__dirname, '..', 'src', 'web', 'routes', 'pages.js'), 'utf8');
+    assert.ok(pagesSource.includes('/dash.css'), 'صفحة اللوحة لا تُحمّل dash.css');
+
+    // نقطة الإجراءات التجريبية موجودة في الـ API
+    const apiSource = fs2.readFileSync(path2.join(__dirname, '..', 'src', 'web', 'routes', 'api.js'), 'utf8');
+    assert.ok(apiSource.includes("actions/:action"), 'نقطة الإجراءات التجريبية ناقصة');
+    console.log(`   ✅ ${expectedSections.length} قسمًا • ${uniquePaths.length} مسار إعداد متطابق • dash.css محمّل • الإجراءات التجريبية جاهزة`);
+  }
+
+  console.log('🧪 اختبار 18: صفحات الموقع + الوضع الليلي/النهاري');
+  {
+    const fs3 = require('node:fs');
+    const path3 = require('node:path');
+    const webDir = path3.join(__dirname, '..', 'src', 'web');
+    const pagesSrc = fs3.readFileSync(path3.join(webDir, 'routes', 'pages.js'), 'utf8');
+    const styleSrc = fs3.readFileSync(path3.join(webDir, 'public', 'style.css'), 'utf8');
+    const dashSrc = fs3.readFileSync(path3.join(webDir, 'public', 'dash.css'), 'utf8');
+    const appSrc = fs3.readFileSync(path3.join(webDir, 'public', 'app.js'), 'utf8');
+
+    // الصفحة الرئيسية (نسخة رسمية)
+    for (const cls of ['site-hero', 'site-features', 'site-steps', 'cmd-preview']) {
+      assert.ok(pagesSrc.includes(cls), `عنصر ${cls} ناقص من الصفحة الرئيسية`);
+      assert.ok(styleSrc.includes(`.${cls}`), `نمط ${cls} ناقص من style.css`);
+    }
+    assert.ok(pagesSrc.includes('إضافة البوت'), 'زر إضافة البوت ناقص');
+    assert.ok(!pagesSrc.includes('feature-note'), 'العناصر المعلوماتية القديمة ما زالت موجودة');
+
+    // قائمة السيرفرات المحسّنة
+    for (const cls of ['servers-toolbar', 'guildSearch', 'guildFilter', 'guild-actions']) {
+      assert.ok(pagesSrc.includes(cls), `عنصر ${cls} ناقص من قائمة السيرفرات`);
+    }
+
+    // الوضع الليلي/النهاري
+    assert.ok(styleSrc.includes("html[data-theme='light']"), 'الوضع الفاتح ناقص من style.css');
+    assert.ok(styleSrc.includes('.theme-toggle'), 'زر تبديل الوضع ناقص');
+    assert.ok(pagesSrc.includes('neverland-theme'), 'حفظ الوضع في localStorage ناقص');
+    assert.ok(appSrc.includes('currentTheme'), 'زر تبديل الوضع في اللوحة ناقص');
+
+    // dash.css يستخدم الرموز (ليتبدّل مع الوضع)
+    const dashVars = (dashSrc.match(/var\(--/g) || []).length;
+    assert.ok(dashVars > 60, `dash.css يستخدم ${dashVars} رمزًا فقط — التحويل للرموز ناقص`);
+
+    // رابط إضافة البوت يُبنى تلقائيًا
+    assert.ok(/inviteUrl/.test(fs3.readFileSync(path3.join(__dirname, '..', 'src', 'config.js'), 'utf8')), 'inviteUrl ناقص من الإعدادات');
+    console.log(`   ✅ الرئيسية + السيرفرات + الوضع الليلي/النهاري (${dashVars} رمزًا في dash.css)`);
+  }
+
+  console.log('🧪 اختبار 19: واجهة رسمية بأيقونات SVG (بدون إيموجيات)');
+  {
+    const fs4 = require('node:fs');
+    const path4 = require('node:path');
+    const webPublic = path4.join(__dirname, '..', 'src', 'web', 'public');
+    const iconsModule = require(path4.join(webPublic, 'icons.js'));
+
+    // مكتبة الأيقونات
+    const iconCount = Object.keys(iconsModule.ICONS).length;
+    assert.ok(iconCount >= 70, `عدد الأيقونات ${iconCount} أقل من المطلوب`);
+    const svg = iconsModule.icon('shield', { size: 18 });
+    assert.ok(svg.startsWith('<svg') && svg.includes('stroke="currentColor"') && svg.endsWith('</svg>'), 'بنية أيقونة SVG غير صحيحة');
+    assert.ok(iconsModule.logoMark(40).includes('<svg'), 'الشعار المرسوم ناقص');
+    for (const key of ['messageDelete', 'memberJoin', 'voiceMute', 'emojiCreate', 'inviteCreate', 'ticket', 'automod'.slice(0, 6) + 'Action']) {
+      assert.ok(iconsModule.ICONS[iconsModule.iconForEvent(key)], `لا توجد أيقونة للحدث ${key}`);
+    }
+
+    // صفحات الموقع: لا إيموجيات
+    const pagesSrc = fs4.readFileSync(path4.join(__dirname, '..', 'src', 'web', 'routes', 'pages.js'), 'utf8');
+    const emojiInPages = (pagesSrc.match(/\p{Extended_Pictographic}/gu) || []).length;
+    assert.strictEqual(emojiInPages, 0, `صفحات الموقع تحتوي ${emojiInPages} إيموجي`);
+
+    // اللوحة: لا إيموجيات في الواجهة (باستثناء قيم بيانات التذاكر emoji: '...')
+    const appSrc = fs4.readFileSync(path4.join(webPublic, 'app.js'), 'utf8');
+    const cleaned = appSrc.replace(/emoji: '[^']*'/g, '').replace(/'🎫'/g, "''");
+    const emojiInDash = (cleaned.match(/\p{Extended_Pictographic}/gu) || []).length;
+    assert.strictEqual(emojiInDash, 0, `لوحة التحكم تحتوي ${emojiInDash} إيموجي في الواجهة`);
+
+    // اللوحة تستخدم نظام الأيقونات + الشعار المرسوم
+    assert.ok(appSrc.includes('const ic = (name, size'), 'مساعد الأيقونات ناقص من اللوحة');
+    assert.ok(appSrc.includes('SECTION_ICONS'), 'خريطة أيقونات الأقسام ناقصة');
+    assert.ok(/ic\('[a-zA-Z]+'/.test(appSrc), 'اللوحة لا تستخدم أيقونات SVG');
+    assert.ok((appSrc.match(/ic\(/g) || []).length >= 15, 'اللوحة لا تستخدم الأيقونات بدرجة كافية');
+    assert.ok(appSrc.includes('logoMark'), 'شعار اللوحة المرسوم ناقص');
+
+    // الأنماط العامة تنظّف الأيقونات
+    const styleSrc2 = fs4.readFileSync(path4.join(webPublic, 'style.css'), 'utf8');
+    const dashCss2 = fs4.readFileSync(path4.join(webPublic, 'dash.css'), 'utf8');
+    assert.ok(styleSrc2.includes('.brand-logo svg'), 'أنماط أيقونات الموقع ناقصة');
+    assert.ok(dashCss2.includes('.d-nav-item .ico svg'), 'أنماط أيقونات اللوحة ناقصة');
+    console.log(`   ✅ ${iconCount} أيقونة SVG • صفر إيموجي في واجهة الموقع واللوحة`);
+  }
+  console.log('🧪 اختبار 20: هوية الموقع (Never Land) + كونه موقعًا حقيقيًا لا نسخة ثابتة');
+  {
+    const fs5 = require('node:fs');
+    const path5 = require('node:path');
+    const cfg = require('../src/config');
+    assert.strictEqual(cfg.web.siteName, 'Never Land', 'اسم الموقع في الإعدادات غير صحيح');
+    assert.ok(cfg.web.url.startsWith('http'), 'رابط الموقع العام غير مضبوط');
+
+    const pages5 = fs5.readFileSync(path5.join(__dirname, '..', 'src', 'web', 'routes', 'pages.js'), 'utf8');
+    for (const route of ['/icon.svg', '/manifest.webmanifest', '/robots.txt', '/sitemap.xml']) {
+      assert.ok(pages5.includes(`router.get('${route}'`), `المسار ${route} غير معرّف`);
+    }
+    assert.ok(!pages5.includes('وضع المعاينة'), 'شارات المعاينة ما زالت ظاهرة في الواجهة');
+    assert.ok(pages5.includes('Never<span class="accent">Land</span>'), 'شعار الموقع في الهيدر غير محدّث');
+    assert.ok(pages5.includes('rel="manifest"') && pages5.includes('og:site_name'), 'وسوم الموقع الرسمية ناقصة');
+
+    const server5 = fs5.readFileSync(path5.join(__dirname, '..', 'src', 'web', 'server.js'), 'utf8');
+    assert.ok(server5.includes('خطأ 404') && server5.includes('layout('), 'صفحة 404 لا تستخدم قالب الموقع');
+
+    const app5 = fs5.readFileSync(path5.join(__dirname, '..', 'src', 'web', 'public', 'app.js'), 'utf8');
+    assert.ok(app5.includes("html: 'Never<span class=\"accent\">Land</span>'"), 'شعار اللوحة غير محدّث');
+    assert.ok(!/وضع المعاينة/.test(app5), 'نص المعاينة ظاهر في اللوحة');
+
+    const pkg5 = require('../package.json');
+    assert.strictEqual(pkg5.name, 'never-land', 'اسم الحزمة غير محدّث');
+    console.log(`   ✅ الاسم: ${cfg.web.siteName} • أيقونة + مانيفست + robots + sitemap + 404 بقالب الموقع`);
+  }
+
+  console.log('🎉 جميع اختبارات الميزات الجديدة نجحت!');
+
+  process.exit(0);
+})();

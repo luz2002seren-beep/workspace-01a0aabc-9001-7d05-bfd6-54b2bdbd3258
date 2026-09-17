@@ -1,0 +1,10 @@
+# ملفات مؤقتة/حساسة لا تُرفع
+gh-device.json
+gh-device*.json
+.env
+*.db
+*.db-shm
+*.db-wal
+node_modules/
+never-land.zip
+never-land.bundle

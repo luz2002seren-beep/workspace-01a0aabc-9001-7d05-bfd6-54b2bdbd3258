@@ -1,0 +1,141 @@
+'use strict';
+
+/**
+ * events/ready.js
+ * -------------------------------------------------------------
+ * عند جاهزية البوت:
+ * - تعيين حالة البوت
+ * - تسجيل السيرفرات في قاعدة البيانات
+ * - تحميل كاش الدعوات
+ * - تشغيل المؤقتات
+ * -------------------------------------------------------------
+ */
+
+const { ActivityType } = require('discord.js');
+const db = require('../database');
+const leveling = require('../systems/leveling');
+const config = require('../config');
+
+module.exports = {
+  name: 'ready',
+  once: true,
+
+  async execute(client) {
+    console.log('');
+    console.log('=================================================');
+    console.log(`البوت شغّال: ${client.user.tag}`);
+    console.log(
+      `السيرفرات: ${client.guilds.cache.size} | الأعضاء: ${client.guilds.cache.reduce(
+        (a, g) => a + g.memberCount,
+        0
+      )}`
+    );
+    console.log(`الأوامر المحمّلة: ${client.commands.size}`);
+    console.log(`قاعدة البيانات: ${db.driverName}`);
+    console.log(`لوحة التحكم: ${config.web.url}`);
+    console.log('=================================================');
+    console.log('');
+
+    /* ---------------------------------------------------------
+     * Presence
+     * Playing: NEVER LAND
+     * --------------------------------------------------------- */
+
+    client.user.setPresence({
+      activities: [
+        {
+          name: 'NEVER LAND',
+          type: ActivityType.Playing,
+        },
+      ],
+      status: 'online',
+    });
+
+    /* ---------------------------------------------------------
+     * تسجيل كل السيرفرات في قاعدة البيانات
+     * --------------------------------------------------------- */
+
+    for (const guild of client.guilds.cache.values()) {
+      db.init();
+      db.getGuild(guild.id);
+    }
+
+    /* ---------------------------------------------------------
+     * تحميل كاش الدعوات
+     * --------------------------------------------------------- */
+
+    for (const guild of client.guilds.cache.values()) {
+      if (!guild.members.me?.permissions.has('ManageGuild')) {
+        continue;
+      }
+
+      const invites = await guild.invites.fetch().catch(() => null);
+
+      if (invites) {
+        client.invites.set(
+          guild.id,
+          new Map(
+            invites.map((inv) => [
+              inv.code,
+              inv.uses ?? 0,
+            ])
+          )
+        );
+      }
+    }
+
+    /* ---------------------------------------------------------
+     * المؤقتات
+     * --------------------------------------------------------- */
+
+    // XP الصوتي: كل دقيقة
+    setInterval(() => {
+      leveling.tickVoiceXp(client);
+    }, 60000).unref?.();
+
+    // التذكيرات: كل 15 ثانية
+    setInterval(async () => {
+      const due = db.dueReminders();
+
+      for (const reminder of due) {
+        const guild = client.guilds.cache.get(reminder.guild_id);
+        const channel = guild?.channels.cache.get(reminder.channel_id);
+
+        if (channel?.isTextBased?.()) {
+          await channel
+            .send({
+              content: `<@${reminder.user_id}> تذكير: **${reminder.content}**`,
+            })
+            .catch(() => {});
+        } else if (guild) {
+          const member = await guild.members
+            .fetch(reminder.user_id)
+            .catch(() => null);
+
+          await member?.send({
+            content: `تذكير: **${reminder.content}**`,
+          }).catch(() => {});
+        }
+
+        db.deleteReminder(reminder.id);
+      }
+    }, 15000).unref?.();
+
+    // تنظيف ذاكرة السبام كل 5 دقائق
+    setInterval(() => {
+      const now = Date.now();
+
+      for (const [key, stamps] of client.spamTracker) {
+        const fresh = stamps.filter(
+          (ts) => now - ts < 120000
+        );
+
+        if (fresh.length) {
+          client.spamTracker.set(key, fresh);
+        } else {
+          client.spamTracker.delete(key);
+        }
+      }
+    }, 300000).unref?.();
+  },
+};

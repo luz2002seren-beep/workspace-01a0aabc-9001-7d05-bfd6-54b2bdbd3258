@@ -1,0 +1,32 @@
+# ---------- اعتماديات ----------
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# ---------- أسرار وبيانات محلية ----------
+.env
+.env.local
+.env.*.local
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/*.db-journal
+data/*.json
+logs/
+*.log
+transcripts/
+backups/
+
+# ---------- نظام التشغيل والمحرّرات ----------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# ---------- مخرجات مؤقتة ----------
+coverage/
+dist/
+build/
+.tmp/
+*.tmp

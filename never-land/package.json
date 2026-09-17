@@ -1,0 +1,35 @@
+{
+  "name": "never-land",
+  "version": "1.0.0",
+  "description": "Never Land — نظام إدارة سيرفرات ديسكورد (مودة + حماية + تذاكر + ترحيب + سجلات + مستويات) مع لوحة تحكم ويب عربية",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "bot": "node src/index.js --no-web",
+    "web": "node src/index.js --no-bot",
+    "deploy": "node src/deploy-commands.js",
+    "test": "node tests/smoke.js",
+    "test:watch": "node --watch tests/smoke.js"
+  },
+  "keywords": [
+    "discord",
+    "discord-bot",
+    "moderation",
+    "automod",
+    "tickets",
+    "dashboard"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@napi-rs/canvas": "^1.0.9",
+    "better-sqlite3": "^11.5.0",
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "express-session": "^1.18.1"
+  }
+}

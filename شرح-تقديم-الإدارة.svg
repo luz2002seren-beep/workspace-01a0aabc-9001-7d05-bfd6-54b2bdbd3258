@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 1360" width="1040" height="1360" font-family="'Segoe UI', Tahoma, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0f1117"/>
+      <stop offset="1" stop-color="#171a26"/>
+    </linearGradient>
+    <linearGradient id="head" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5865f2"/>
+      <stop offset="1" stop-color="#9b59b6"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7bd6"/>
+    </marker>
+  </defs>
+
+  <rect width="1040" height="1360" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1040" height="86" fill="url(#head)"/>
+  <text x="1000" y="45" fill="#ffffff" font-size="30" font-weight="bold" text-anchor="end" direction="rtl">📝 نظام تقديم الإدارة — Never Land</text>
+  <text x="1000" y="72" fill="#e6e9ff" font-size="16" text-anchor="end" direction="rtl">من فتح التذكرة … لحد قبول العرض · كامل تلقائي</text>
+
+  <!-- 1 -->
+  <rect x="40" y="120" width="960" height="74" rx="14" fill="#1b1f2e" stroke="#2d3450"/>
+  <rect x="40" y="120" width="6" height="74" rx="3" fill="#5865f2"/>
+  <text x="975" y="152" fill="#ffffff" font-size="19" font-weight="bold" text-anchor="end" direction="rtl">١) 👤 العضو يفتح تذكرة «📋 تقديم إدارة»</text>
+  <text x="975" y="177" fill="#9aa3bd" font-size="15" text-anchor="end" direction="rtl">تُنشأ قناة خاصة له + رسالة ترحيب بأزرار التحكّم (استلام · إغلاق · أرشيف)</text>
+
+  <line x1="520" y1="194" x2="520" y2="222" stroke="#6b7bd6" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- 2 -->
+  <rect x="40" y="226" width="960" height="70" rx="14" fill="#1b1f2e" stroke="#2d3450"/>
+  <rect x="40" y="226" width="6" height="70" rx="3" fill="#9b59b6"/>
+  <text x="975" y="256" fill="#ffffff" font-size="19" font-weight="bold" text-anchor="end" direction="rtl">٢) 🤖 البوت يرسل رسالة فيها زر: «📝 املأ نموذج التقديم»</text>
+  <text x="975" y="281" fill="#9aa3bd" font-size="15" text-anchor="end" direction="rtl">الزر حق صاحب التذكرة فقط — والبوت يرد بالخاص على اللي يعبّي غيره</text>
+
+  <line x1="520" y1="296" x2="520" y2="324" stroke="#6b7bd6" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- 3 forms -->
+  <rect x="40" y="328" width="960" height="230" rx="14" fill="#141828" stroke="#2d3450"/>
+  <rect x="40" y="328" width="6" height="230" rx="3" fill="#f1c40f"/>
+  <text x="975" y="358" fill="#ffffff" font-size="19" font-weight="bold" text-anchor="end" direction="rtl">٣) 📝 نموذج (Modal) من 5 خانات — نفس اللي طلبته</text>
+
+  <rect x="560" y="372" width="400" height="36" rx="8" fill="#1e2437" stroke="#313a5c"/>
+  <text x="950" y="396" fill="#e8ecff" font-size="15" text-anchor="end" direction="rtl">١ · الاسم والعمر</text>
+  <rect x="560" y="414" width="400" height="36" rx="8" fill="#1e2437" stroke="#313a5c"/>
+  <text x="950" y="438" fill="#e8ecff" font-size="15" text-anchor="end" direction="rtl">٢ · من أي بلد أنت؟</text>
+  <rect x="560" y="456" width="400" height="36" rx="8" fill="#1e2437" stroke="#313a5c"/>
+  <text x="950" y="480" fill="#e8ecff" font-size="15" text-anchor="end" direction="rtl">٣ · سيرفرات كنت فيها إداريًا؟</text>
+  <rect x="560" y="498" width="400" height="36" rx="8" fill="#1e2437" stroke="#313a5c"/>
+  <text x="950" y="522" fill="#e8ecff" font-size="15" text-anchor="end" direction="rtl">٤ · هل تقدر تفتح مايك؟</text>
+
+  <rect x="80" y="372" width="440" height="162" rx="8" fill="#1e2437" stroke="#313a5c"/>
+  <text x="500" y="400" fill="#e8ecff" font-size="15" text-anchor="end" direction="rtl">٥ · هل تقدر تحط شعار ورابط؟</text>
+  <text x="500" y="428" fill="#8f98b5" font-size="13.5" text-anchor="end" direction="rtl">• ديسكورد يسمح بـ 5 خانات كحد أقصى — مضبوطة عليه بالضبط</text>
+  <text x="500" y="452" fill="#8f98b5" font-size="13.5" text-anchor="end" direction="rtl">• الخانة الأولى هي اللي يُستخرج منها الاسم</text>
+  <text x="500" y="476" fill="#8f98b5" font-size="13.5" text-anchor="end" direction="rtl">• كل خانة: عنوان + مثال + إلزامية/اختيارية</text>
+  <text x="500" y="500" fill="#8f98b5" font-size="13.5" text-anchor="end" direction="rtl">• تُعدّلها كلها من اللوحة أو من ديسكورد</text>
+
+  <line x1="520" y1="558" x2="520" y2="586" stroke="#6b7bd6" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- 4 review -->
+  <rect x="40" y="590" width="960" height="152" rx="14" fill="#1b1f2e" stroke="#2d3450"/>
+  <rect x="40" y="590" width="6" height="152" rx="3" fill="#5865f2"/>
+  <text x="975" y="620" fill="#ffffff" font-size="19" font-weight="bold" text-anchor="end" direction="rtl">٤) 📤 الإجابات تروح مباشرة لقناة «قبول إدارة»</text>
+  <text x="975" y="646" fill="#9aa3bd" font-size="15" text-anchor="end" direction="rtl">البوت يبني بنل فيه: صاحب الطلب + الآيدي + التذكرة + الخانات الخمس بالكامل (وينبّه رتب الإدارة)</text>
+
+  <rect x="600" y="662" width="170" height="46" rx="8" fill="#1f7a4d"/>
+  <text x="685" y="691" fill="#ffffff" font-size="15.5" font-weight="bold" text-anchor="middle" direction="rtl">✅ قبول العرض</text>
+  <rect x="414" y="662" width="170" height="46" rx="8" fill="#8c2f2f"/>
+  <text x="499" y="691" fill="#ffffff" font-size="15.5" font-weight="bold" text-anchor="middle" direction="rtl">❌ رفض العرض</text>
+  <rect x="228" y="662" width="170" height="46" rx="8" fill="#3a4160"/>
+  <text x="313" y="691" fill="#dfe4f7" font-size="15.5" font-weight="bold" text-anchor="middle" direction="rtl">🔗 الذهاب للتذكرة</text>
+
+  <!-- split lines -->
+  <line x1="499" y1="742" x2="499" y2="790" stroke="#e05c5c" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="685" y1="742" x2="685" y2="790" stroke="#2ecc71" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- 5 accept -->
+  <rect x="540" y="794" width="460" height="286" rx="14" fill="#122017" stroke="#2f7a4d"/>
+  <text x="975" y="824" fill="#7ee2a8" font-size="18" font-weight="bold" text-anchor="end" direction="rtl">٥) ✅ عند القبول</text>
+  <text x="975" y="856" fill="#d8f5e6" font-size="15" text-anchor="end" direction="rtl">• رسالة خاصة للمتقدّم: «🎉 لقد تم قبول عرضك»</text>
+  <text x="975" y="884" fill="#d8f5e6" font-size="15" text-anchor="end" direction="rtl">• رسالة داخل تذكرته: «لقد تم قبول عرضك» + تنبيهه</text>
+  <text x="975" y="912" fill="#d8f5e6" font-size="15" text-anchor="end" direction="rtl">• إعادة تسمية التذكرة باسمه وترقيمها:</text>
+  <rect x="640" y="924" width="330" height="34" rx="8" fill="#1b2b22" stroke="#2f7a4d"/>
+  <text x="955" y="947" fill="#9ff0c4" font-size="15" font-family="'Courier New', monospace" text-anchor="end" direction="ltr">إدارة-001-ahmed</text>
+  <text x="975" y="986" fill="#d8f5e6" font-size="15" text-anchor="end" direction="rtl">• نقل التذكرة تلقائيًا لقسم «تكتات الإدارة»</text>
+  <text x="975" y="1014" fill="#d8f5e6" font-size="15" text-anchor="end" direction="rtl">• إعطاؤه رتبة الإدارة المحدّدة</text>
+  <text x="975" y="1048" fill="#8fd6ae" font-size="14" text-anchor="end" direction="rtl">• تسجيل القرار في السجلات + تعطيل أزرار البنل</text>
+
+  <!-- 6 reject -->
+  <rect x="40" y="794" width="460" height="286" rx="14" fill="#201313" stroke="#8c2f2f"/>
+  <text x="475" y="824" fill="#ffa8a8" font-size="18" font-weight="bold" text-anchor="end" direction="rtl">٦) ❌ عند الرفض</text>
+  <text x="475" y="856" fill="#f8dede" font-size="15" text-anchor="end" direction="rtl">• المشرف يضغط «رفض العرض» ➜</text>
+  <text x="475" y="884" fill="#f8dede" font-size="15" text-anchor="end" direction="rtl">  يطلع نموذج صغير يكتب فيه السبب</text>
+  <text x="475" y="918" fill="#f8dede" font-size="15" text-anchor="end" direction="rtl">• رسالة خاصة للمتقدّم:</text>
+  <rect x="90" y="930" width="380" height="34" rx="8" fill="#2b1a1a" stroke="#8c2f2f"/>
+  <text x="460" y="953" fill="#ffc0c0" font-size="14.5" text-anchor="end" direction="rtl">«لقد تم رفض عرضك» + سبب الرفض</text>
+  <text x="475" y="992" fill="#f8dede" font-size="15" text-anchor="end" direction="rtl">• رسالة داخل التذكرة بالسبب</text>
+  <text x="475" y="1020" fill="#f8dede" font-size="15" text-anchor="end" direction="rtl">• (اختياري) إغلاق التذكرة تلقائيًا + أرشيف</text>
+  <text x="475" y="1054" fill="#e3a5a5" font-size="14" text-anchor="end" direction="rtl">• قرار مسجّل باسم من رفض ومتى</text>
+
+  <!-- footer -->
+  <rect x="40" y="1116" width="960" height="96" rx="14" fill="#161a27" stroke="#2d3450"/>
+  <text x="975" y="1148" fill="#ffffff" font-size="17" font-weight="bold" text-anchor="end" direction="rtl">🎛️ كل شي قابل للتعديل</text>
+  <text x="975" y="1178" fill="#9aa3bd" font-size="14.5" text-anchor="end" direction="rtl">اللوحة (تبويب 📝 تقديم الإدارة): الخانات الخمس · النصوص · قناة المراجعة · رتب التنبيه · رسائل القبول/الرفض · اسم التكت</text>
+  <text x="975" y="1202" fill="#9aa3bd" font-size="14.5" text-anchor="end" direction="rtl">ديسكورد: /tickets applychannel · applycategory · applyrole · applyping · applytoggle · application</text>
+
+  <text x="975" y="1252" fill="#6b7391" font-size="13.5" text-anchor="end" direction="rtl">Never Land · نظام تقديم الإدارة · مشروح كامل بالعربي</text>
+</svg>

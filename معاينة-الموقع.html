@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Never Land — نظام إدارة سيرفرات ديسكورد: حماية تلقائية، سجلات، تذاكر، ترحيب، مستويات، ولوحة تحكم عربية كاملة.">
+<meta name="theme-color" content="#0d1017">
+<meta name="color-scheme" content="dark light">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Never Land">
+<meta property="og:title" content="بوت إدارة سيرفرات ديسكورد | Never Land">
+<meta property="og:description" content="نظام إدارة سيرفرات ديسكورد متكامل مع لوحة تحكم عربية.">
+<meta property="og:url" content="https://3000-ipc730la7x6a559wjalgq.e2b.app/">
+<meta property="og:image" content="https://3000-ipc730la7x6a559wjalgq.e2b.app/icon.svg">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://3000-ipc730la7x6a559wjalgq.e2b.app/">
+<title>بوت إدارة سيرفرات ديسكورد | Never Land</title>
+<link rel="icon" href="/icon.svg">
+<link rel="apple-touch-icon" href="/icon.svg">
+<link rel="manifest" href="/manifest.webmanifest">
+<style>
+/* ==========================================================
+   Never Land  |  لوحة التحكم — التصميم (عربي RTL / داكن)
+   ========================================================== */
+
+:root {
+  --bg: #0f1117;
+  --bg-soft: #161923;
+  --bg-card: #1a1e2b;
+  --bg-input: #10131c;
+  --border: #262c3d;
+  --border-soft: #1f2532;
+  --text: #e8ecf5;
+  --muted: #8e97ad;
+  --primary: #5865f2;
+  --primary-hover: #4752c4;
+  --success: #57f287;
+  --success-bg: #10251b;
+  --warning: #fee75c;
+  --danger: #ed4245;
+  --info: #00b0f4;
+  --radius: 14px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  --shell: #0d1017;
+  --panel: #151a24;
+  --panel-2: #11151e;
+  --panel-3: #161c27;
+  --hover: #171d28;
+  --chip: #1d2434;
+  --track: #333c4f;
+  --overlay: rgba(13, 16, 23, .92);
+  font-family: "Segoe UI", "Tahoma", "Noto Kufi Arabic", system-ui, -apple-system, sans-serif;
+}
+
+/* ----------------------------- الوضع الفاتح ----------------------------- */
+html[data-theme='light'] {
+  --bg: #f4f6fb;
+  --bg-soft: #ffffff;
+  --bg-card: #ffffff;
+  --bg-input: #f7f8fc;
+  --border: #e2e6f0;
+  --border-soft: #eceff6;
+  --text: #1a1f36;
+  --muted: #6b7488;
+  --primary: #4f5bd5;
+  --primary-hover: #3f49b8;
+  --success: #1f9d55;
+  --success-bg: #e8f8ee;
+  --warning: #b8860b;
+  --danger: #d83c3e;
+  --info: #0b7ac4;
+  --shadow: 0 10px 26px rgba(24, 32, 60, .10);
+  --shell: #eef1f8;
+  --panel: #ffffff;
+  --panel-2: #ffffff;
+  --panel-3: #fafbfe;
+  --hover: #f2f4fa;
+  --chip: #eef1f9;
+  --track: #d7dcea;
+  --overlay: rgba(255, 255, 255, .93);
+}
+html[data-theme='light'] body {
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(88, 101, 242, .12), transparent 60%),
+    radial-gradient(900px 500px at 5% 0%, rgba(0, 176, 244, .08), transparent 55%),
+    var(--bg);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(88, 101, 242, .18), transparent 60%),
+    radial-gradient(900px 500px at 5% 0%, rgba(0, 176, 244, .10), transparent 55%),
+    var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.7;
+}
+
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: none; opacity: .9; }
+code {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  padding: 2px 7px;
+  border-radius: 7px;
+  font-size: .88em;
+  direction: ltr;
+  display: inline-block;
+}
+.muted { color: var(--muted); }
+.accent { color: var(--info); }
+
+/* ----------------------------- الشريط العلوي ----------------------------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 14px 28px;
+  background: rgba(22, 25, 35, .85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.25rem; color: var(--text); }
+.brand-logo { font-size: 1.6rem; }
+.nav { display: flex; gap: 18px; margin-inline-start: auto; }
+.nav a { color: var(--muted); font-weight: 600; }
+.nav a:hover { color: var(--text); }
+.auth { display: flex; align-items: center; gap: 12px; }
+.user-box { display: flex; align-items: center; gap: 10px; }
+.user-name { font-weight: 700; }
+
+/* ----------------------------- الأزرار ----------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-weight: 700;
+  font-size: .95rem;
+  cursor: pointer;
+  transition: .15s ease;
+  font-family: inherit;
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
+.btn-ghost:hover { background: var(--bg-card); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-success { background: var(--success); color: #10281a; }
+.btn-lg { padding: 13px 24px; font-size: 1.05rem; }
+.btn-sm { padding: 6px 12px; font-size: .85rem; }
+.btn:disabled { opacity: .55; cursor: not-allowed; }
+
+/* ----------------------------- الحاويات ----------------------------- */
+.container { width: min(1180px, 100%); margin: 0 auto; padding: 32px 20px 60px; flex: 1; }
+.footer {
+  border-top: 1px solid var(--border);
+  padding: 18px 28px;
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: .9rem;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ----------------------------- الصفحة الرئيسية ----------------------------- */
+.hero { text-align: center; padding: 34px 0 18px; }
+.pill {
+  display: inline-block;
+  background: rgba(88, 101, 242, .15);
+  border: 1px solid rgba(88, 101, 242, .4);
+  color: #aab3ff;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: .85rem;
+}
+.hero h1 { font-size: clamp(1.8rem, 4vw, 3rem); margin: 18px 0 12px; line-height: 1.35; }
+.grad { background: linear-gradient(90deg, #5865f2, #00b0f4); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lead { color: var(--muted); max-width: 720px; margin: 0 auto; font-size: 1.05rem; }
+.cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin: 26px 0; }
+.stat-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.stat {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 26px;
+  min-width: 140px;
+}
+.stat b { display: block; font-size: 1.6rem; color: var(--info); }
+.stat span { color: var(--muted); font-size: .9rem; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin: 40px 0; }
+.card {
+  background: linear-gradient(180deg, var(--bg-card), #171b27);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  transition: .18s ease;
+}
+.card:hover { transform: translateY(-3px); border-color: #37405c; box-shadow: var(--shadow); }
+.card-icon { font-size: 1.8rem; }
+.card h3 { margin: 10px 0 6px; font-size: 1.1rem; }
+.card p { margin: 0; color: var(--muted); font-size: .95rem; }
+
+.howto { background: var(--bg-soft); border: 1px solid var(--border); border-radius: var(--radius); padding: 26px; }
+.howto h2 { margin-top: 0; }
+.steps { padding-inline-start: 22px; }
+.steps li { margin-bottom: 10px; }
+.steps li b { color: var(--info); }
+
+/* ----------------------------- قائمة السيرفرات ----------------------------- */
+.page-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
+.page-head h1 { margin: 0; }
+.guild-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+.guild-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  color: var(--text);
+}
+.guild-card:hover { border-color: var(--primary); }
+.guild-card.disabled { opacity: .6; cursor: not-allowed; }
+.guild-icon { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; }
+.guild-icon.placeholder {
+  display: grid; place-items: center; background: var(--primary); font-weight: 800;
+}
+.guild-info { display: flex; flex-direction: column; }
+.badge { font-size: .75rem; padding: 3px 10px; border-radius: 999px; font-weight: 700; }
+.badge-ok { background: rgba(87, 242, 135, .15); color: var(--success); }
+.badge-warn { background: rgba(254, 231, 92, .15); color: var(--warning); }
+.badge-off { background: rgba(142, 151, 173, .15); color: var(--muted); }
+.info-note, .empty {
+  margin-top: 22px; padding: 18px; border-radius: var(--radius);
+  background: var(--bg-soft); border: 1px dashed var(--border); color: var(--muted);
+}
+.empty { text-align: center; }
+
+/* ----------------------------- لوحة السيرفر ----------------------------- */
+.loading { padding: 60px; text-align: center; color: var(--muted); }
+.dash-head {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px; margin-bottom: 18px;
+}
+.dash-head .guild-icon { width: 62px; height: 62px; }
+.dash-head h1 { margin: 0; font-size: 1.4rem; }
+.dash-head .sub { color: var(--muted); font-size: .9rem; }
+.dash-actions { margin-inline-start: auto; display: flex; gap: 10px; flex-wrap: wrap; }
+
+.stats-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.stat-box {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px;
+  text-align: center;
+}
+.stat-box b { display: block; font-size: 1.5rem; }
+.stat-box span { color: var(--muted); font-size: .85rem; }
+
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+.tab {
+  padding: 10px 16px; border: none; background: transparent; color: var(--muted);
+  font-weight: 700; cursor: pointer; border-bottom: 2px solid transparent; font-family: inherit; font-size: .95rem;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--text); border-bottom-color: var(--primary); }
+
+.panel { display: none; }
+.panel.active { display: block; animation: fade .2s ease; }
+@keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.section {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px; margin-bottom: 16px;
+}
+.section h3 { margin: 0 0 4px; font-size: 1.05rem; }
+.section .hint { color: var(--muted); font-size: .88rem; margin-bottom: 14px; }
+
+.field { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px 0; border-bottom: 1px dashed var(--border); flex-wrap: wrap; }
+.field:last-child { border-bottom: none; }
+.field-label { display: flex; flex-direction: column; }
+.field-label b { font-weight: 700; }
+.field-label small { color: var(--muted); font-size: .82rem; }
+.field-control { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.field-control input[type="text"], .field-control input[type="number"], .field-control select, .field-control textarea {
+  background: var(--bg-input); border: 1px solid var(--border); color: var(--text);
+  padding: 9px 12px; border-radius: 9px; font-family: inherit; font-size: .92rem; min-width: 220px;
+}
+.field-control textarea { min-height: 90px; width: 100%; resize: vertical; line-height: 1.6; }
+.field-control input:focus, .field-control select:focus, .field-control textarea:focus {
+  outline: none; border-color: var(--primary);
+}
+
+.switch { position: relative; width: 54px; height: 30px; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute; inset: 0; background: #333a4f; border-radius: 999px; transition: .2s; cursor: pointer;
+}
+.slider::before {
+  content: ''; position: absolute; width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; top: 4px; right: 4px; transition: .2s;
+}
+.switch input:checked + .slider { background: var(--success); }
+.switch input:checked + .slider::before { transform: translateX(-24px); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  background: var(--bg-input); border: 1px solid var(--border); border-radius: 999px;
+  padding: 5px 12px; font-size: .85rem; display: inline-flex; align-items: center; gap: 6px;
+}
+.chip button { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1rem; line-height: 1; }
+
+.table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.table th, .table td { padding: 10px 12px; text-align: start; border-bottom: 1px solid var(--border); }
+.table th { color: var(--muted); font-weight: 700; font-size: .85rem; }
+.table tr:hover td { background: rgba(255, 255, 255, .02); }
+
+.toast {
+  position: fixed; inset-inline-start: 24px; bottom: 24px; z-index: 60;
+  background: var(--bg-card); border: 1px solid var(--border); border-inline-start: 4px solid var(--success);
+  padding: 14px 18px; border-radius: 12px; box-shadow: var(--shadow); font-weight: 700;
+  opacity: 0; transform: translateY(10px); transition: .25s ease; pointer-events: none;
+}
+.toast.show { opacity: 1; transform: none; }
+.toast.error { border-inline-start-color: var(--danger); }
+
+.save-bar {
+  position: sticky; bottom: 0; z-index: 15;
+  background: rgba(15, 17, 23, .92); backdrop-filter: blur(8px);
+  border-top: 1px solid var(--border); margin: 24px -20px -60px; padding: 14px 20px;
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+}
+.save-bar .status { color: var(--muted); font-size: .9rem; }
+
+/* ==========================================================
+   تبديل الوضع الليلي/النهاري + الصفحة الرئيسية الجديدة
+   ========================================================== */
+.theme-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 1rem;
+  display: grid;
+  place-items: center;
+}
+.theme-toggle:hover { background: var(--bg-card); }
+
+/* ----------------------------- الصفحة الرئيسية ----------------------------- */
+.site-hero {
+  display: grid;
+  grid-template-columns: 1.05fr .95fr;
+  gap: 34px;
+  align-items: center;
+  padding: 34px 0 18px;
+}
+.site-hero h1 { font-size: clamp(1.9rem, 4.2vw, 3.1rem); line-height: 1.35; margin: 14px 0; }
+.site-hero .lead { margin: 0 0 22px; color: var(--muted); font-size: 1.06rem; max-width: 560px; }
+.site-cta { display: flex; gap: 12px; flex-wrap: wrap; }
+.site-hero-art {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 18px;
+  box-shadow: var(--shadow);
+}
+.site-hero-art .mock-bar { display: flex; gap: 6px; margin-bottom: 14px; }
+.site-hero-art .mock-bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--border); display: block; }
+.site-hero-art .mock-title { font-weight: 800; margin-bottom: 12px; color: var(--text); }
+.site-hero-art .mock-row {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px;
+  background: var(--bg-card); border: 1px solid var(--border); margin-bottom: 8px; font-size: .92rem;
+}
+.site-hero-art .mock-row .lbl { flex: 1; color: var(--text); }
+.site-hero-art .mock-row .val { color: var(--muted); font-size: .82rem; }
+
+.site-features { display: grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap: 14px; margin: 20px 0 10px; }
+.site-feature {
+  background: var(--bg-soft); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px 16px 14px;
+}
+.site-feature .fi { font-size: 1.5rem; }
+.site-feature b { display: block; margin: 8px 0 5px; color: var(--text); font-size: 1rem; }
+.site-feature p { margin: 0; color: var(--muted); font-size: .9rem; line-height: 1.75; }
+
+.site-steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.site-step { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.site-step .n {
+  width: 30px; height: 30px; border-radius: 9px; background: var(--primary); color: #fff;
+  display: grid; place-items: center; font-weight: 800; margin-bottom: 10px;
+}
+.site-step b { display: block; margin-bottom: 4px; }
+.site-step p { margin: 0; color: var(--muted); font-size: .9rem; }
+
+.cmd-preview {
+  background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 16px; direction: ltr; text-align: left; font-family: 'Courier New', monospace;
+  font-size: .86rem; color: var(--muted); line-height: 2; overflow-x: auto; margin: 0;
+}
+.cmd-preview b { color: var(--info); font-weight: 700; }
+
+.section-title { display: flex; align-items: center; gap: 10px; margin: 34px 0 14px; }
+.section-title h2 { margin: 0; font-size: 1.4rem; }
+.section-title .hr { flex: 1; height: 1px; background: var(--border); }
+
+/* ----------------------------- قائمة السيرفرات ----------------------------- */
+.servers-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+.servers-toolbar input {
+  flex: 1 1 240px; padding: 11px 14px; border-radius: 12px; border: 1px solid var(--border);
+  background: var(--bg-input); color: var(--text); font: inherit; font-size: .95rem;
+}
+.servers-toolbar input:focus { outline: none; border-color: var(--primary); }
+.servers-toolbar .seg { display: inline-flex; background: var(--bg-soft); border: 1px solid var(--border); border-radius: 12px; padding: 3px; }
+.servers-toolbar .seg button {
+  background: none; border: none; color: var(--muted); font: inherit; font-size: .88rem; font-weight: 700;
+  padding: 8px 14px; border-radius: 9px; cursor: pointer;
+}
+.servers-toolbar .seg button.active { background: var(--chip); color: var(--text); }
+
+.guild-card .guild-actions { display: flex; gap: 6px; margin-inline-start: auto; align-items: center; flex-wrap: wrap; }
+.badge { font-size: .75rem; padding: 4px 10px; border-radius: 999px; font-weight: 700; }
+.badge-ok { background: var(--success-bg); color: var(--success); border: 1px solid var(--border); }
+.badge-warn { background: transparent; color: var(--warning); border: 1px solid var(--border); }
+.badge-danger { background: transparent; color: var(--danger); border: 1px solid var(--border); }
+
+.feature-note {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px 20px; display: flex; gap: 14px; align-items: flex-start; margin: 22px 0 0;
+}
+.feature-note .ni { font-size: 1.4rem; }
+
+@media (max-width: 860px) {
+  .site-hero { grid-template-columns: 1fr; padding-top: 18px; }
+}
+
+/* ============================ أيقونات (نسخة رسمية) ============================ */
+.brand-logo { display: inline-flex; align-items: center; }
+.brand-logo svg { display: block; }
+.stat .stat-ico { color: var(--info); display: block; margin-bottom: 6px; }
+.site-feature .fi { display: inline-flex; color: var(--primary); }
+.site-feature b { margin-top: 10px; }
+.site-step .n { font-size: .95rem; }
+.mock-ico { color: var(--muted); display: inline-flex; }
+.mock-title { display: flex; align-items: center; gap: 8px; }
+.mock-title svg { color: var(--primary); }
+.pill svg, .btn svg { vertical-align: -3px; }
+.btn { display: inline-flex; align-items: center; gap: 7px; }
+.guild-actions .btn { white-space: nowrap; }
+.head-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.guild-info span { display: inline-flex; align-items: center; gap: 5px; }
+.search-wrap { position: relative; display: flex; align-items: center; flex: 1 1 240px; }
+.search-wrap svg { position: absolute; inset-inline-start: 12px; color: var(--muted); pointer-events: none; }
+.search-wrap input { padding-inline-start: 36px; width: 100%; }
+.site-hero .stat b { font-size: 1.5rem; }
+.brand-text { font-weight: 800; letter-spacing: -.3px; }
+
+</style>
+<script>
+  try {
+    var saved = localStorage.getItem('neverland-theme');
+    if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
+  } catch (e) {}
+</script>
+
+</head>
+<body class="">
+<header class="topbar">
+  <a class="brand" href="/" aria-label="Never Land">
+    <span class="brand-logo"><svg viewBox="0 0 40 40" width="32" height="32" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="pbGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5b6cff"/><stop offset="1" stop-color="#3f49b8"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#pbGrad)"/>
+  <path d="M20 8.5 29 12v6.6c0 5.1-3.5 8.8-9 10.9-5.5-2.1-9-5.8-9-10.9V12z" fill="none" stroke="#fff" stroke-width="2.1" stroke-linejoin="round"/>
+  <path d="M20.9 13.6 15.4 20.4h3.6l-1 6 5.7-7.1h-3.6z" fill="#fff"/>
+</svg></span>
+    <span class="brand-text">Never<span class="accent">Land</span></span>
+  </a>
+  <nav class="nav">
+    <a href="/">الرئيسية</a>
+    <a href="/dashboard">لوحة التحكم</a>
+    <a href="/api/status" target="_blank" rel="noopener">حالة الخدمة</a>
+  </nav>
+  <div class="auth">
+    <button class="theme-toggle" id="themeToggle" title="تبديل الوضع الليلي والنهاري" aria-label="تبديل الوضع"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 14.6A8.6 8.6 0 1 1 9.4 4a6.9 6.9 0 0 0 10.6 10.6z"/></svg></button>
+    <a class="btn btn-primary" href="/auth/login"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 4.5H6.2A1.7 1.7 0 0 0 4.5 6.2v11.6a1.7 1.7 0 0 0 1.7 1.7H9"/><path d="M14 12H5"/><path d="m11 9-3 3 3 3"/><path d="M17 8.5v7"/></svg> تسجيل الدخول بـ Discord</a>
+  </div>
+</header>
+<div style="background:#5b6cff;color:#fff;padding:7px 16px;font-size:.8rem;font-weight:600;text-align:center">نسخة للقراءة دون اتصال — الموقع الفعلي يعمل على الخادم</div>
+<main class="container">
+
+  <section class="site-hero">
+    <div>
+      <span class="pill"><svg class="ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M13.4 2.5 5.5 13.2h5.3l-.9 8.3 8.2-11h-5.3z"/></svg> الإصدار 1.0 — مجاني بالكامل — واجهة عربية</span>
+      <h1>بوت إدارة سيرفرات ديسكورد <span class="grad">متكامل وواضح</span></h1>
+      <p class="lead">
+        يجمع الحماية التلقائية، السجلات، التذاكر، تقديم الإدارة، الترحيب بالصورة، والمستويات في نظام واحد،
+        ويُدار بالكامل من لوحة تحكم عربية بسيطة بدون أوامر إجبارية.
+      </p>
+      <div class="site-cta">
+        <a class="btn btn-primary btn-lg" href="/dashboard">
+          <svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg> لوحة التحكم
+        </a>
+        <a class="btn btn-ghost btn-lg" href="#" target="_blank" rel="noopener">
+          <svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5.5v13M5.5 12h13"/></svg> إضافة البوت
+        </a>
+      </div>
+      <div class="stat-row" style="justify-content:flex-start;margin-top:26px">
+        <div class="stat"><svg class="stat-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3.5" y="4.5" width="17" height="15" rx="2.2"/><path d="m8 10 2.4 2.4L8 14.8"/><path d="M13 15h3.4"/></svg><b>27</b><span>أمر سلاش</span></div><div class="stat"><svg class="stat-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5h11.5A2.5 2.5 0 0 1 19 7v11a2 2 0 0 0 2 2H7a2 2 0 0 1-2-2z"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4"/></svg><b>38</b><span>حدث سجلات</span></div><div class="stat"><svg class="stat-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 3.4 8.5 4.3L12 12 3.5 7.7z"/><path d="m3.5 12.4 8.5 4.3 8.5-4.3"/><path d="m3.5 16.6 8.5 4.3 8.5-4.3"/></svg><b>11</b><span>نظامًا</span></div><div class="stat"><svg class="stat-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 7h10M18 7h1.5M4.5 12h3M11 12h8.5M4.5 17h8M16 17h3.5"/><circle cx="16" cy="7" r="1.8"/><circle cx="9" cy="12" r="1.8"/><circle cx="14" cy="17" r="1.8"/></svg><b>13</b><span>قسمًا في اللوحة</span></div>
+      </div>
+    </div>
+
+    <div class="site-hero-art" aria-hidden="true">
+      <div class="mock-bar"><i></i><i></i><i></i></div>
+      <div class="mock-title"><svg class="ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 7h10M18 7h1.5M4.5 12h3M11 12h8.5M4.5 17h8M16 17h3.5"/><circle cx="16" cy="7" r="1.8"/><circle cx="9" cy="12" r="1.8"/><circle cx="14" cy="17" r="1.8"/></svg> لوحة التحكم — مركز التحكم</div>
+      
+        <div class="mock-row">
+          <svg class="mock-ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9.5" cy="8" r="3.4"/><path d="M3.5 20a6 6 0 0 1 6-6 6 6 0 0 1 4.2 1.7"/><path d="M17.5 13v6"/><path d="M14.5 16h6"/></svg>
+          <span class="lbl">الترحيب بالصورة</span>
+          <span class="badge badge-ok">مُفعّل</span>
+        </div>
+        <div class="mock-row">
+          <svg class="mock-ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2 19 6v5.8c0 4.3-2.9 7.4-7 9-4.1-1.6-7-4.7-7-9V6z"/><path d="m9.2 12 2 2 3.6-3.8"/></svg>
+          <span class="lbl">الحماية التلقائية</span>
+          <span class="badge badge-ok">مُفعّل</span>
+        </div>
+        <div class="mock-row">
+          <svg class="mock-ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 9.2A2.2 2.2 0 0 1 6.2 7h11.6A2.2 2.2 0 0 1 20 9.2v.6a2.2 2.2 0 0 0 0 4.4v.6a2.2 2.2 0 0 1-2.2 2.2H6.2A2.2 2.2 0 0 1 4 14.8v-.6a2.2 2.2 0 0 0 0-4.4z"/><path d="M12 9.5v5"/></svg>
+          <span class="lbl">التذاكر بأربعة أنواع</span>
+          <span class="badge badge-ok">مُفعّل</span>
+        </div>
+        <div class="mock-row">
+          <svg class="mock-ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5h11.5A2.5 2.5 0 0 1 19 7v11a2 2 0 0 0 2 2H7a2 2 0 0 1-2-2z"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4"/></svg>
+          <span class="lbl">السجلات</span>
+          <span class="val">31 / 38</span>
+        </div>
+        <div class="mock-row">
+          <svg class="mock-ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="5" y="4.5" width="14" height="16" rx="2.2"/><path d="M9 4.5V3.6A1.6 1.6 0 0 1 10.6 2h2.8A1.6 1.6 0 0 1 15 3.6v.9"/><path d="m9.4 13 1.9 1.9 3.6-3.7"/></svg>
+          <span class="lbl">تقديم الإدارة</span>
+          <span class="badge badge-ok">مُفعّل</span>
+        </div>
+        <div class="mock-row">
+          <svg class="mock-ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 9h16"/><path d="M6.5 14.5h11"/></svg>
+          <span class="lbl">الخط الفاصل</span>
+          <span class="val">قناتان</span>
+        </div>
+    </div>
+  </section>
+
+  <div class="section-title"><h2>الأنظمة</h2><span class="hr"></span></div>
+  <div class="site-features">
+    <div class="site-feature">
+          <span class="fi"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2 19 6v5.8c0 4.3-2.9 7.4-7 9-4.1-1.6-7-4.7-7-9V6z"/><path d="m9.2 12 2 2 3.6-3.8"/></svg></span>
+          <b>حماية تلقائية</b>
+          <p>منع السبام والروابط والدعوات والمنشن الجماعي والكلمات الممنوعة، مع حماية من الهجمات.</p>
+        </div><div class="site-feature">
+          <span class="fi"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15.9 3.3 20.7 8.1a1 1 0 0 1 0 1.4l-2.2 2.2a1 1 0 0 1-1.4 0l-2-2-6.6 6.6"/><path d="M8.5 16.3 3.9 20.9"/><path d="M10.6 5.5 8.4 7.7a1 1 0 0 0 0 1.4l3.1 3.1a1 1 0 0 0 1.4 0l2.2-2.2"/></svg></span>
+          <b>أوامر إشراف</b>
+          <p>حظر دائم ومؤقت، طرد، إسكات، تحذيرات، وسجل حالات مرقّم لكل عضو.</p>
+        </div><div class="site-feature">
+          <span class="fi"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5h11.5A2.5 2.5 0 0 1 19 7v11a2 2 0 0 0 2 2H7a2 2 0 0 1-2-2z"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4"/></svg></span>
+          <b>سجلات شاملة</b>
+          <p>ثمانية وثلاثون حدثًا في تسع مجموعات، مع تحديد من نفّذ كل إجراء.</p>
+        </div><div class="site-feature">
+          <span class="fi"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9.5" cy="8" r="3.4"/><path d="M3.5 20a6 6 0 0 1 6-6 6 6 0 0 1 4.2 1.7"/><path d="M17.5 13v6"/><path d="M14.5 16h6"/></svg></span>
+          <b>ترحيب بالصورة</b>
+          <p>بطاقة ترحيب تُولَّد بالأفتار، ورسالة وداع، وشكر الدعم.</p>
+        </div><div class="site-feature">
+          <span class="fi"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 9.2A2.2 2.2 0 0 1 6.2 7h11.6A2.2 2.2 0 0 1 20 9.2v.6a2.2 2.2 0 0 0 0 4.4v.6a2.2 2.2 0 0 1-2.2 2.2H6.2A2.2 2.2 0 0 1 4 14.8v-.6a2.2 2.2 0 0 0 0-4.4z"/><path d="M12 9.5v5"/></svg></span>
+          <b>تذاكر بأربعة أنواع</b>
+          <p>الدعم الفني، التوثيق، الهدايا، وتقديم الإدارة، مع أرشيف محادثة عند الإغلاق.</p>
+        </div><div class="site-feature">
+          <span class="fi"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="5" y="4.5" width="14" height="16" rx="2.2"/><path d="M9 4.5V3.6A1.6 1.6 0 0 1 10.6 2h2.8A1.6 1.6 0 0 1 15 3.6v.9"/><path d="m9.4 13 1.9 1.9 3.6-3.7"/></svg></span>
+          <b>نموذج تقديم إدارة</b>
+          <p>نموذج من خمس خانات يصل لقناة الإدارة، مع قبول أو رفض ورسائل تلقائية.</p>
+        </div><div class="site-feature">
+          <span class="fi"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 9h16"/><path d="M6.5 14.5h11"/></svg></span>
+          <b>الخط الفاصل</b>
+          <p>خط تلقائي في قنوات التقديمات مع حذف الخط السابق في كل رسالة جديدة.</p>
+        </div><div class="site-feature">
+          <span class="fi"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M21 20H3"/></svg></span>
+          <b>مستويات وخبرة</b>
+          <p>خبرة على الرسائل والقنوات الصوتية، ومكافآت رتب، ولوحة متصدّرين.</p>
+        </div><div class="site-feature">
+          <span class="fi"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 7h10M18 7h1.5M4.5 12h3M11 12h8.5M4.5 17h8M16 17h3.5"/><circle cx="16" cy="7" r="1.8"/><circle cx="9" cy="12" r="1.8"/><circle cx="14" cy="17" r="1.8"/></svg></span>
+          <b>لوحة تحكم عربية</b>
+          <p>تحكم كامل من المتصفح بثلاثة عشر قسمًا، مع وضع ليلي ونهاري، بدون أوامر.</p>
+        </div><div class="site-feature">
+          <span class="fi"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3.5" y="4" width="17" height="7" rx="2"/><rect x="3.5" y="13" width="17" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></svg></span>
+          <b>استضافة ذاتية</b>
+          <p>يعمل على SQLite افتراضيًا مع بديل JSON، ودعم Docker وPM2.</p>
+        </div>
+  </div>
+
+  <div class="section-title"><h2>البدء في أربع خطوات</h2><span class="hr"></span></div>
+  <div class="site-steps">
+    <div class="site-step">
+          <span class="n">1</span>
+          <b>إضافة البوت</b>
+          <p>اضغط زر الإضافة واختر السيرفر، ثم اقبل الصلاحيات المطلوبة.</p>
+        </div><div class="site-step">
+          <span class="n">2</span>
+          <b>تسجيل الدخول</b>
+          <p>ادخل بحساب ديسكورد، وستظهر سيرفراتك التي تملك فيها صلاحية الإدارة.</p>
+        </div><div class="site-step">
+          <span class="n">3</span>
+          <b>تشغيل الأنظمة</b>
+          <p>فعّل ما تحتاجه من اللوحة: الترحيب، الحماية، التذاكر، السجلات.</p>
+        </div><div class="site-step">
+          <span class="n">4</span>
+          <b>الحفظ</b>
+          <p>اضغط حفظ التغييرات لتُطبَّق مباشرة على البوت.</p>
+        </div>
+  </div>
+
+  <div class="section-title"><h2>أمثلة على الأوامر</h2><span class="hr"></span></div>
+  <pre class="cmd-preview"><b>/ban</b>  العضو:@Ahmed  السبب:نشر روابط  المدة:7d
+<b>/autoline add</b>  القناة:#التقديمات
+<b>/welcome image</b>  النوع:بطاقة مولَّدة بالأفتار
+<b>/tickets applychannel</b>  القناة:#قبول-إدارة
+<b>/logs events</b>  تحديد أحداث السجلات بالمجموعات
+<b>/automod word</b>  العملية:إضافة  الكلمة:كلمة_ممنوعة</pre>
+
+  <div class="cta" style="margin-top:30px">
+    <a class="btn btn-primary btn-lg" href="/dashboard"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg> فتح لوحة التحكم</a>
+    
+    <a class="btn btn-ghost btn-lg" href="/api/status" target="_blank" rel="noopener"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 12h3.6l2.6-6 4.2 12 2.5-6H21"/></svg> حالة الخدمة</a>
+  </div>
+</main>
+<footer class="footer">
+  <span>Never Land — نظام إدارة سيرفرات ديسكورد</span>
+  <span class="muted">قاعدة البيانات: sqlite</span>
+</footer>
+<script>
+  (function () {
+    var btn = document.getElementById('themeToggle');
+    if (!btn) return;
+    var moon = "<svg class=\"ico\" viewBox=\"0 0 24 24\" width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M20 14.6A8.6 8.6 0 1 1 9.4 4a6.9 6.9 0 0 0 10.6 10.6z\"/></svg>";
+    var sun = "<svg class=\"ico\" viewBox=\"0 0 24 24\" width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><circle cx=\"12\" cy=\"12\" r=\"4.2\"/><path d=\"M12 2.8v2.1M12 19.1v2.1M2.8 12h2.1M19.1 12h2.1M5.6 5.6l1.5 1.5M16.9 16.9l1.5 1.5M18.4 5.6l-1.5 1.5M7.1 16.9l-1.5 1.5\"/></svg>";
+    var paint = function () {
+      var light = document.documentElement.dataset.theme === 'light';
+      btn.innerHTML = light ? sun : moon;
+    };
+    paint();
+    btn.addEventListener('click', function () {
+      var next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+      document.documentElement.dataset.theme = next;
+      try { localStorage.setItem('neverland-theme', next); } catch (e) {}
+      paint();
+    });
+  })();
+</script>
+</body>
+</html>

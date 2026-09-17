@@ -1,0 +1,421 @@
+'use strict';
+
+const { SlashCommandBuilder, SlashCommandSubcommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
+const db = require('../../database');
+const embeds = require('../../lib/embeds');
+const tickets = require('../../systems/tickets');
+
+module.exports = {
+  cooldown: 3,
+  permissions: [PermissionFlagsBits.ManageGuild],
+  data: (() => {
+    const builder = new SlashCommandBuilder()
+      .setName('tickets')
+      .setDescription('إدارة نظام التذاكر (الدعم الفني • التوثيق • الهدايا • تقديم إدارة)');
+
+    const sub = (name, description) => new SlashCommandSubcommandBuilder().setName(name).setDescription(description);
+
+    builder.addSubcommand(
+      sub('setup', 'إعداد التذاكر: القسم، رتب الدعم، قناة السجلات')
+        .addChannelOption((o) => o.setName('القسم').setDescription('قسم (Category) تُنشأ فيه التذاكر').addChannelTypes(ChannelType.GuildCategory).setRequired(true))
+        .addRoleOption((o) => o.setName('رتبة_الدعم_1').setDescription('رتبة فريق الدعم').setRequired(false))
+        .addRoleOption((o) => o.setName('رتبة_الدعم_2').setDescription('رتبة دعم إضافية').setRequired(false))
+        .addChannelOption((o) => o.setName('قناة_السجلات').setDescription('قناة تُرسل فيها أرشيف التذاكر').addChannelTypes(ChannelType.GuildText).setRequired(false)),
+    );
+
+    builder.addSubcommand(
+      sub('panel', 'إرسال لوحة البنل مع رسالة التعليمات في قناة').addChannelOption((o) =>
+        o.setName('القناة').setDescription('القناة (افتراضيًا الحالية)').addChannelTypes(ChannelType.GuildText).setRequired(false)),
+    );
+
+    builder.addSubcommand(
+      sub('panelmode', 'وضع اللوحة: أزرار (Buttons) أو قائمة منسدلة (Select)').addStringOption((o) =>
+        o.setName('الوضع').setDescription('اختر شكل اللوحة').setRequired(true)
+          .addChoices({ name: '🔘 أزرار', value: 'buttons' }, { name: '📋 قائمة منسدلة', value: 'select' })),
+    );
+
+    builder.addSubcommand(
+      sub('panelinfo', 'تعديل رسالة التعليمات والعنوان والوصف للوحة')
+        .addStringOption((o) => o.setName('رسالة_التعليمات').setDescription('نص الرسالة المرفقة مع البنل').setRequired(false).setMaxLength(1000))
+        .addStringOption((o) => o.setName('العنوان').setDescription('عنوان البنل').setRequired(false).setMaxLength(200))
+        .addStringOption((o) => o.setName('الوصف').setDescription('وصف البنل').setRequired(false).setMaxLength(1000)),
+    );
+
+    builder.addSubcommand(
+      sub('applychannel', '📝 تحديد قناة مراجعة طلبات تقديم الإدارة')
+        .addChannelOption((o) => o.setName('القناة').setDescription('القناة التي تُرسل فيها الطلبات').addChannelTypes(ChannelType.GuildText).setRequired(true)),
+    );
+
+    builder.addSubcommand(
+      sub('applycategory', '📁 القسم الذي تُنقل إليه تذاكر المقبولين (تكتات الإدارة)')
+        .addChannelOption((o) => o.setName('القسم').setDescription('قسم تكتات الإدارة').addChannelTypes(ChannelType.GuildCategory).setRequired(true)),
+    );
+
+    builder.addSubcommand(
+      sub('applyrole', '🎭 رتبة تُعطى تلقائيًا لمن يُقبل تقديمه')
+        .addRoleOption((o) => o.setName('الرتبة').setDescription('رتبة الإدارة').setRequired(true))
+        .addBooleanOption((o) => o.setName('إزالة').setDescription('إزالة الرتبة من قائمة القبول بدل إضافتها').setRequired(false)),
+    );
+
+    builder.addSubcommand(
+      sub('applyping', '🔔 رتبة تُنبَّه عند وصول طلب تقديم جديد')
+        .addRoleOption((o) => o.setName('الرتبة').setDescription('رتبة الإدارة').setRequired(true)),
+    );
+
+    builder.addSubcommand(
+      sub('applytoggle', '📝 تفعيل/تعطيل استمارة تقديم الإدارة')
+        .addBooleanOption((o) => o.setName('التفعيل').setDescription('true = تفعيل • false = تعطيل').setRequired(true)),
+    );
+
+    builder.addSubcommand(sub('application', '📝 عرض إعدادات استمارة تقديم الإدارة'));
+
+    builder.addSubcommand(sub('enable', 'تفعيل نظام التذاكر'));
+    builder.addSubcommand(sub('disable', 'تعطيل نظام التذاكر'));
+
+    builder.addSubcommand(
+      sub('list', 'عرض كل التذاكر (مفتوحة ومغلقة)').addStringOption((o) =>
+        o.setName('الحالة').setDescription('تصفية').addChoices({ name: 'مفتوحة', value: 'open' }, { name: 'مغلقة', value: 'closed' })),
+    );
+
+    builder.addSubcommand(
+      sub('addtype', 'إضافة نوع تذكرة جديد (يدعم إيموجيات خارجية)')
+        .addStringOption((o) => o.setName('الآيدي').setDescription('مُعرّف بالإنجليزية مثل temp').setRequired(true).setMaxLength(20))
+        .addStringOption((o) => o.setName('الاسم').setDescription('الاسم الظاهر بالعربية').setRequired(true).setMaxLength(80))
+        .addStringOption((o) => o.setName('إيموجي').setDescription('إيموجي عادي أو خارجي <:name:id>').setRequired(false))
+        .addStringOption((o) => o.setName('وصف').setDescription('وصف قصير يظهر في اللوحة').setRequired(false).setMaxLength(100))
+        .addStringOption((o) => o.setName('رسالة_داخلية').setDescription('نص تعليمات يظهر داخل التذكرة').setRequired(false).setMaxLength(500)),
+    );
+
+    builder.addSubcommand(
+      sub('removetype', 'حذف نوع تذكرة').addStringOption((o) =>
+        o.setName('الآيدي').setDescription('مُعرّف النوع').setRequired(true).setAutocomplete(true)),
+    );
+
+    builder.addSubcommand(sub('types', 'عرض الأنواع الحالية + خيار استرجاع الأنواع الأربعة الافتراضية')
+      .addBooleanOption((o) => o.setName('الافتراضية').setDescription('استرجاع الأنواع الأربعة الافتراضية (دعم فني، توثيق، هدايا، تقديم إدارة)')));
+
+    builder.addSubcommand(
+      sub('add', 'إضافة عضو إلى التذكرة الحالية').addUserOption((o) =>
+        o.setName('العضو').setDescription('العضو').setRequired(true)),
+    );
+
+    builder.addSubcommand(sub('stats', 'إحصائيات التذاكر'));
+    return builder;
+  })(),
+
+  async run(client, interaction, lang) {
+    const sub = interaction.options.getSubcommand();
+    const settings = db.getGuildSettings(interaction.guildId);
+
+    if (sub === 'setup') {
+      const category = interaction.options.getChannel('القسم');
+      const role1 = interaction.options.getRole('رتبة_الدعم_1');
+      const role2 = interaction.options.getRole('رتبة_الدعم_2');
+      const logChannel = interaction.options.getChannel('قناة_السجلات');
+
+      const supportRoleIds = [role1?.id, role2?.id].filter(Boolean);
+      db.updateGuildSettings(interaction.guildId, {
+        tickets: {
+          enabled: true,
+          categoryId: category.id,
+          ...(supportRoleIds.length ? { supportRoleIds } : {}),
+          ...(logChannel ? { logChannelId: logChannel.id } : {}),
+        },
+      });
+
+      return interaction.reply({
+        embeds: [
+          embeds.success('إعداد التذاكر', undefined, {
+            fields: [
+              { name: 'القسم', value: `${category}`, inline: true },
+              { name: 'رتب الدعم', value: supportRoleIds.map((r) => `<@&${r}>`).join(' ') || 'لم تُحدّد (استخدم أزرار الصلاحيات)', inline: false },
+              { name: 'قناة السجلات', value: logChannel ? `${logChannel}` : 'غير محدّدة', inline: false },
+              { name: 'الخطوة التالية', value: 'أرسل لوحة التذاكر في قناة الدعم: `/tickets panel`', inline: false },
+            ],
+          }),
+        ],
+        flags: 64,
+      });
+    }
+
+    if (sub === 'panel') {
+      const channel = interaction.options.getChannel('القناة') || interaction.channel;
+      if (!settings.tickets.categoryId) {
+        return interaction.reply({ embeds: [embeds.error('لم يُعدّ بعد', 'استخدم `/tickets setup` أولًا لتحديد القسم.')], flags: 64 });
+      }
+      const payloads = tickets.buildPanelPayloads(db.getGuildSettings(interaction.guildId), interaction.guild, client);
+      let sent = 0;
+      for (const payload of payloads) {
+        const message = await channel.send(payload).catch(() => null);
+        if (message) sent += 1;
+      }
+      if (!sent) return interaction.reply({ embeds: [embeds.error('فشل', 'ما قدرت أرسل اللوحة في هذه القناة.')], flags: 64 });
+
+      db.updateGuildSettings(interaction.guildId, { tickets: { enabled: true } });
+      return interaction.reply({ embeds: [embeds.success('لوحة التذاكر', `✅ تم إرسال البنل (${sent} رسالة) في ${channel}.
+
+الوضع الحالي: **${db.getGuildSettings(interaction.guildId).tickets.panelMode === 'select' ? 'قائمة منسدلة' : 'أزرار'}**`)], flags: 64 });
+    }
+
+    /* ----------------- 📝 استمارة تقديم الإدارة ----------------- */
+    const appCfg = () => settings.staffApplication || {};
+
+    if (sub === 'applychannel') {
+      const channel = interaction.options.getChannel('القناة');
+      db.updateGuildSettings(interaction.guildId, { staffApplication: { reviewChannelId: channel.id, enabled: true } });
+      return interaction.reply({
+        embeds: [embeds.success('قناة مراجعة طلبات الإدارة', `تم التعيين على ${channel}\nسيصل كل تقديم إدارة هنا مع زرّي ✅ قبول / ❌ رفض.`)],
+        flags: 64,
+      });
+    }
+
+    if (sub === 'applycategory') {
+      const category = interaction.options.getChannel('القسم');
+      db.updateGuildSettings(interaction.guildId, { staffApplication: { onAccept: { moveToCategoryId: category.id } } });
+      return interaction.reply({
+        embeds: [embeds.success('قسم تكتات الإدارة', `عند قبول أي تقديم ستُنقل تذكرته تلقائيًا إلى **${category.name}** مع تسميتها باسم المتقدّم وترقيمها.`)],
+        flags: 64,
+      });
+    }
+
+    if (sub === 'applyrole') {
+      const role = interaction.options.getRole('الرتبة');
+      const remove = interaction.options.getBoolean('إزالة') === true;
+      const current = appCfg().onAccept?.addRoleIds || [];
+      const next = remove ? current.filter((r) => r !== role.id) : [...new Set([...current, role.id])];
+      db.updateGuildSettings(interaction.guildId, { staffApplication: { onAccept: { addRoleIds: next } } });
+      return interaction.reply({
+        embeds: [
+          embeds.success(
+            remove ? 'تمت إزالة الرتبة من قائمة القبول' : 'رتبة تُعطى عند القبول',
+            next.length ? next.map((r) => `<@&${r}>`).join(' • ') : 'لا توجد رتب حاليًا.',
+          ),
+        ],
+        flags: 64,
+      });
+    }
+
+    if (sub === 'applyping') {
+      const role = interaction.options.getRole('الرتبة');
+      db.updateGuildSettings(interaction.guildId, { staffApplication: { pingRoleIds: [role.id] } });
+      return interaction.reply({ embeds: [embeds.success('رتبة التنبيه', `سيتم تنبيه ${role} عند وصول طلب تقديم جديد.`)], flags: 64 });
+    }
+
+    if (sub === 'applytoggle') {
+      const enabled = interaction.options.getBoolean('التفعيل');
+      db.updateGuildSettings(interaction.guildId, { staffApplication: { enabled } });
+      return interaction.reply({
+        embeds: [
+          enabled
+            ? embeds.success('تم تفعيل استمارة التقديم 📝')
+            : embeds.warning('تم تعطيل استمارة التقديم', 'لن يظهر زر النموذج في تذاكر تقديم الإدارة.'),
+        ],
+        flags: 64,
+      });
+    }
+
+    if (sub === 'application') {
+      const cfg = appCfg();
+      const review = cfg.reviewChannelId || settings.tickets.logChannelId;
+      const typesList = (cfg.onlyForTypes || ['staff']).map((x) => '`' + x + '`').join(' , ');
+      const fieldsList = (cfg.fields || []).map((f, i) => `**${i + 1}.** ${f.label}`).join('\n');
+      return interaction.reply({
+        embeds: [
+          embeds.info('📝 إعدادات استمارة تقديم الإدارة', 'نموذج من 5 خانات يُرسل لقناة المراجعة مع أزرار القبول والرفض.', {
+            fields: [
+              { name: 'الحالة', value: cfg.enabled === false ? '🔴 معطّلة' : '🟢 مفعّلة', inline: true },
+              { name: 'الأنواع المفعّلة', value: typesList, inline: true },
+              { name: 'قناة المراجعة', value: review ? `<#${review}>` : '❌ غير محدّدة — استخدم `/tickets applychannel`', inline: false },
+              {
+                name: 'قسم تكتات الإدارة',
+                value: cfg.onAccept?.moveToCategoryId ? `<#${cfg.onAccept.moveToCategoryId}>` : 'لم يُحدّد — `/tickets applycategory`',
+                inline: true,
+              },
+              {
+                name: 'رتب القبول',
+                value: cfg.onAccept?.addRoleIds?.length ? cfg.onAccept.addRoleIds.map((r) => `<@&${r}>`).join(' ') : 'لا شيء',
+                inline: true,
+              },
+              { name: 'تنبيه الإدارة', value: cfg.pingRoleIds?.length ? cfg.pingRoleIds.map((r) => `<@&${r}>`).join(' ') : 'بدون تنبيه', inline: true },
+              { name: 'خانات النموذج', value: fieldsList || 'الافتراضية (5 خانات)', inline: false },
+              {
+                name: 'شكل اسم التذكرة عند القبول',
+                value: '`' + (cfg.onAccept?.channelNameFormat || 'إدارة-{number}-{name}') + '`',
+                inline: false,
+              },
+            ],
+            footer: 'Never Land • عدّل النصوص والخانات من لوحة التحكم',
+          }),
+        ],
+        flags: 64,
+      });
+    }
+
+    if (sub === 'enable' || sub === 'disable') {
+      if (sub === 'enable' && !settings.tickets.categoryId) {
+        return interaction.reply({ embeds: [embeds.error('لم يُعدّ بعد', 'استخدم `/tickets setup` أولًا.')], flags: 64 });
+      }
+      db.updateGuildSettings(interaction.guildId, { tickets: { enabled: sub === 'enable' } });
+      return interaction.reply({
+        embeds: [embeds.success('التذاكر', sub === 'enable' ? '✅ تم التفعيل.' : '🔴 تم التعطيل.')],
+        flags: 64,
+      });
+    }
+
+    if (sub === 'panelmode') {
+      const mode = interaction.options.getString('الوضع');
+      db.updateGuildSettings(interaction.guildId, { tickets: { panelMode: mode } });
+      return interaction.reply({
+        embeds: [
+          embeds.success(
+            'وضع اللوحة',
+            mode === 'select'
+              ? '✅ تم اختيار **القائمة المنسدلة**.\nأعد إرسال اللوحة: `/tickets panel`'
+              : '✅ تم اختيار **الأزرار** (أزرار لكل نوع، تدعم الإيموجيات الخارجية).\nأعد إرسال اللوحة: `/tickets panel`',
+          ),
+        ],
+        flags: 64,
+      });
+    }
+
+    if (sub === 'panelinfo') {
+      const info = interaction.options.getString('رسالة_التعليمات');
+      const title = interaction.options.getString('العنوان');
+      const description = interaction.options.getString('الوصف');
+      const patch = {};
+      if (info) patch.panelInfoMessage = info;
+      if (title) patch.panelTitle = title;
+      if (description) patch.panelDescription = description;
+      if (!Object.keys(patch).length) {
+        return interaction.reply({ embeds: [embeds.error('لا يوجد جديد', 'حدّد عنصرًا واحدًا على الأقل للتعديل.')], flags: 64 });
+      }
+      db.updateGuildSettings(interaction.guildId, { tickets: patch });
+      return interaction.reply({
+        embeds: [embeds.success('تم التحديث', '✅ تم حفظ تعديلات البنل. أعد إرسال اللوحة بـ `/tickets panel`.')],
+        flags: 64,
+      });
+    }
+
+    if (sub === 'types') {
+      const resetDefault = interaction.options.getBoolean('الافتراضية');
+      if (resetDefault) {
+        const defaults = require('../../config').defaults.tickets.types;
+        db.updateGuildSettings(interaction.guildId, { tickets: { types: defaults, panelMode: 'buttons', enabled: true } });
+      }
+      const types = db.getGuildSettings(interaction.guildId).tickets.types || [];
+      return interaction.reply({
+        embeds: [
+          embeds.info(
+            '🎫 أنواع التذاكر الحالية',
+            resetDefault ? '✅ تم استرجاع الأنواع الأربعة الافتراضية.\n\n' : undefined,
+            {
+              fields: types.map((type) => ({
+                name: `${type.emoji || '🎫'} ${type.label} (\`${type.id}\`)`,
+                value: type.description || '—',
+                inline: false,
+              })),
+              footer: `العدد: ${types.length} • الوضع: ${db.getGuildSettings(interaction.guildId).tickets.panelMode}`,
+            },
+          ),
+        ],
+        flags: 64,
+      });
+    }
+
+    if (sub === 'list') {
+      const status = interaction.options.getString('الحالة') || null;
+      const { items, total } = db.listTickets({ guildId: interaction.guildId, status, limit: 20 });
+      if (!items.length) {
+        return interaction.reply({ embeds: [embeds.info('التذاكر', '📭 لا توجد تذاكر.')], flags: 64 });
+      }
+      const lines = items.map(
+        (t) => `**#${t.id}** ${t.status === 'open' ? '🟢' : '🔴'} — <@${t.user_id}> • \`${t.type}\` • <#${t.channel_id}>\n> <t:${Math.floor(t.created_at / 1000)}:R>${t.claimed_by ? ` • استلمها <@${t.claimed_by}>` : ''}`,
+      );
+      return interaction.reply({
+        embeds: [embeds.info(`🎫 التذاكر (${total})`, lines.join('\n').slice(0, 3800))],
+        flags: 64,
+      });
+    }
+
+    if (sub === 'addtype') {
+      const id = interaction.options.getString('الآيدي').toLowerCase().replace(/[^a-z0-9-_]/g, '');
+      const label = interaction.options.getString('الاسم');
+      const emoji = interaction.options.getString('إيموجي');
+      const description = interaction.options.getString('وصف');
+      const intro = interaction.options.getString('رسالة_داخلية');
+      const types = settings.tickets.types || [];
+      if (types.some((t) => t.id === id)) {
+        return interaction.reply({ embeds: [embeds.error('موجود', `النوع \`${id}\` موجود مسبقًا.`)], flags: 64 });
+      }
+      if (types.length >= 5 && settings.tickets.panelMode !== 'select') {
+        return interaction.reply({
+          embeds: [embeds.error('حد الأزرار', 'وضع الأزرار يسمح بـ 5 أنواع كحد أقصى (25 سطرًا).\nحوّل للوضع `select` بـ `/tickets panelmode` أو احذف نوعًا.')],
+          flags: 64,
+        });
+      }
+      if (types.length >= 25) {
+        return interaction.reply({ embeds: [embeds.error('الحد الأقصى', 'لا يمكن إضافة أكثر من 25 نوعًا (حد ديسكورد).')], flags: 64 });
+      }
+      types.push({
+        id,
+        label,
+        ...(emoji ? { emoji } : {}),
+        ...(description ? { description } : {}),
+        ...(intro ? { intro } : {}),
+      });
+      db.updateGuildSettings(interaction.guildId, { tickets: { types } });
+      return interaction.reply({
+        embeds: [embeds.success('نوع جديد', `✅ تمت إضافة النوع **${label}** (\`${id}\`).\n\nحدّث اللوحة بأمر \`/tickets panel\` لتظهر الأنواع الجديدة.`)],
+        flags: 64,
+      });
+    }
+
+    if (sub === 'removetype') {
+      const id = interaction.options.getString('الآيدي');
+      const types = (settings.tickets.types || []).filter((t) => t.id !== id);
+      db.updateGuildSettings(interaction.guildId, { tickets: { types } });
+      return interaction.reply({ embeds: [embeds.success('حذف نوع', `✅ تم حذف النوع \`${id}\`.`)], flags: 64 });
+    }
+
+    if (sub === 'add') {
+      const user = interaction.options.getUser('العضو');
+      const ticket = db.getTicketByChannel(interaction.channelId);
+      if (!ticket) {
+        return interaction.reply({ embeds: [embeds.error('ليست تذكرة', 'هذا الأمر يعمل داخل قناة تذكرة فقط.')], flags: 64 });
+      }
+      await interaction.channel.permissionOverwrites
+        .edit(user.id, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true }, { reason: `إضافة بواسطة ${interaction.user.tag}` })
+        .catch(() => {});
+      return interaction.reply({ embeds: [embeds.success('إضافة عضو', `✅ تمت إضافة ${user} إلى التذكرة.`)] });
+    }
+
+    if (sub === 'stats') {
+      const stats = db.getStats(interaction.guildId);
+      const open = db.countTickets(interaction.guildId, 'open');
+      const closed = db.countTickets(interaction.guildId, 'closed');
+      return interaction.reply({
+        embeds: [
+          embeds.info('📊 إحصائيات التذاكر', undefined, {
+            fields: [
+              { name: 'الإجمالي', value: `**${stats.tickets}**`, inline: true },
+              { name: 'مفتوحة', value: `**${open}**`, inline: true },
+              { name: 'مغلقة', value: `**${closed}**`, inline: true },
+              { name: 'الأنواع', value: `${(settings.tickets.types || []).length}`, inline: true },
+              { name: 'رتب الدعم', value: `${(settings.tickets.supportRoleIds || []).length}`, inline: true },
+            ],
+          }),
+        ],
+        flags: 64,
+      });
+    }
+  },
+
+  async autocomplete(client, interaction) {
+    if (!interaction.guildId) return interaction.respond([]);
+    const types = db.getGuildSettings(interaction.guildId).tickets?.types || [];
+    const focused = interaction.options.getFocused().toLowerCase();
+    await interaction.respond(
+      types.filter((t) => t.id.includes(focused) || t.label.includes(focused)).map((t) => ({ name: `${t.label} (${t.id})`, value: t.id })).slice(0, 25),
+    );
+  },
+};
