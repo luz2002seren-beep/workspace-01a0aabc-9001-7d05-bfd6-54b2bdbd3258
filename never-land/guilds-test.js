@@ -127,6 +127,12 @@ const reqFor = ({ user = null, guilds = [] } = {}) => ({ session: { user, guilds
   assert.strictEqual(await webGuilds.canAccessGuild(reqFor({ user: { id: '777' }, guilds: [] }), GUILD), true);
   console.log('٦) فحص الوصول لسيرفر معيّن → عضو عادي: ممنوع | صاحب الرول: مسموح ✅');
 
+  // 6ب) زائر مع الوصول العام: قائمة عامة من آخر مزامنة
+  config.web.publicAccess = true;
+  const guestList = await webGuilds.listUserGuilds(reqFor());
+  console.log('٦ب) قائمة الزائر العامة → عدد السيرفرات:', guestList.length, guestList[0] ? `«${guestList[0].name}»` : '');
+  assert.ok(Array.isArray(guestList), 'قائمة الزائر يجب أن تكون مصفوفة');
+
   // 7) زائر + الوصول العام: يقرأ سيرفر فيه البوت فقط
   config.web.publicAccess = true;
   assert.strictEqual(await webGuilds.canAccessGuild(reqFor(), GUILD), true, 'الزائر يقرأ سيرفر فيه البوت');
