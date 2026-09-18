@@ -38,24 +38,63 @@ async function sendTo(client, guild, channelId, payload, autoDeleteAfter = 0) {
 
 /**
  * بناء صورة الترحيب حسب الإعداد (بطاقة / أفتار / مخصّصة).
+ * @param {object} [opts]
+ * @param {boolean} [opts.asFile] إرفاق الصورة كملف (لرسالة عادية بلا Embed)
+ * @param {string} [opts.cardMessage] النص المرسوم على البطاقة
  * @returns {{files: Array, imageRef: ?string}}
  */
-async function buildWelcomeImage(client, member, settings) {
+async function buildWelcomeImage(client, member, settings, opts = {}) {
   const cfg = settings.welcome;
   const mode = cfg.imageMode || 'none';
   const result = { files: [], imageRef: null };
 
+  /* إرفاق صورة جاهزة كملف (تُستخدم مع الرسالة العادية بلا Embed) */
+  const attachDownloaded = async (url, name = 'welcome.png') => {
+    if (!url) return false;
+    try {
+      const res = await fetch(url, { headers: { 'User-Agent': 'Never Land/1.0' } });
+      if (!res.ok) return false;
+      const buffer = Buffer.from(await res.arrayBuffer());
+      if (!buffer.length) return false;
+      result.files.push(new AttachmentBuilder(buffer, { name }));
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   if (mode === 'avatar') {
-    result.imageRef = member.user.displayAvatarURL({ size: 512, extension: 'png' });
+    const url = member.user.displayAvatarURL({ size: 512, extension: 'png' });
+    if (opts.asFile) {
+      if (await attachDownloaded(url, 'avatar.png')) {
+        result.imageRef = 'attachment://avatar.png';
+        return result;
+      }
+    }
+    result.imageRef = url;
     return result;
   }
 
   if (mode === 'custom' && cfg.imageUrl) {
-    result.imageRef = applyPlaceholders(cfg.imageUrl, { user: member.user, member, guild: member.guild });
+    const url = applyPlaceholders(cfg.imageUrl, { user: member.user, member, guild: member.guild });
+    if (opts.asFile) {
+      if (await attachDownloaded(url, 'welcome.png')) {
+        result.imageRef = 'attachment://welcome.png';
+        return result;
+      }
+    }
+    result.imageRef = url;
     return result;
   }
 
   if (mode === 'card' && welcomeCard.available()) {
+    /* النص المرسوم على الصورة: نص البطاقة المخصّص وإن ما في، نص رسالة الترحيب بلا تنسيق ماركداون */
+    const cardText = applyPlaceholders(opts.cardMessage || cfg.cardMessage || 'أهلاً بك {displayName} في {server}', {
+      user: member.user,
+      member,
+      guild: member.guild,
+    }).replace(/[*_`~|]/g, '');
+
     const buffer = await welcomeCard.generateWelcomeCard({
       user: member.user,
       memberCount: member.guild.memberCount,
@@ -63,9 +102,11 @@ async function buildWelcomeImage(client, member, settings) {
       guildIcon: member.guild.iconURL({ size: 128 }),
       background: cfg.cardBackground || null,
       theme: cfg.cardTheme || null,
+      message: cardText,
+      footer: `${member.guild.name}`.length > 40 ? '' : `العضو رقم ${member.guild.memberCount}`,
     });
     if (buffer) {
-      if (cfg.attachImage !== false) {
+      if (opts.asFile || cfg.attachImage !== false) {
         result.files.push(new AttachmentBuilder(buffer, { name: 'welcome.png' }));
         result.imageRef = 'attachment://welcome.png';
       } else {
@@ -100,26 +141,7 @@ async function handleMemberAdd(client, member) {
 
   /* --------- 2) رسالة الترحيب في القناة --------- */
   if (settings.welcome?.enabled && settings.welcome.channelId) {
-    const text = applyPlaceholders(settings.welcome.message, { user: member.user, member, guild });
-    const { files, imageRef } = await buildWelcomeImage(client, member, settings);
-
-    const embed = base({
-      color: 0x57f287,
-      title: `أهلاً بك في ${guild.name}`,
-      description: text,
-      thumbnail: settings.welcome.avatarThumbnail ? member.user.displayAvatarURL({ size: 256 }) : null,
-      image: imageRef,
-      fields: [
-        { name: 'العضو', value: `${member} \`${member.user.tag}\``, inline: true },
-        { name: 'الحساب أُنشئ', value: `<t:${Math.floor(member.user.createdTimestamp / 1000)}:R>`, inline: true },
-        { name: 'ترتيب الانضمام', value: `#${guild.memberCount}`, inline: true },
-      ],
-    });
-
-    const payload = settings.welcome.embed
-      ? { embeds: [embed], files }
-      : { content: text, files };
-
+    const payload = await buildWelcomePayload(client, member, settings);
     await sendTo(client, guild, settings.welcome.channelId, payload, settings.welcome.autoDeleteAfter || 0);
   }
 
@@ -189,17 +211,62 @@ async function handleBoost(client, member) {
   await sendTo(client, guild, settings.boost.channelId, payload);
 }
 
-/** معاينة صورة الترحيب (يُستخدمها أمر /welcome test) */
+/**
+ * معاينة صورة الترحيب (يُستخدمها أمر /welcome test والاختبار من اللوحة).
+ * تُبنى بنفس الإعدادات الحقيقية — بما فيها النص المرسوم على الصورة.
+ */
 async function previewCard(client, member) {
   const settings = db.getGuildSettings(member.guild.id);
+  const cfg = settings.welcome || {};
+  const cardText = applyPlaceholders(cfg.cardMessage || 'أهلاً بك {displayName} في {server}', {
+    user: member.user,
+    member,
+    guild: member.guild,
+  }).replace(/[*_`~|]/g, '');
+
   return welcomeCard.generateWelcomeCard({
     user: member.user,
     memberCount: member.guild.memberCount,
     guildName: member.guild.name,
     guildIcon: member.guild.iconURL({ size: 128 }),
-    background: settings.welcome.cardBackground || null,
-    theme: settings.welcome.cardTheme || null,
+    background: cfg.cardBackground || null,
+    theme: cfg.cardTheme || null,
+    message: cardText,
   });
 }
 
-module.exports = { handleMemberAdd, handleMemberRemove, handleBoost, sendTo, buildWelcomeImage, previewCard };
+/**
+ * بناء رسالة الترحيب كاملة (صورة + نص) — تُستخدم عند دخول عضو وعند الاختبار.
+ * @returns {{content:?string, embeds:Array, files:Array}}
+ */
+async function buildWelcomePayload(client, member, settings) {
+  const guild = member.guild;
+  const text = applyPlaceholders(settings.welcome.message, { user: member.user, member, guild });
+  const plain = settings.welcome.embed === false;
+  const { files, imageRef } = await buildWelcomeImage(client, member, settings, { asFile: plain });
+
+  if (plain) {
+    return { content: text, embeds: [], files, allowedMentions: { parse: ['users'] } };
+  }
+
+  return {
+    content: undefined,
+    embeds: [
+      base({
+        color: 0x57f287,
+        title: `أهلاً بك في ${guild.name}`,
+        description: text,
+        thumbnail: settings.welcome.avatarThumbnail ? member.user.displayAvatarURL({ size: 256 }) : null,
+        image: imageRef,
+        fields: [
+          { name: 'العضو', value: `${member} \`${member.user.tag}\``, inline: true },
+          { name: 'الحساب أُنشئ', value: `<t:${Math.floor(member.user.createdTimestamp / 1000)}:R>`, inline: true },
+          { name: 'ترتيب الانضمام', value: `#${guild.memberCount}`, inline: true },
+        ],
+      }),
+    ],
+    files,
+  };
+}
+
+module.exports = { handleMemberAdd, handleMemberRemove, handleBoost, sendTo, buildWelcomeImage, buildWelcomePayload, previewCard };

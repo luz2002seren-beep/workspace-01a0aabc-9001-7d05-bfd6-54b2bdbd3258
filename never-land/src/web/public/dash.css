@@ -640,6 +640,25 @@ img.guild-icon { background: var(--panel); border: 1px solid var(--border-soft);
    (كان الشريط يأخذ خانة من الشبكة فينزل المحتوى تحت الشاشة) */
 .d-shell > .d-readonly-note { grid-column: 1 / -1; }
 
+/* ============================ معاينة صورة الترحيب ============================ */
+.wc-preview {
+  display: grid; gap: 12px; align-items: center; margin-bottom: 16px;
+  grid-template-columns: minmax(280px, 1.3fr) minmax(200px, 1fr);
+  background: var(--panel-2, #171d33); border: 1px solid var(--border-soft);
+  border-radius: 14px; padding: 12px;
+}
+.wc-preview img {
+  display: block; width: 100%; height: auto; border-radius: 11px;
+  border: 1px solid var(--border); box-shadow: 0 10px 26px rgba(0, 0, 0, .28);
+  background: #0e1322; min-height: 120px;
+}
+.wc-side { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.wc-note { color: var(--muted); font-size: .82rem; line-height: 1.85; }
+@media (max-width: 760px) {
+  .wc-preview { grid-template-columns: 1fr; }
+  .wc-side { align-items: stretch; }
+}
+
 /* ============================ اختصارات الأوامر ============================ */
 .cmd-bar {
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px;

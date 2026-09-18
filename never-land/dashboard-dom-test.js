@@ -124,6 +124,14 @@ async function run() {
     assert.ok(!rawText.includes('[object'), `القسم «${label}» يعرض نصًا تقنيًا مكان عنصر: ${rawText.match(/\[object[^\]]*\]/)?.[0] || ''}`);
     assert.ok(!rawText.includes('undefined'), `القسم «${label}» يعرض كلمة undefined`);
     assert.ok(!rawText.includes('NaN'), `القسم «${label}» يعرض NaN`);
+    /* خلل القوائم: خاصية selected تُكتب على كل الخيارات فيلتقط المتصفح آخرها بدل القيمة المحفوظة */
+    const badSelects = [...content.querySelectorAll('select')]
+      .filter((sel) => [...sel.options].filter((o) => o.hasAttribute('selected')).length > 0);
+    assert.strictEqual(
+      badSelects.length,
+      0,
+      `القسم «${label}» فيه ${badSelects.length} قائمة تعتمد خاصية selected (تعرض آخر خيار بدل المحفوظ)`,
+    );
     visited.push(label);
   }
   assert.strictEqual(visited.length, navItems.length, 'ما مرّينا على كل الأقسام');

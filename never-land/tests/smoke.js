@@ -195,6 +195,8 @@ console.log('[نجاح] كل الاختبارات نجحت!');
  console.log('  [تم] الإيموجيات الخارجية تعمل');
 
  console.log('[اختبار] اختبار 12: بطاقة الترحيب (Canvas)');
+  const fs12 = require('node:fs');
+  const path12 = require('node:path');
   const welcomeCard = require('../src/lib/welcomeCard');
   assert.ok(welcomeCard.available(), 'مولّد البطاقات غير متاح');
   const fakeUser = {
@@ -205,11 +207,18 @@ console.log('[نجاح] كل الاختبارات نجحت!');
     user: fakeUser,
     memberCount: 4820,
     guildName: 'سيرفر التجربة',
-    title: 'أهلاً بك في',
+    message: 'أهلاً بك أحمد في سيرفر التجربة',
+    footer: 'العضو رقم 4820',
   });
   assert.ok(cardBuffer && cardBuffer.length > 5000, 'فشل توليد البطاقة');
   assert.strictEqual(cardBuffer.slice(1, 4).toString(), 'PNG', 'الناتج ليس PNG');
- console.log(`  [تم] تم توليد بطاقة ترحيب (${Math.round(cardBuffer.length / 1024)}KB)`);
+  /* المقاس ثابت (نسبة الصور) + الخطوط مرفقة داخل المشروع */
+  const png = require('node:zlib');
+  const header = cardBuffer.slice(16, 24);
+  assert.strictEqual(header.readUInt32BE(0), welcomeCard.CARD_W, 'عرض البطاقة غير متوقّع');
+  assert.strictEqual(header.readUInt32BE(4), welcomeCard.CARD_H, 'ارتفاع البطاقة غير متوقّع');
+  assert.ok(fs12.existsSync(path12.join(__dirname, '..', 'assets', 'fonts', 'DejaVuSans.ttf')), 'خط البطاقة غير مرفق بالمشروع');
+ console.log(`  [تم] تم توليد بطاقة ترحيب (${Math.round(cardBuffer.length / 1024)}KB) بمقاس ${welcomeCard.CARD_W}×${welcomeCard.CARD_H}`);
 
  console.log('[اختبار] اختبار 13: لوحة التذاكر (أزرار + قائمة + 4 أنواع)');
   const ticketsSystem = require('../src/systems/tickets');
@@ -1682,6 +1691,59 @@ console.log('[نجاح] كل الاختبارات نجحت!');
     assert.ok(out41.includes('🎉'), 'اختبار الأوامر النصية ما نجح');
 
   console.log('  [تم] أوامر بلا بريفيكست (ban · kick · top…) · اختصارات تُعدَّل من الموقع · مكتبة شرح لكل أمر بـ ٢٩ أمرًا');
+  }
+
+ console.log('[اختبار] 42: الترحيب بصورة بالأفتار + رسالة عادية بلا إطار (زي بوتات الترحيب المعروفة)');
+  {
+    const fs42 = require('node:fs');
+    const path42 = require('node:path');
+    const root42 = path42.join(__dirname, '..');
+    const read42 = (rel) => fs42.readFileSync(path42.join(root42, rel), 'utf8');
+
+    // ١) البطاقة: خطوط مرفقة + نص مرسوم + مقاس ثابت
+    const card42 = read42('src/lib/welcomeCard.js');
+    for (const needle of ['ensureFonts', 'GlobalFonts.registerFromPath', 'wrapText', 'drawDecor', 'avatarPlaceholder', "direction = 'rtl'"]) {
+      assert.ok(card42.includes(needle), `مولّد البطاقة ينقصه ${needle}`);
+    }
+    assert.ok(card42.includes("'assets'") || card42.includes("'..', '..', 'assets'"), 'البطاقة ما تقرأ الخطوط من مجلد المشروع');
+    for (const font of ['DejaVuSans.ttf', 'DejaVuSans-Bold.ttf']) {
+      assert.ok(fs42.existsSync(path42.join(root42, 'assets', 'fonts', font)), `الخط ${font} غير مرفق بالمشروع`);
+    }
+
+    // ٢) النظام: صورة + رسالة عادية بلا Embed (الافتراضي) وإمكانية الإطار
+    const sys42 = read42('src/systems/welcome.js');
+    for (const needle of ['buildWelcomePayload', 'asFile', 'embed === false', 'allowedMentions']) {
+      assert.ok(sys42.includes(needle), `نظام الترحيب ينقصه ${needle}`);
+    }
+    const cfg42 = read42('src/config.js');
+    assert.ok(/welcome: \{[\s\S]{0,400}embed: false/.test(cfg42), 'الافتراضي لازم يكون: رسالة عادية بلا إطار');
+    assert.ok(cfg42.includes('cardMessage'), 'الإعدادات ينقصها نص الصورة (cardMessage)');
+
+    // ٣) اللوحة: معاينة حقيقية + خيار شكل الرسالة + نص الصورة
+    const app42 = read42('src/web/public/app.js');
+    for (const needle of ['welcome/card', 'wc-preview', 'welcome.cardMessage', 'welcome.embed', 'صورة + رسالة عادية']) {
+      assert.ok(app42.includes(needle), `قسم الترحيب ينقصه ${needle}`);
+    }
+    const dash42 = read42('src/web/public/dash.css');
+    assert.ok(dash42.includes('.wc-preview'), 'أنماط المعاينة ناقصة');
+
+    // ٤) المسار والأمر
+    const api42 = read42('src/web/routes/api.js');
+    assert.ok(api42.includes("'/guilds/:guildId/welcome/card'"), 'مسار معاينة البطاقة غير موجود');
+    const cmd42 = read42('src/commands/config/welcome.js');
+    for (const needle of ["sub('cardtext'", "sub('plain'", 'cardMessage', 'welcome: { embed: !plain }']) {
+      assert.ok(cmd42.includes(needle), `أمر /welcome ينقصه ${needle}`);
+    }
+
+    // ٥) الاختبار العملي الكامل (٦ مجموعات)
+    const { execFileSync } = require('node:child_process');
+    const out42 = execFileSync('node', [path42.join(root42, 'welcome-card-test.js')], { cwd: root42, encoding: 'utf8' });
+    for (const needle of ['١) صورة الترحيب', '٢) الوضع الافتراضي', '٣) وضع الإطار', '٤) أنواع الصور', '٥) المتغيّرات', '٦) معاينة اللوحة']) {
+      assert.ok(out42.includes(needle), `اختبار الترحيب ينقصه: ${needle}`);
+    }
+    assert.ok(out42.includes('🎉'), 'اختبار الترحيب ما نجح');
+
+  console.log('  [تم] الترحيب: صورة 1100×500 بالأفتار + رسالة عادية بلا إطار · كل الأوضاع · معاينة مباشرة في اللوحة');
   }
 
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');

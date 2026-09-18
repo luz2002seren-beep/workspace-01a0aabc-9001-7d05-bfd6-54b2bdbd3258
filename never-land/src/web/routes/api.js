@@ -243,6 +243,64 @@ router.post('/guilds/:guildId/settings', async (req, res) => {
   return res.json({ ok: true, settings: db.getGuild(guildId).settings, savedAt: Date.now() });
 });
 
+/* ------------------------------- معاينة صورة الترحيب ------------------------------- */
+
+/**
+ * يرجّع صورة الترحيب (PNG) حسب إعدادات السيرفر الحالية — تُعرض مباشرة في اللوحة.
+ * الصورة تُبنى بنفس كود البوت تمامًا (src/lib/welcomeCard.js).
+ */
+router.get('/guilds/:guildId/welcome/card', async (req, res) => {
+  const { guildId } = req.params;
+  if (!(await canAccess(req, guildId))) return res.status(403).json({ error: 'forbidden' });
+
+  const guild = db.getGuild(guildId);
+  const settings = guild.settings || {};
+  const welcomeCfg = settings.welcome || {};
+
+  /* نستخدم حساب المشاهد نفسه (أفتاره الحقيقي) — وفي وضع العرض حساب تجريبي */
+  const viewerId = req.session?.user?.id || null;
+  const viewerName = req.session?.user?.username || 'Never Land';
+  const viewerGlobal = req.session?.user?.globalName || viewerName;
+  const avatarSeed = req.session?.user?.avatar
+    ? `https://cdn.discordapp.com/avatars/${viewerId}/${req.session.user.avatar}.png?size=512`
+    : `https://cdn.discordapp.com/embed/avatars/${Number(viewerId || 0) % 5}.png`;
+
+  const card = require('../../lib/welcomeCard');
+  const applyPlaceholders = require('../../lib/utils').applyPlaceholders;
+  const fakeUser = {
+    username: viewerName,
+    globalName: viewerGlobal,
+    displayName: viewerGlobal,
+    displayAvatarURL: () => avatarSeed,
+  };
+
+  const cardText = applyPlaceholders(welcomeCfg.cardMessage || 'أهلاً بك {displayName} في {server}', {
+    user: viewerName,
+    username: viewerName,
+    displayName: viewerGlobal,
+    server: db.getGuild(guildId)?.name || 'Never Land',
+    memberCount: 0,
+  }).replace(/[*_`~|]/g, '');
+
+  const buffer = await card
+    .generateWelcomeCard({
+      user: fakeUser,
+      memberCount: db.getGuild(guildId)?.memberCount || 0,
+      guildName: db.getGuild(guildId)?.name || 'Never Land',
+      guildIcon: null,
+      background: welcomeCfg.cardBackground || null,
+      theme: welcomeCfg.cardTheme || null,
+      message: cardText,
+    })
+    .catch(() => null);
+
+  if (!buffer) return res.status(503).json({ error: 'card_unavailable', message: 'توليد الصور غير متاح على الخادم.' });
+
+  res.setHeader('Content-Type', 'image/png');
+  res.setHeader('Cache-Control', 'no-store');
+  return res.end(buffer);
+});
+
 /* ------------------------------- مكتبة الأوامر ------------------------------- */
 
 /**
@@ -624,54 +682,14 @@ router.post('/guilds/:guildId/actions/:action', async (req, res) => {
     const channel = await guild.channels.fetch(targetId).catch(() => null);
     if (!channel?.isTextBased?.()) return res.status(400).json({ ok: false, message: 'القناة غير صالحة.' });
 
-    const { AttachmentBuilder } = require('discord.js');
-    const { applyPlaceholders } = require('../../lib/utils');
     const member = await guild.members.fetch(req.user?.id).catch(() => null);
     const subject = member || guild.members.me;
     if (!subject) return res.status(400).json({ ok: false, message: 'تعذّر جلب بيانات العضو.' });
 
-    const text = applyPlaceholders(settings.welcome.message, {
-      user: `${subject}`,
-      username: subject.user.username,
-      displayName: subject.displayName,
-      id: subject.id,
-      avatar: subject.user.displayAvatarURL({ size: 256 }),
-      server: guild.name,
-      memberCount: guild.memberCount,
-    });
+    /* نفس بناء الرسالة الحقيقية: صورة الترحيب + النص (بلا Embed افتراضيًا) */
+    const payload = await welcome.buildWelcomePayload(client, subject, settings);
 
-    const files = [];
-    let image = null;
-    if (settings.welcome.imageMode === 'card') {
-      const buffer = await welcome.previewCard(client, subject).catch(() => null);
-      if (buffer) {
-        files.push(new AttachmentBuilder(buffer, { name: 'welcome.png' }));
-        image = 'attachment://welcome.png';
-      }
-    } else if (settings.welcome.imageMode === 'avatar') {
-      image = subject.user.displayAvatarURL({ size: 512 });
-    } else if (settings.welcome.imageMode === 'custom' && settings.welcome.imageUrl) {
-      image = applyPlaceholders(settings.welcome.imageUrl, { avatar: subject.user.displayAvatarURL({ size: 512 }) });
-    }
-
-    const embeds = settings.welcome.embed
-      ? [
-          require('../../lib/embeds').base({
-            color: 0x5865f2,
-            description: text,
-            image: image || undefined,
-            thumbnail: settings.welcome.avatarThumbnail ? subject.user.displayAvatarURL({ size: 256 }) : undefined,
-            footer: 'Never Land • رسالة اختبار',
-          }),
-        ]
-      : [];
-
-    await channel.send({
-      content: settings.welcome.embed ? undefined : text,
-      embeds,
-      files,
-      ...(embeds.length ? { files } : {}),
-    });
+    await channel.send(payload);
     return res.json({ ok: true, message: `✅ أُرسلت رسالة ترحيب تجريبية في #${channel.name}` });
   } catch (err) {
     return res.status(500).json({ ok: false, message: err.message });

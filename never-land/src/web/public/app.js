@@ -199,13 +199,65 @@ function dSelect(path, options, { noneLabel = '— بدون —', onAfter = null
   const current = getPath(path);
   if (noneLabel !== null) select.appendChild(el('option', { value: '', text: noneLabel }));
   options.forEach((opt) => {
-    select.appendChild(el('option', { value: opt.value, text: opt.label, selected: opt.value === current ? 'selected' : '' }));
+    select.appendChild(el('option', { value: opt.value, text: opt.label }));
   });
+
+  /*
+   * مهم: نضبط القيمة بعد بناء الخيارات.
+   * استخدام خاصية selected في HTML يجعل كل الخيارات «مختارة» فيلتقط المتصفح آخرها،
+   * فكانت كل القوائم تعرض آخر خيار بدل القيمة المحفوظة.
+   */
+  if (current !== null && current !== undefined && current !== '') {
+    select.value = String(current);
+    if (select.value !== String(current)) {
+      /* القيمة المحفوظة غير موجودة في الخيارات → نضيفها حتى ما تضيع */
+      select.appendChild(el('option', { value: String(current), text: `${String(current)} (محفوظ)` }));
+      select.value = String(current);
+    }
+  } else {
+    select.value = '';
+  }
+
   select.addEventListener('change', () => {
     setPath(path, select.value || null);
     if (onAfter) onAfter(select.value);
   });
   return select;
+}
+
+/** يضبط القيمة المختارة في قائمة بعد بناء الخيارات (بدل خاصية selected الخاطئة) */
+function pickOption(select, value) {
+  if (value === null || value === undefined || value === '') {
+    select.value = '';
+    return select;
+  }
+  select.value = String(value);
+  if (select.value !== String(value)) {
+    /* القيمة المحفوظة غير موجودة بين الخيارات → نضيفها حتى ما تضيع */
+    select.appendChild(el('option', { value: String(value), text: `${String(value)} (محفوظ)` }));
+    select.value = String(value);
+  }
+  return select;
+}
+
+/** أزرار اختيار بديلة عن القائمة (للقيم المنطقية نعم/لا مثل شكل الرسالة) */
+function dChips(path, options) {
+  const wrap = el('div', { class: 'd-chips' });
+  const current = getPath(path);
+  options.forEach((opt) => {
+    const chip = el('button', {
+      class: `chip${String(current) === String(opt.value) ? ' active' : ''}`,
+      type: 'button',
+      text: opt.label,
+    });
+    chip.addEventListener('click', () => {
+      setPath(path, opt.value);
+      wrap.querySelectorAll('.chip').forEach((c) => c.classList.toggle('active', c === chip));
+      if (opt.onAfter) opt.onAfter(opt.value);
+    });
+    wrap.appendChild(chip);
+  });
+  return wrap;
 }
 
 const channelOptions = (extra = []) =>
@@ -461,53 +513,82 @@ const SECTIONS = {
     group: 'الأعضاء',
     label: 'الترحيب والوداع',
     title: 'الترحيب والوداع',
-    desc: 'رسالة ترحيب مع بطاقة بالأفتار، ورسائل الوداع والدعم.',
+    desc: 'ترحيب بصورة بالأفتار + رسالة عادية بلا إطار، ورسائل الوداع والدعم.',
     render() {
       const frag = document.createDocumentFragment();
 
+      /* --------- ١) صورة الترحيب (بطاقة بالأفتار) — الأهم --------- */
+      const previewPath = `/api/guilds/${state.guildId}/welcome/card`;
+      const previewBox = el('div', { class: 'wc-preview' });
+      const previewImg = el('img', { alt: 'معاينة صورة الترحيب', src: `${previewPath}?t=${Date.now()}` });
+      const refreshBtn = el('button', { class: 'd-btn sm', html: `${ic('refresh', 14)} تحديث المعاينة` });
+      refreshBtn.addEventListener('click', () => {
+        previewImg.src = `${previewPath}?t=${Date.now()}`;
+        toast('تم تحديث المعاينة');
+      });
+      const previewNote = el('span', { class: 'wc-note', text: 'المعاينة بالأفتار واسم حسابك المسجّل — وهي نفس الصورة التي تُرسل للأعضاء.' });
+      previewBox.appendChild(previewImg);
+      previewBox.appendChild(el('div', { class: 'wc-side' }, ''));
+      const side = previewBox.querySelector('.wc-side');
+      side.appendChild(previewNote);
+      side.appendChild(refreshBtn);
+
+      const cardFields = [
+        dField('نوع الصورة', `مولّد البطاقات: ${state.meta.cardAvailable ? '<span class="state-on">متاح</span>' : '<span class="state-off">غير متاح — سيُستخدم الأفتار</span>'}`, [
+          dSelect(
+            'welcome.imageMode',
+            [
+              { value: 'card', label: 'بطاقة ترحيب بالأفتار (الطريقة الاحترافية)' },
+              { value: 'avatar', label: 'صورة الأفتار فقط' },
+              { value: 'custom', label: 'رابط صورة مخصّص' },
+              { value: 'none', label: 'بدون صورة' },
+            ],
+            { noneLabel: null, onAfter: () => { previewImg.src = `${previewPath}?t=${Date.now()}`; } },
+          ),
+        ]),
+        dField('النص المرسوم على الصورة', 'المتغيّرات: {displayName} · {username} · {server} · {memberCount}', [dInput('welcome.cardMessage', { full: true, placeholder: 'مثال: أهلاً بك {displayName} في {server}' })], { wide: true }),
+        dField('خلفية البطاقة', 'رابط صورة (اختياري) — بدونها تُستخدم ألوان التدرّج', [dInput('welcome.cardBackground', { full: true, placeholder: 'https://...' })], { wide: true }),
+        dField('تدرّج لون البطاقة', 'من لون إلى لون', [dInput('welcome.cardTheme.from', { narrow: true }), dInput('welcome.cardTheme.to', { narrow: true })]),
+        dField('رابط الصورة المخصّصة', 'يُستخدم عند اختيار «رابط صورة مخصّص» — يدعم {avatar}', [dInput('welcome.imageUrl', { full: true, placeholder: 'https://...' })], { wide: true }),
+        dField('إرفاق الصورة كملف', 'جودة أفضل من الرابط', [dSwitch('welcome.attachImage')]),
+        dField('اختبار البطاقة', 'يرسل بطاقة نموذجية في قناة الترحيب', [testButton('إرسال بطاقة تجريبية', 'card')]),
+      ];
+
+      const cardNode = dCard(
+        'صورة الترحيب (بطاقة بالأفتار)',
+        'صورة واحدة تجمع: أفتار العضو + اسمه + اسم السيرفر + رقم العضو — تُرسل مع رسالة عادية بدون إطار Embed.',
+        'image',
+        cardFields,
+      );
+      cardNode.insertBefore(previewBox, cardNode.querySelector('.d-card-body') || cardNode.firstChild);
+      frag.appendChild(cardNode);
+
+      /* --------- ٢) رسالة الترحيب --------- */
       frag.appendChild(
         dCard(
           'رسالة الترحيب',
-          'المتغيّرات: {user} {username} {server} {memberCount} {createdAt}',
+          'المتغيّرات: {user} {username} {displayName} {server} {memberCount} {createdAt}',
           'userPlus',
           [
             dField('تفعيل الترحيب', '', [dSwitch('welcome.enabled')]),
             dField('قناة الترحيب', '', [dSelect('welcome.channelId', channelOptions())]),
-            dField('نص الرسالة', 'يدعم الإيموجيات الخارجية <:name:id>', [dArea('welcome.message')], { wide: true }),
-            dField('إرسال كـ Embed', 'شكل بطاقة أنيقة', [dSwitch('welcome.embed')]),
+            dField('نص الرسالة', 'يظهر مع صورة الترحيب (يدعم الإيموجيات الخارجية <:name:id>)', [dArea('welcome.message')], { wide: true }),
+            dField(
+              'شكل الرسالة',
+              'الطريقة الاحترافية: صورة بالأفتار + رسالة عادية بلا إطار · أو داخل إطار Embed أنيق',
+              [
+                dChips('welcome.embed', [
+                  { value: false, label: 'صورة + رسالة عادية (بلا إطار)' },
+                  { value: true, label: 'داخل إطار Embed' },
+                ]),
+              ],
+            ),
             dField('حذف تلقائي بعد (ثانية)', '0 = لا يُحذف', [dNumber('welcome.autoDeleteAfter')]),
             dField('رسالة خاصة للعضو', 'يوصل الترحيب بالخاص', [dSwitch('welcome.dm')]),
             dField('نص الخاص', '', [dArea('welcome.dmMessage')], { wide: true }),
           ],
           { tail: testButton('إرسال رسالة تجريبية') },
         ),
-      );
-
-      frag.appendChild(
-        dCard('صورة الترحيب', 'بطاقة ترحيب مولّدة بالأفتار تُرسل لكل عضو جديد', 'image', [
-          dField(
-            'نوع الصورة',
-            `مولّد البطاقات: ${state.meta.cardAvailable ? '<span class="state-on">متاح</span>' : '<span class="state-off">غير متاح — سيُستخدم الأفتار</span>'}`,
-            [
-              dSelect(
-                'welcome.imageMode',
-                [
-                  { value: 'card', label: 'بطاقة مولَّدة (أفتار + اسم + رقم)' },
-                  { value: 'avatar', label: 'صورة الأفتار فقط' },
-                  { value: 'custom', label: 'رابط صورة مخصّص' },
-                  { value: 'none', label: 'بدون صورة' },
-                ],
-                { noneLabel: null },
-              ),
-            ],
-          ),
-          dField('رابط الصورة المخصّصة', 'يدعم {avatar}', [dInput('welcome.imageUrl', { full: true, placeholder: 'https://...' })], { wide: true }),
-          dField('خلفية البطاقة', 'رابط صورة (اختياري)', [dInput('welcome.cardBackground', { full: true, placeholder: 'https://...' })], { wide: true }),
-          dField('تدرّج لون البطاقة', 'من لون إلى لون', [dInput('welcome.cardTheme.from', { narrow: true }), dInput('welcome.cardTheme.to', { narrow: true })]),
-          dField('إرفاق الصورة كملف', 'جودة أفضل من الرابط', [dSwitch('welcome.attachImage')]),
-          dField('إظهار الأفتار كصورة مصغّرة', '', [dSwitch('welcome.avatarThumbnail')]),
-          dField('اختبار البطاقة', 'يرسل بطاقة نموذجية في القناة', [testButton('إرسال بطاقة تجريبية')]),
-        ]),
       );
 
       frag.appendChild(
@@ -563,7 +644,8 @@ const SECTIONS = {
               (() => {
                 const select = el('select', { class: 'd-select' });
                 select.appendChild(el('option', { value: '', text: 'اختر رتبة...' }));
-                roleOptions().forEach((o) => select.appendChild(el('option', { value: o.value, text: o.label, selected: o.value === reward.roleId ? 'selected' : '' })));
+                roleOptions().forEach((o) => select.appendChild(el('option', { value: o.value, text: o.label })));
+                pickOption(select, reward.roleId);
                 select.addEventListener('change', () => {
                   const list = [...rewards];
                   list[index] = { ...reward, roleId: select.value };
@@ -1360,12 +1442,14 @@ const SECTIONS = {
         );
 
         const modeSelect = el('select', { class: 'd-select' });
-        MODES.forEach((m) => modeSelect.appendChild(el('option', { value: m.value, text: m.label, selected: (rule.match || 'contains') === m.value ? 'selected' : '' })));
+        MODES.forEach((m) => modeSelect.appendChild(el('option', { value: m.value, text: m.label })));
+        pickOption(modeSelect, rule.match || 'contains');
         modeSelect.addEventListener('change', () => patch({ match: modeSelect.value }));
 
         const channelSelect = el('select', { class: 'd-select' });
-        channelSelect.appendChild(el('option', { value: '', text: 'كل رومات السيرفر', selected: !(rule.channels || []).length ? 'selected' : '' }));
-        channelOptions().forEach((o) => channelSelect.appendChild(el('option', { value: o.value, text: o.label, selected: (rule.channels || [])[0] === o.value ? 'selected' : '' })));
+        channelSelect.appendChild(el('option', { value: '', text: 'كل رومات السيرفر' }));
+        channelOptions().forEach((o) => channelSelect.appendChild(el('option', { value: o.value, text: o.label })));
+        pickOption(channelSelect, (rule.channels || [])[0] || '');
         channelSelect.addEventListener('change', () => patch({ channels: channelSelect.value ? [channelSelect.value] : [] }));
 
         const replyArea = el('textarea', { class: 'd-textarea', placeholder: 'أهلًا {user} — وفصل بين أكثر من رد بـ |' });
@@ -1737,7 +1821,8 @@ const SECTIONS = {
           dField('حقل الاسم', 'يُستخرج منه اسم المتقدّم لتسمية التكت', [
             (() => {
               const select = el('select', { class: 'd-select' });
-              fields.forEach((f, i) => select.appendChild(el('option', { value: f.id, text: f.label, selected: a.nameFieldId === f.id || (!a.nameFieldId && i === 0) ? 'selected' : '' })));
+              fields.forEach((f, i) => select.appendChild(el('option', { value: f.id, text: f.label })));
+              pickOption(select, a.nameFieldId || fields[0]?.id || '');
               select.addEventListener('change', () => setPath('staffApplication.nameFieldId', select.value));
               return select;
             })(),

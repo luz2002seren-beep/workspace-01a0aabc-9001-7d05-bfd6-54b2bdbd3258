@@ -49,6 +49,17 @@ module.exports = {
         .addBooleanOption((o) => o.setName('صورة_مرفقة').setDescription('إرسال الصورة كمرفق (أفضل جودة)').setRequired(false)),
     );
 
+    builder.addSubcommand(
+      sub('cardtext', 'النص الذي يُرسم على صورة الترحيب')
+        .addStringOption((o) =>
+          o.setName('النص').setDescription('مثال: أهلاً بك {displayName} في {server}').setRequired(true).setMaxLength(120)),
+    );
+
+    builder.addSubcommand(
+      sub('plain', 'شكل رسالة الترحيب: صورة + رسالة عادية (بدون إطار) أو داخل Embed').addBooleanOption((o) =>
+        o.setName('مفعل').setDescription('نعم = صورة + رسالة عادية بلا إطار (الطريقة الاحترافية)').setRequired(true)),
+    );
+
     builder.addSubcommand(sub('enable', 'تفعيل الترحيب'));
     builder.addSubcommand(sub('disable', 'تعطيل الترحيب'));
 
@@ -141,6 +152,36 @@ module.exports = {
               { name: 'الخلفية', value: background || 'افتراضية', inline: true },
             ],
           }),
+        ],
+        flags: 64,
+      });
+    }
+
+    if (sub === 'cardtext') {
+      const text = interaction.options.getString('النص');
+      db.updateGuildSettings(interaction.guildId, { welcome: { cardMessage: text } });
+      const preview = applyPlaceholders(text, { user: interaction.user, member: interaction.member, guild: interaction.guild });
+      return interaction.reply({
+        embeds: [
+          embeds.success('النص على صورة الترحيب', `✅ صار يُرسم على البطاقة:\n**${preview}**`, {
+            footer: 'المتغيّرات: {displayName} {username} {server} {memberCount}',
+          }),
+        ],
+        flags: 64,
+      });
+    }
+
+    if (sub === 'plain') {
+      const plain = interaction.options.getBoolean('مفعل');
+      db.updateGuildSettings(interaction.guildId, { welcome: { embed: !plain } });
+      return interaction.reply({
+        embeds: [
+          embeds.success(
+            'شكل رسالة الترحيب',
+            plain
+              ? '✅ صار الترحيب: **صورة بالأفتار + رسالة عادية** بدون إطار (نفس طريقة بوتات الترحيب المعروفة).'
+              : '✅ صار الترحيب يظهر **داخل إطار Embed** أنيق.',
+          ),
         ],
         flags: 64,
       });

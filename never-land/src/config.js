@@ -132,7 +132,10 @@ const config = {
       enabled: false,
       channelId: null,
       message: 'أهلاً بك {user} في **{server}**، عدد الأعضاء الآن **{memberCount}**.',
-      embed: true,
+      /** إرسال الرسالة داخل إطار Embed؟ false = صورة الترحيب + رسالة عادية (الطريقة الاحترافية) */
+      embed: false,
+      /** النص الذي يُرسم على صورة الترحيب نفسها */
+      cardMessage: 'أهلاً بك {displayName} في {server}',
       dm: false,
       dmMessage: 'أهلاً بك في **{server}**. يُرجى الاطلاع على قوانين السيرفر قبل المشاركة.',
       autoDeleteAfter: 0,
