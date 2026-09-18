@@ -11,6 +11,7 @@ const {
 const embeds = require('../../lib/embeds');
 const { t } = require('../../lib/i18n');
 const config = require('../../config');
+const catalog = require('../../data/commandCatalog');
 
 const CATEGORY_META = {
   general: { label: 'عام', emoji: '🤖', desc: 'أوامر عامة ومعلومات' },
@@ -90,8 +91,18 @@ function webLines() {
   ];
 }
 
+/** زر «شرح الأوامر في الموقع» — يفتح قسم مكتبة الأوامر مباشرة */
+function guideButton(guildId) {
+  const base = (config.web.url || '').replace(/\/$/, '');
+  if (!webUrlOk(base)) return null;
+  const url = guildId ? `${base}/dashboard/${guildId}#commandGuide` : `${base}/dashboard`;
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setLabel('شرح كل الأوامر في الموقع').setStyle(ButtonStyle.Link).setURL(url),
+  );
+}
+
 /** أزرار التنقل */
-function buildComponents(client, activeId) {
+function buildComponents(client, activeId, guildId = null) {
   const list = getCategories(client);
   const menu = new ActionRowBuilder().addComponents(
     new StringSelectMenuBuilder()
@@ -110,7 +121,9 @@ function buildComponents(client, activeId) {
   );
   const rows = [buttons, menu];
   const linkRow = webButtons();
+  const guideRow = guideButton(guildId);
   if (linkRow) rows.push(linkRow);
+  if (guideRow) rows.push(guideRow);
   return rows;
 }
 
@@ -123,10 +136,10 @@ module.exports = {
       o.setName('الأمر').setDescription('اسم أمر معيّن لعرض تفاصيله').setRequired(false).setAutocomplete(true)),
 
   /** يُستخدم في الأزرار والقائمة */
-  renderCategory(client, categoryId, lang = 'ar') {
+  renderCategory(client, categoryId, lang = 'ar', guildId = null) {
     return {
       embeds: [buildCategoryEmbed(client, categoryId, lang)],
-      components: buildComponents(client, categoryId),
+      components: buildComponents(client, categoryId, guildId),
     };
   },
 
@@ -149,14 +162,36 @@ module.exports = {
       }
       const usage = command.data.options?.map((o) => `\`${o.name}\` ${o.required ? '(إلزامي)' : '(اختياري)'} — ${o.description}`).join('\n') || 'لا توجد خيارات.';
       const linkRow = webButtons();
+
+      /* شرح الكتالوج: طريقة الكتابة بلا بريفيكست + مثال جاهز */
+      const meta = catalog.COMMANDS[command.data.name];
+      const fields = [
+        { name: 'الخيارات', value: usage, inline: false },
+        { name: 'القسم', value: CATEGORY_META[command.category]?.label || command.category, inline: true },
+        { name: 'الكولداون', value: `${command.cooldown ?? 3} ثانية`, inline: true },
+      ];
+      if (meta) {
+        fields.push({
+          name: 'بلا بريفيكست (بالإنجليزي)',
+          value: [
+            `> اكتب \`${meta.examples?.[0] || command.data.name}\` مباشرة في الشات — بلا أي رمز قبلها.`,
+            meta.examples?.length > 1 ? `> أمثلة: ${meta.examples.slice(1, 4).map((e) => `\`${e}\``).join(' · ')}` : '',
+          ].filter(Boolean).join('\n'),
+          inline: false,
+        });
+        if (meta.subs && Object.keys(meta.subs).length) {
+          fields.push({
+            name: `أوامره الفرعية (${Object.keys(meta.subs).length})`,
+            value: Object.entries(meta.subs).map(([k, v]) => `**\`${k}\`** — ${v}`).join('\n').slice(0, 1000),
+            inline: false,
+          });
+        }
+      }
+
       return interaction.reply({
         embeds: [
           embeds.info(`/${command.data.name}`, command.data.description, {
-            fields: [
-              { name: 'الخيارات', value: usage, inline: false },
-              { name: 'القسم', value: CATEGORY_META[command.category]?.label || command.category, inline: true },
-              { name: 'الكولداون', value: `${command.cooldown ?? 3} ثانية`, inline: true },
-            ],
+            fields,
             footer: webUrlOk(config.web.url) ? `الموقع: ${config.web.url}` : undefined,
           }),
         ],

@@ -640,6 +640,129 @@ img.guild-icon { background: var(--panel); border: 1px solid var(--border-soft);
    (كان الشريط يأخذ خانة من الشبكة فينزل المحتوى تحت الشاشة) */
 .d-shell > .d-readonly-note { grid-column: 1 / -1; }
 
+/* ============================ اختصارات الأوامر ============================ */
+.cmd-bar {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px;
+  padding: 13px 15px; border-radius: 14px;
+  background: linear-gradient(135deg, rgba(88, 101, 242, .13), rgba(88, 101, 242, .04));
+  border: 1px solid rgba(88, 101, 242, .35);
+}
+.cmd-toggle { display: flex; align-items: center; gap: 11px; }
+.cmd-toggle b { display: block; font-size: .9rem; }
+.cmd-toggle span { color: var(--muted); font-size: .78rem; }
+.cmd-counts { display: flex; gap: 8px; flex-wrap: wrap; }
+.cmd-counts span {
+  font-size: .78rem; padding: 4px 10px; border-radius: 999px;
+  background: var(--chip); border: 1px solid var(--border); color: var(--muted);
+}
+.cmd-cd { display: flex; align-items: center; gap: 8px; font-size: .8rem; color: var(--muted); }
+.cmd-cd .d-in { width: 76px; }
+.cmd-card { margin-bottom: 14px; padding: 0; overflow: hidden; }
+.cmd-card .d-card-head { padding: 14px 15px; border-bottom: 1px solid var(--border-soft); }
+.cmd-body { display: flex; flex-direction: column; }
+.cmd-row {
+  display: grid; gap: 10px; align-items: center; padding: 12px 15px;
+  border-bottom: 1px solid var(--border-soft);
+  grid-template-columns: minmax(150px, auto) minmax(190px, 1fr) auto minmax(230px, auto);
+}
+.cmd-row:last-child { border-bottom: none; }
+.cmd-row:hover { background: rgba(255, 255, 255, .02); }
+.cmd-name { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.cmd-name code {
+  direction: ltr; background: var(--chip); border: 1px solid var(--border);
+  padding: 3px 9px; border-radius: 8px; font-size: .82rem; font-weight: 600;
+}
+.cmd-tag {
+  font-size: .68rem; padding: 2px 7px; border-radius: 999px;
+  background: var(--chip); border: 1px solid var(--border); color: var(--muted);
+}
+.cmd-tag.warn { color: #f0c75e; border-color: rgba(240, 199, 94, .4); background: rgba(240, 199, 94, .1); }
+.cmd-what { color: var(--muted); font-size: .82rem; line-height: 1.75; }
+.cmd-perm { color: var(--muted); font-size: .76rem; white-space: nowrap; }
+.cmd-enable { display: flex; align-items: center; gap: 9px; justify-content: center; }
+.cmd-alias-editor { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
+.cmd-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.cmd-chip {
+  display: inline-flex; align-items: center; gap: 5px; direction: ltr;
+  background: rgba(88, 101, 242, .16); border: 1px solid rgba(88, 101, 242, .45);
+  color: #c3caff; border-radius: 8px; padding: 3px 8px; font-size: .78rem; font-weight: 600;
+  cursor: pointer;
+}
+.cmd-chip:hover { border-color: var(--danger); color: #ffb4b6; }
+.cmd-none { color: var(--muted); font-size: .76rem; }
+.cmd-alias-input {
+  width: 104px; direction: ltr; background: var(--input-bg, var(--panel));
+  border: 1px solid var(--border); border-radius: 9px; padding: 6px 9px;
+  color: var(--text); font-size: .8rem;
+}
+.cmd-alias-input:focus { outline: none; border-color: var(--primary); }
+.cmd-add {
+  display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
+  background: var(--chip); border: 1px solid var(--border); color: var(--text);
+  border-radius: 9px; padding: 6px 11px; font-size: .79rem; font-family: inherit;
+}
+.cmd-add:hover { border-color: var(--primary); }
+
+/* ============================ مكتبة الأوامر ============================ */
+.guide-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;
+  position: relative;
+}
+.guide-search { color: var(--muted); display: inline-flex; }
+.guide-bar .d-in { max-width: 260px; }
+.guide-chips { display: flex; gap: 7px; flex-wrap: wrap; }
+.guide-count { color: var(--muted); font-size: .78rem; margin-inline-start: auto; }
+.guide-grid { display: grid; gap: 13px; grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); }
+.guide-card {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 15px;
+  padding: 15px; display: flex; flex-direction: column; gap: 11px;
+}
+.guide-head { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.guide-name {
+  direction: ltr; background: rgba(88, 101, 242, .16); border: 1px solid rgba(88, 101, 242, .42);
+  color: #c3caff; padding: 3px 9px; border-radius: 8px; font-size: .84rem; font-weight: 700;
+}
+.guide-head b { font-size: .9rem; }
+.guide-what { margin: 0; color: var(--muted); font-size: .84rem; line-height: 1.85; }
+.guide-block { display: flex; flex-direction: column; gap: 7px; }
+.guide-label { color: var(--muted); font-size: .73rem; font-weight: 600; letter-spacing: .2px; }
+.guide-usage {
+  direction: ltr; display: block; background: var(--panel-2, #171d33); border: 1px solid var(--border-soft);
+  border-radius: 10px; padding: 9px 11px; font-size: .78rem; line-height: 1.9; color: #cbd3ff;
+  white-space: pre-wrap; word-break: break-word; text-align: left;
+}
+.guide-copy {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
+  background: var(--chip); border: 1px solid var(--border); color: var(--text);
+  border-radius: 8px; padding: 4px 9px; font-size: .74rem; font-family: inherit;
+}
+.guide-copy:hover { border-color: var(--primary); }
+.guide-examples { display: flex; flex-direction: column; gap: 6px; }
+.guide-ex { display: flex; align-items: center; gap: 7px; }
+.guide-ex code {
+  direction: ltr; flex: 1 1 auto; background: var(--panel-2, #171d33); border: 1px solid var(--border-soft);
+  border-radius: 9px; padding: 6px 9px; font-size: .77rem; color: #d8dcf6;
+  overflow-x: auto; white-space: nowrap;
+}
+.guide-subs { display: flex; flex-direction: column; gap: 6px; }
+.guide-sub { display: flex; gap: 9px; align-items: flex-start; }
+.guide-sub code {
+  direction: ltr; min-width: 84px; text-align: center; background: var(--chip); border: 1px solid var(--border);
+  border-radius: 8px; padding: 3px 8px; font-size: .76rem; color: #cbd3ff;
+}
+.guide-sub span { color: var(--muted); font-size: .79rem; line-height: 1.8; }
+.guide-foot {
+  display: flex; gap: 12px; flex-wrap: wrap; margin-top: auto; padding-top: 10px;
+  border-top: 1px solid var(--border-soft); color: var(--muted); font-size: .75rem;
+}
+.guide-foot span { display: inline-flex; align-items: center; gap: 5px; }
+
+@media (max-width: 880px) {
+  .cmd-row { grid-template-columns: 1fr; }
+  .cmd-alias-editor { justify-content: flex-start; }
+  .guide-count { margin-inline-start: 0; }
+}
+
 /* ============================ سجل النشاط (تدقيق) ============================ */
 .d-audit-head { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
 .d-audit-stat {

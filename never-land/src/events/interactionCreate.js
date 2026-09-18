@@ -239,7 +239,7 @@ module.exports = {
           const helpCommand = client.commands.get('help');
           if (helpCommand?.renderCategory) {
             await interaction.deferUpdate().catch(() => {});
-            const payload = helpCommand.renderCategory(client, action, lang);
+            const payload = helpCommand.renderCategory(client, action, lang, interaction.guildId);
             await interaction.editReply(payload).catch(() => {});
           }
           return;

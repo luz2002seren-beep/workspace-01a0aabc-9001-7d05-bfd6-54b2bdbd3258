@@ -346,6 +346,8 @@ const SECTION_ICONS = {
   data: 'folder',
   top: 'trophy',
   autoReply: 'bubbles',
+  commandAliases: 'terminal',
+  commandGuide: 'book',
   audit: 'scroll',
   security: 'shield',
   siteMembers: 'key',
@@ -920,6 +922,256 @@ const SECTIONS = {
   },
 
   /* ------------------------------ التفاعلات التلقائية ------------------------------ */
+  /* ------------------------------ اختصارات الأوامر ------------------------------ */
+  commandAliases: {
+    group: 'الأوامر',
+    label: 'اختصارات الأوامر',
+    title: 'اختصارات الأوامر',
+    desc: 'الأوامر تشتغل مباشرة بلا أي بريفيكست — وكل اختصار تعدّله من هنا.',
+    render() {
+      const wrap = el('div');
+      const statusBox = el('div');
+      const listBox = el('div');
+      wrap.appendChild(statusBox);
+      wrap.appendChild(listBox);
+
+      const load = async () => {
+        listBox.innerHTML = '';
+        listBox.appendChild(el('div', { class: 'd-empty', text: 'جارٍ تحميل الأوامر…' }));
+        try {
+          const data = await api(`/guilds/${state.guildId}/commands`);
+
+          /* شريط الحالة: تشغيل · حد الاستخدام · عدد الأوامر */
+          statusBox.innerHTML = '';
+          const bar = el('div', { class: 'cmd-bar' });
+          const enabledWrap = el('div', { class: 'cmd-toggle' });
+          const sw = el('label', { class: 'd-switch' });
+          const swInput = el('input', { type: 'checkbox' });
+          swInput.checked = Boolean(data.enabled);
+          sw.appendChild(swInput);
+          sw.appendChild(el('span'));
+          swInput.addEventListener('change', async () => {
+            const next = swInput.checked;
+            try {
+              await api(`/guilds/${state.guildId}/commands/options`, { method: 'POST', body: { enabled: next } });
+              toast(next ? 'الأوامر بلا بريفيكست صارت مشتغلة' : 'تم إيقاف الأوامر بلا بريفيكست');
+            } catch (err) {
+              swInput.checked = !next;
+              toast(err.message, true);
+            }
+          });
+          enabledWrap.appendChild(sw);
+          enabledWrap.appendChild(el('div', { html: '<b>الأوامر بلا بريفيكست</b><span>اكتب اسم الأمر بالإنجليزي مباشرة في الشات</span>' }));
+
+          const cd = el('input', { class: 'd-in', type: 'number', min: '0', max: '60', value: String(data.cooldownSeconds ?? 3) });
+          const cdWrap = el('label', { class: 'cmd-cd' });
+          cdWrap.appendChild(el('span', { text: 'حد الاستخدام (ثانية)' }));
+          cdWrap.appendChild(cd);
+          const saveCd = el('button', { class: 'd-btn sm', text: 'حفظ' });
+          saveCd.addEventListener('click', async () => {
+            try {
+              await api(`/guilds/${state.guildId}/commands/options`, { method: 'POST', body: { cooldownSeconds: Number(cd.value) || 0 } });
+              toast('تم حفظ حد الاستخدام');
+            } catch (err) { toast(err.message, true); }
+          });
+          cdWrap.appendChild(saveCd);
+
+          const counts = el('div', { class: 'cmd-counts' });
+          counts.appendChild(el('span', { text: `${data.items.length} أمر` }));
+          counts.appendChild(el('span', { text: `${data.items.filter((i) => i.aliases.length).length} لها اختصار جاهز` }));
+
+          bar.appendChild(enabledWrap);
+          bar.appendChild(counts);
+          bar.appendChild(el('span', { class: 'grow' }));
+          bar.appendChild(cdWrap);
+          statusBox.appendChild(bar);
+
+          /* مجموعة لكل تصنيف */
+          listBox.innerHTML = '';
+          const groups = {};
+          data.items.forEach((item) => {
+            const key = item.categoryLabel || 'أوامر';
+            (groups[key] = groups[key] || []).push(item);
+          });
+
+          Object.entries(groups).forEach(([label, items]) => {
+            const card = el('div', { class: 'd-card cmd-card' });
+            const head = el('div', { class: 'd-card-head' });
+            head.appendChild(el('span', { class: 'ico', html: ic('terminal', 16) }));
+            const headTxt = el('div');
+            headTxt.appendChild(el('b', { text: `${label} (${items.length})` }));
+            headTxt.appendChild(el('span', { text: 'اسم الأمر إنجليزي · الاختصارات تقدر تغيّرها' }));
+            head.appendChild(headTxt);
+            card.appendChild(head);
+
+            const body = el('div', { class: 'cmd-body' });
+            items.forEach((item) => {
+              const row = el('div', { class: 'cmd-row' });
+              const nameCell = el('div', { class: 'cmd-name' });
+              nameCell.appendChild(el('code', { text: item.name }));
+              if (!item.text) nameCell.appendChild(el('span', { class: 'cmd-tag warn', text: 'سلاش فقط' }));
+              if (!item.real) nameCell.appendChild(el('span', { class: 'cmd-tag', text: 'غير مثبّت' }));
+              row.appendChild(nameCell);
+
+              row.appendChild(el('div', { class: 'cmd-what', text: item.what }));
+
+              /* تشغيل/إطفاء الأمر بلا بريفيكست */
+              const toggleWrap = el('div', { class: 'cmd-enable' });
+              const toggle = el('label', { class: 'd-switch' });
+              const toggleInput = el('input', { type: 'checkbox' });
+              toggleInput.checked = Boolean(item.enabled);
+              toggle.appendChild(toggleInput);
+              toggle.appendChild(el('span'));
+              toggleInput.addEventListener('change', async () => {
+                try {
+                  await api(`/guilds/${state.guildId}/commands/toggle`, { method: 'POST', body: { command: item.name, enabled: toggleInput.checked } });
+                  toast(toggleInput.checked ? `«${item.name}» صار يشتغل بلا بريفيكست` : `«${item.name}» صار يحتاج سلاش فقط`);
+                } catch (err) {
+                  toggleInput.checked = !toggleInput.checked;
+                  toast(err.message, true);
+                }
+              });
+              toggleWrap.appendChild(toggle);
+              toggleWrap.appendChild(el('span', { class: 'cmd-perm', text: item.perm ? item.perm : 'للجميع' }));
+              row.appendChild(toggleWrap);
+
+              /* محرّر الاختصارات */
+              const editor = el('div', { class: 'cmd-alias-editor' });
+              const chips = el('div', { class: 'cmd-chips' });
+              let current = [...item.aliases];
+
+              const repaint = () => {
+                chips.innerHTML = '';
+                if (!current.length) chips.appendChild(el('span', { class: 'cmd-none', text: 'بلا اختصار' }));
+                current.forEach((alias) => {
+                  const chip = el('button', { class: 'cmd-chip', title: 'شيل الاختصار', html: `${esc(alias)} ${ic('close', 12)}` });
+                  chip.addEventListener('click', () => {
+                    current = current.filter((a) => a !== alias);
+                    save();
+                  });
+                  chips.appendChild(chip);
+                });
+              };
+
+              const save = async () => {
+                try {
+                  const res = await api(`/guilds/${state.guildId}/commands/aliases`, { method: 'POST', body: { command: item.name, aliases: current } });
+                  current = res.aliases;
+                  repaint();
+                  toast(`تم حفظ اختصارات ${item.name}`);
+                } catch (err) {
+                  toast(err.message, true);
+                  repaint();
+                }
+              };
+
+              const addInput = el('input', { class: 'cmd-alias-input', placeholder: 'اختصار جديد', maxlength: '20', dir: 'ltr' });
+              const addBtn = el('button', { class: 'cmd-add', html: `${ic('plus', 13)} إضافة` });
+              const commit = () => {
+                const value = String(addInput.value || '').trim().toLowerCase();
+                if (!value) return;
+                if (current.includes(value)) { toast('الاختصار مضاف من قبل', true); return; }
+                if (current.length >= 5) { toast('الحد الأقصى ٥ اختصارات للأمر', true); return; }
+                current = [...current, value];
+                addInput.value = '';
+                save();
+              };
+              addBtn.addEventListener('click', commit);
+              addInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); commit(); } });
+
+              repaint();
+              editor.appendChild(chips);
+              editor.appendChild(addInput);
+              editor.appendChild(addBtn);
+              row.appendChild(editor);
+
+              body.appendChild(row);
+            });
+
+            card.appendChild(body);
+            listBox.appendChild(card);
+          });
+        } catch (err) {
+          listBox.innerHTML = '';
+          listBox.appendChild(el('div', { class: 'd-empty', text: err.message }));
+        }
+      };
+
+      load();
+      return wrap;
+    },
+  },
+
+  /* ------------------------------ مكتبة الأوامر ------------------------------ */
+  commandGuide: {
+    group: 'الأوامر',
+    label: 'مكتبة الأوامر',
+    title: 'مكتبة الأوامر',
+    desc: 'شرح كل أمر: شو يعمل، كيف تكتبه، وأمثلة جاهزة تنسخها.',
+    render() {
+      const wrap = el('div');
+      const toolbar = el('div', { class: 'guide-bar' });
+      const box = el('div');
+      wrap.appendChild(toolbar);
+      wrap.appendChild(box);
+
+      let items = [];
+      let activeCat = 'all';
+      let query = '';
+
+      const paint = () => {
+        box.innerHTML = '';
+        const filtered = items.filter((i) => (activeCat === 'all' || i.category === activeCat)
+          && (!query
+            || i.name.toLowerCase().includes(query)
+            || (i.label || '').includes(query)
+            || (i.what || '').includes(query)
+            || (i.usage || []).join(' ').includes(query)));
+        if (!filtered.length) {
+          box.appendChild(el('div', { class: 'd-empty', text: 'ما في أمر مطابق لبحثك.' }));
+          return;
+        }
+        const grid = el('div', { class: 'guide-grid' });
+        filtered.forEach((item) => grid.appendChild(guideCard(item)));
+        box.appendChild(grid);
+      };
+
+      (async () => {
+        try {
+          const data = await api('/commands');
+          items = data.items;
+          toolbar.innerHTML = '';
+
+          const search = el('input', { class: 'd-in', placeholder: 'ابحث عن أمر…', type: 'search' });
+          search.addEventListener('input', () => { query = search.value.trim(); paint(); });
+          toolbar.appendChild(el('span', { class: 'guide-search', html: ic('search', 15) }));
+          toolbar.appendChild(search);
+
+          const chips = el('div', { class: 'guide-chips' });
+          [['all', `الكل (${items.length})`], ...data.categories.map((c) => [c.key, `${c.label} (${items.filter((i) => i.category === c.key).length})`])]
+            .forEach(([key, label]) => {
+              const chip = el('button', { class: `chip${key === 'all' ? ' active' : ''}`, text: label });
+              chip.addEventListener('click', () => {
+                activeCat = key;
+                chips.querySelectorAll('.chip').forEach((c) => c.classList.toggle('active', c === chip));
+                paint();
+              });
+              chips.appendChild(chip);
+            });
+          toolbar.appendChild(chips);
+          toolbar.appendChild(el('span', { class: 'guide-count', text: `${items.length} أمر · ${items.filter((i) => i.text).length} يشتغل بلا بريفيكست` }));
+
+          paint();
+        } catch (err) {
+          box.innerHTML = '';
+          box.appendChild(el('div', { class: 'd-empty', text: err.message }));
+        }
+      })();
+
+      return wrap;
+    },
+  },
+
   /* ------------------------------ سجل النشاط ------------------------------ */
   audit: {
     group: 'البيانات',
@@ -1879,6 +2131,83 @@ async function loadTopBoard(note, box) {
   }
 }
 
+/* ============================ مكتبة الأوامر ============================ */
+
+/** بطاقة شرح أمر واحد: شو يعمل · كيف تكتبه · أمثلة تنسخها · أوامره الفرعية */
+function guideCard(item) {
+  const card = el('div', { class: 'guide-card' });
+
+  const head = el('div', { class: 'guide-head' });
+  head.appendChild(el('code', { class: 'guide-name', text: item.name }));
+  head.appendChild(el('b', { text: item.label || '' }));
+  if (!item.text) head.appendChild(el('span', { class: 'cmd-tag warn', text: 'سلاش فقط' }));
+  card.appendChild(head);
+  card.appendChild(el('p', { class: 'guide-what', text: item.what }));
+
+  /* كيف تكتبه */
+  const how = el('div', { class: 'guide-block' });
+  how.appendChild(el('span', { class: 'guide-label', text: 'كيف تكتبه' }));
+  const code = el('code', { class: 'guide-usage', dir: 'ltr', text: (item.usage || []).join('\n') });
+  how.appendChild(code);
+  const copy = el('button', { class: 'guide-copy', html: `${ic('save', 13)} نسخ` });
+  copy.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText((item.usage || []).join('\n'));
+      copy.innerHTML = `${ic('check', 13)} تم النسخ`;
+      setTimeout(() => { copy.innerHTML = `${ic('save', 13)} نسخ`; }, 1600);
+    } catch {
+      copy.innerHTML = `${ic('close', 13)} تعذّر النسخ`;
+    }
+  });
+  how.appendChild(copy);
+  card.appendChild(how);
+
+  /* أمثلة */
+  if (item.examples?.length) {
+    const ex = el('div', { class: 'guide-block' });
+    ex.appendChild(el('span', { class: 'guide-label', text: 'أمثلة جاهزة' }));
+    const list = el('div', { class: 'guide-examples' });
+    item.examples.forEach((example) => {
+      const row = el('div', { class: 'guide-ex' });
+      row.appendChild(el('code', { dir: 'ltr', text: example }));
+      const btn = el('button', { class: 'guide-copy', html: `${ic('save', 12)}` , title: 'نسخ المثال' });
+      btn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(example);
+          btn.innerHTML = ic('check', 12);
+          setTimeout(() => { btn.innerHTML = ic('save', 12); }, 1500);
+        } catch { toast('تعذّر النسخ من المتصفح', true); }
+      });
+      row.appendChild(btn);
+      list.appendChild(row);
+    });
+    ex.appendChild(list);
+    card.appendChild(ex);
+  }
+
+  /* الأوامر الفرعية */
+  if (item.subs && Object.keys(item.subs).length) {
+    const subs = el('div', { class: 'guide-block' });
+    subs.appendChild(el('span', { class: 'guide-label', text: `أوامره الفرعية (${Object.keys(item.subs).length})` }));
+    const list = el('div', { class: 'guide-subs' });
+    Object.entries(item.subs).forEach(([name, desc]) => {
+      const row = el('div', { class: 'guide-sub' });
+      row.appendChild(el('code', { dir: 'ltr', text: name }));
+      row.appendChild(el('span', { text: desc }));
+      list.appendChild(row);
+    });
+    subs.appendChild(list);
+    card.appendChild(subs);
+  }
+
+  card.appendChild(el('div', {
+    class: 'guide-foot',
+    html: `<span>${ic('lock', 12)} ${esc(item.perm || 'للجميع')}</span><span>${ic('bolt', 12)} ${item.text ? 'بلا بريفيكست' : 'سلاش فقط'}</span>`,
+  }));
+
+  return card;
+}
+
 /* ============================ حماية الموقع (للمالك) ============================ */
 
 async function loadSecurity(note, box) {
@@ -2100,7 +2429,7 @@ async function loadSiteMembers(note, box) {
 }
 
 /* ============================ الهيكل العام ============================ */
-const GROUP_ORDER = ['عام', 'الأعضاء', 'الحماية', 'التذاكر', 'السجلات', 'البيانات', 'إدارة الموقع'];
+const GROUP_ORDER = ['عام', 'الأعضاء', 'الأوامر', 'الحماية', 'التذاكر', 'السجلات', 'البيانات', 'إدارة الموقع'];
 
 function buildSidebar() {
   const side = el('aside', { class: 'd-side' });
@@ -2138,6 +2467,8 @@ function buildSidebar() {
       item.addEventListener('click', () => {
         state.section = id;
         renderSection(id);
+        /* الرابط يتحدّث (#اسم-القسم) — يسمح بفتح قسم معيّن مباشرة من رابط البوت */
+        if (window.history?.replaceState) window.history.replaceState(null, '', `#${id}`);
         if (window.innerWidth <= 900) item.scrollIntoView({ behavior: 'smooth', inline: 'center' });
       });
       groupWrap.appendChild(item);
@@ -2471,6 +2802,10 @@ async function boot() {
     [msg, grow, reset, save].forEach((n) => bar.appendChild(n));
     main.appendChild(bar);
     }
+
+    /* لو الرابط فيه #قسم (مثل ما يرسله البوت) نفتحه مباشرة */
+    const wanted = (window.location.hash || '').replace('#', '');
+    if (wanted && SECTIONS[wanted]) state.section = wanted;
 
     items.forEach(({ item }) => item.classList.toggle('active', item.dataset.id === state.section));
     renderSection(state.section);

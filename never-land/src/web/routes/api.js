@@ -23,6 +23,8 @@ const db = require('../../database');
 const leveling = require('../../systems/leveling');
 const securityLib = require('../../lib/security');
 const audit = require('../../lib/audit');
+const textCommands = require('../../systems/textCommands');
+const catalog = require('../../data/commandCatalog');
 const siteUsers = require('../siteUsers');
 const periods = require('../../lib/periods');
 const { mergeSettings } = require('../../database/defaults');
@@ -239,6 +241,138 @@ router.post('/guilds/:guildId/settings', async (req, res) => {
   });
 
   return res.json({ ok: true, settings: db.getGuild(guildId).settings, savedAt: Date.now() });
+});
+
+/* ------------------------------- مكتبة الأوامر ------------------------------- */
+
+/**
+ * كل الأوامر مع شرحها وأمثلتها (تقرأها لوحة «مكتبة الأوامر»).
+ * مصدرها ملف واحد يقرأه البوت والموقع معًا (src/data/commandCatalog.js).
+ */
+router.get('/commands', (req, res) => {
+  let loaded = [];
+  try {
+    loaded = [...(require('../../client').commands?.keys?.() || [])];
+  } catch {
+    loaded = [];
+  }
+  const items = Object.entries(catalog.COMMANDS).map(([name, meta]) => ({
+    name,
+    label: meta.label,
+    what: meta.what,
+    usage: meta.usage,
+    examples: meta.examples,
+    subs: meta.subs || null,
+    perm: meta.perm,
+    category: meta.category,
+    categoryLabel: catalog.CATEGORIES[meta.category] || meta.category,
+    text: meta.text !== false,
+    installed: loaded.includes(name),
+  }));
+
+  return res.json({
+    categories: Object.entries(catalog.CATEGORIES).map(([key, label]) => ({ key, label })),
+    prefix: { enabled: true, note: 'الأوامر الإنجليزية تشتغل مباشرة بلا أي رمز قبلها' },
+    items,
+    counts: {
+      total: items.length,
+      text: items.filter((i) => i.text).length,
+      installed: items.filter((i) => i.installed).length,
+    },
+  });
+});
+
+/* ------------------------------- اختصارات الأوامر ------------------------------- */
+
+router.get('/guilds/:guildId/commands', async (req, res) => {
+  const { guildId } = req.params;
+  if (!(await canAccess(req, guildId))) return res.status(403).json({ error: 'forbidden' });
+
+  let loaded = [];
+  try {
+    loaded = [...require('../../client').commands?.keys?.() || []];
+  } catch {
+    loaded = [];
+  }
+
+  const snapshot = textCommands.adminSnapshot(guildId, loaded);
+  return res.json({
+    ...snapshot,
+    note: 'الأوامر الإنجليزية تشتغل بلا بريفيكست · عدّل الاختصارات كما تحب وتُطبَّق فورًا.',
+  });
+});
+
+router.post('/guilds/:guildId/commands/aliases', async (req, res) => {
+  if (!canEdit(req)) return res.status(403).json({ error: 'readonly', message: 'هذا الإجراء يحتاج تسجيل دخول Discord.' });
+
+  const { guildId } = req.params;
+  if (!(await canAccess(req, guildId))) return res.status(403).json({ error: 'forbidden' });
+
+  const { command, aliases } = req.body || {};
+  if (!command) return res.status(400).json({ error: 'bad_request', message: 'اسم الأمر مطلوب.' });
+
+  const result = textCommands.setAliases(guildId, String(command), aliases);
+  if (!result.ok) {
+    const messages = {
+      unknown_command: 'هذا الأمر غير موجود.',
+      invalid_alias: 'الاختصار لازم يكون إنجليزي بحروف صغيرة (بلا مسافات أو رموز).',
+      alias_taken: 'الاختصار محجوز لأمر ثاني.',
+    };
+    return res.status(400).json({
+      error: result.error,
+      message: messages[result.error] || 'تعذّر الحفظ.',
+      takenBy: result.takenBy || null,
+      invalid: result.invalid || null,
+    });
+  }
+
+  audit.guild(req, guildId, {
+    action: 'commands.aliases',
+    target: String(command),
+    detail: result.aliases.length ? `الاختصارات الجديدة: ${result.aliases.join(' · ')}` : 'شيل الاختصارات',
+  });
+
+  return res.json({ ok: true, command: String(command), aliases: result.aliases, savedAt: Date.now() });
+});
+
+/** تشغيل/إطفاء أمر واحد بلا بريفيكست (مفيد لو اسم الأمر كلمة إنجليزية شائعة) */
+router.post('/guilds/:guildId/commands/toggle', async (req, res) => {
+  if (!canEdit(req)) return res.status(403).json({ error: 'readonly', message: 'هذا الإجراء يحتاج تسجيل دخول Discord.' });
+
+  const { guildId } = req.params;
+  if (!(await canAccess(req, guildId))) return res.status(403).json({ error: 'forbidden' });
+
+  const { command, enabled } = req.body || {};
+  const result = textCommands.setCommandEnabled(guildId, String(command || ''), Boolean(enabled));
+  if (!result.ok) return res.status(400).json({ error: result.error, message: 'هذا الأمر غير معروف.' });
+
+  audit.guild(req, guildId, {
+    action: 'commands.toggle',
+    target: result.command,
+    detail: enabled ? `تشغيل الأمر «${command}» بلا بريفيكست` : `إطفاء الأمر «${command}» بلا بريفيكست`,
+  });
+
+  return res.json({ ok: true, command: result.command, enabled: result.enabled, disabled: result.disabled });
+});
+
+router.post('/guilds/:guildId/commands/options', async (req, res) => {
+  if (!canEdit(req)) return res.status(403).json({ error: 'readonly', message: 'هذا الإجراء يحتاج تسجيل دخول Discord.' });
+
+  const { guildId } = req.params;
+  if (!(await canAccess(req, guildId))) return res.status(403).json({ error: 'forbidden' });
+
+  const { enabled, cooldownSeconds } = req.body || {};
+  const result = textCommands.setOptions(guildId, { enabled, cooldownSeconds });
+  if (!result.ok) return res.status(400).json({ error: result.error, message: 'ما في تغيير للحفظ.' });
+
+  audit.guild(req, guildId, {
+    action: 'commands.options',
+    target: 'textCommands',
+    detail: `الأوامر بلا بريفيكست: ${result.config.enabled ? 'مشتغلة' : 'موقوفة'} · الحد: ${result.config.cooldownSeconds} ثانية`,
+    severity: 'warn',
+  });
+
+  return res.json({ ok: true, config: { enabled: result.config.enabled, cooldownSeconds: result.config.cooldownSeconds } });
 });
 
 /* ------------------------------- سجل النشاط (للقراءة) ------------------------------- */

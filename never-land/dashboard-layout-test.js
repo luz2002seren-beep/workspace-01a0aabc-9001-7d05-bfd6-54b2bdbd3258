@@ -191,12 +191,13 @@ async function run({ quiet = false } = {}) {
       /* ٤) العنوان نظيف */
       assert.ok(info.title && !info.title.includes('undefined'), `[${who}] عنوان القسم فيه «undefined»: ${info.title}`);
       /* ٥) الأقسام ظاهرة + قسم المالك لا يظهر لغير المالك */
-      /* ١٦ قسمًا للجميع (منها «سجل النشاط») · وقسمان خاصّان بالمالك: «حماية الموقع» و«أعضاء الموقع» */
-      assert.ok(info.navCount >= 16, `[${who}] عدد أقسام القائمة ${info.navCount}`);
+      /* ١٨ قسمًا للجميع (منها «اختصارات الأوامر» و«مكتبة الأوامر» و«سجل النشاط»)
+         وقسمان خاصّان بالمالك: «حماية الموقع» و«أعضاء الموقع» */
+      assert.ok(info.navCount >= 18, `[${who}] عدد أقسام القائمة ${info.navCount}`);
       if (who === 'owner') {
-        assert.ok(info.navCount >= 18, `[المالك] عدد الأقسام ${info.navCount} — ينقصه قسمان خاصّان بالمالك`);
+        assert.ok(info.navCount >= 20, `[المالك] عدد الأقسام ${info.navCount} — ينقصه قسمان خاصّان بالمالك`);
       } else {
-        assert.ok(info.navCount <= 16, `[${who}] يرى أقسام المالك! (${info.navCount})`);
+        assert.ok(info.navCount <= 18, `[${who}] يرى أقسام المالك! (${info.navCount})`);
       }
       /* ٦) شريط القراءة فقط لا يكسر الشبكة */
       if (who !== 'owner') {

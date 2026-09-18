@@ -1246,8 +1246,8 @@ console.log('[نجاح] كل الاختبارات نجحت!');
     if (res19.skipped) {
       console.log('  [تخطّي] jsdom غير مثبّتة — الاختبار يعمل عند توفرها');
     } else {
-      assert.ok(res19.navCount >= 12, `عدد أقسام القائمة قليل (${res19.navCount})`);
-      for (const wanted of ['تفاعل', 'المستويات', 'مركز التحكم']) {
+      assert.ok(res19.navCount >= 18, `عدد أقسام القائمة قليل (${res19.navCount})`);
+      for (const wanted of ['تفاعل', 'المستويات', 'مركز التحكم', 'اختصارات الأوامر', 'مكتبة الأوامر']) {
         assert.ok(res19.labels.includes(wanted), `القسم «${wanted}» غير ظاهر في اللوحة الحقيقية`);
       }
       console.log(`  [تم] اللوحة تُقلع بلا أخطاء JS · ${res19.navCount} قسمًا · «تفاعل» بأيقونة الكأس`);
@@ -1617,6 +1617,71 @@ console.log('[نجاح] كل الاختبارات نجحت!');
     assert.ok(out40.includes('🎉'), 'اختبار الحماية ما نجح');
 
     console.log('  [تم] سجل النشاط محفوظ دائمًا (من عمل شو ومتى) · حماية: CSP · CSRF · حدّ طلبات · بلا تلويث · نسخة احتياطية');
+  }
+
+ console.log('[اختبار] 41: الأوامر بلا بريفيكست + تعديل الاختصارات من الموقع + مكتبة الشرح');
+  {
+    const fs41 = require('node:fs');
+    const path41 = require('node:path');
+    const root41 = path41.join(__dirname, '..');
+    const read41 = (rel) => fs41.readFileSync(path41.join(root41, rel), 'utf8');
+
+    // ١) محرّك الأوامر النصية موجود وموصول بحدث الرسائل
+    const sys41 = read41('src/systems/textCommands.js');
+    for (const needle of ['handleMessage', 'resolveCommand', 'aliasIndex', 'makeFakeInteraction', 'optionDefs', 'adminSnapshot', 'setAliases', 'setCommandEnabled', 'message.author?.bot']) {
+      assert.ok(sys41.includes(needle), `محرّك الأوامر النصية ينقصه ${needle}`);
+    }
+    const evt41 = read41('src/events/messageCreate.js');
+    assert.ok(evt41.includes('textCommands.handleMessage'), 'حدث الرسائل ما ينادي الأوامر النصية');
+    assert.ok(
+      evt41.indexOf('textCommands.handleMessage') < evt41.indexOf('leveling.handleMessage'),
+      'الأوامر النصية لازم تكون قبل الخبرة',
+    );
+
+    // ٢) الكتالوج يغطي كل الأوامر الحقيقية — شرح وكيفية وأمثلة واختصارات
+    const catalog41 = require(path41.join(root41, 'src', 'data', 'commandCatalog.js'));
+    const { walk: walk41 } = require(path41.join(root41, 'src', 'handlers', 'commands.js'));
+    const realNames41 = walk41(path41.join(root41, 'src', 'commands')).map((f) => require(f).data.toJSON().name).sort();
+    assert.deepStrictEqual(realNames41, Object.keys(catalog41.COMMANDS).sort(), 'الكتالوج ما يطابق الأوامر الحقيقية');
+    for (const [name, meta] of Object.entries(catalog41.COMMANDS)) {
+      assert.ok(meta.what && meta.usage?.length && meta.examples?.length, `الأمر ${name} ينقصه شرح أو أمثلة`);
+      assert.ok(Array.isArray(meta.aliases), `الأمر ${name} ينقصه حقل الاختصارات`);
+    }
+    assert.ok(catalog41.textCommands().length >= 25, 'عدد الأوامر بلا بريفيكست قليل');
+
+    // ٣) مسارات الموقع: اختصارات · تبديل · مكتبة · والإعدادات محفوظة في القاعدة
+    const api41 = read41('src/web/routes/api.js');
+    for (const needle of ["router.get('/commands'", "commands/aliases'", "commands/toggle'", "commands/options'"]) {
+      assert.ok(api41.includes(needle), `مسارات الأوامر ينقصها ${needle}`);
+    }
+    const def41 = read41('src/config.js');
+    assert.ok(!def41.includes('textCommands:'), 'إعدادات الأوامر النصية لازم تُدار من المحرّك نفسه (لا من defaults)');
+
+    // ٤) الواجهة: القسمان + الأيقونات + الأنماط + الرابط #قسم
+    const app41 = read41('src/web/public/app.js');
+    for (const needle of ["commandAliases: 'terminal'", "commandGuide: 'book'", "label: 'اختصارات الأوامر'", "label: 'مكتبة الأوامر'", 'function guideCard', 'commands/aliases', 'commands/toggle', 'location.hash']) {
+      assert.ok(app41.includes(needle), `لوحة الأوامر ينقصها ${needle}`);
+    }
+    const dash41 = read41('src/web/public/dash.css');
+    for (const needle of ['.cmd-row', '.cmd-chip', '.cmd-alias-editor', '.guide-card', '.guide-usage', '.guide-examples']) {
+      assert.ok(dash41.includes(needle), `أنماط الأوامر ينقصها ${needle}`);
+    }
+
+    // ٥) أمر /help يشرح الطريقة بلا بريفيكست ويوصل لمكتبة الموقع
+    const help41 = read41('src/commands/general/help.js');
+    for (const needle of ['commandCatalog', 'guideButton', 'بلا بريفيكست', '#commandGuide']) {
+      assert.ok(help41.includes(needle), `أمر /help ينقصه ${needle}`);
+    }
+
+    // ٦) الاختبار العملي الكامل (١٠ مجموعات)
+    const { execFileSync } = require('node:child_process');
+    const out41 = execFileSync('node', [path41.join(root41, 'text-commands-test.js')], { cwd: root41, encoding: 'utf8' });
+    for (const needle of ['١) أمر مباشر بلا بريفيكست', '٢) الأوامر الفرعية', '٣) الكلمات العربية', '٤) الاختصارات', '٥) الإيقاف والتشغيل', '٦) الصلاحيات', '٧) حد الاستخدام', '٨) مكتبة الشرح', '٩) ', '١٠) التصويت']) {
+      assert.ok(out41.includes(needle), `اختبار الأوامر النصية ينقصه: ${needle}`);
+    }
+    assert.ok(out41.includes('🎉'), 'اختبار الأوامر النصية ما نجح');
+
+  console.log('  [تم] أوامر بلا بريفيكست (ban · kick · top…) · اختصارات تُعدَّل من الموقع · مكتبة شرح لكل أمر بـ ٢٩ أمرًا');
   }
 
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');

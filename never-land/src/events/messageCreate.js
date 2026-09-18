@@ -7,8 +7,9 @@
  *   1) الحماية التلقائية (Automod) — إن تعاملت مع الرسالة نتوقف
  *   2) الخط الفاصل التلقائي (AutoLine)
  *   3) التفاعلات التلقائية (AutoReaction)
- *   4) الردود التلقائية (AutoReply) — رد على كلمة مفتاحية في أي روم
- *   5) نظام الخبرة (Leveling)
+ *   4) الأوامر النصية بلا بريفيكست (TextCommands) — إن تعاملت مع الرسالة نتوقف
+ *   5) الردود التلقائية (AutoReply) — رد على كلمة مفتاحية في أي روم
+ *   6) نظام الخبرة (Leveling)
  * -------------------------------------------------------------
  */
 
@@ -17,6 +18,7 @@ const automod = require('../systems/automod');
 const autoline = require('../systems/autoline');
 const autoreact = require('../systems/autoreact');
 const autoreply = require('../systems/autoreply');
+const textCommands = require('../systems/textCommands');
 const leveling = require('../systems/leveling');
 
 module.exports = {
@@ -35,10 +37,14 @@ module.exports = {
     // 3) التفاعلات التلقائية
     await autoreact.handleMessage(client, message);
 
-    // 4) الردود التلقائية
+    // 4) الأوامر النصية بلا بريفيكست (ban · help · top …)
+    const usedCommand = await textCommands.handleMessage(client, message);
+    if (usedCommand) return;
+
+    // 5) الردود التلقائية
     await autoreply.handleMessage(client, message);
 
-    // 5) الخبرة
+    // 6) الخبرة
     await leveling.handleMessage(client, message);
   },
 };

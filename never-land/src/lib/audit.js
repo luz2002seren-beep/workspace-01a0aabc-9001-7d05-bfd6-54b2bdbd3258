@@ -48,7 +48,8 @@ function describeChange(patch, { maxKeys = 6 } = {}) {
 function record(req, entry = {}) {
   try {
     const actor = entry.actor || (req?.session?.user ? { id: req.session.user.id, name: req.session.user.globalName || req.session.user.username } : null);
-    const ip = req ? clientIp(req) : '';
+    /* بعض الأحداث تجي من ديسكورد (رسالة) لا من طلب ويب — req يكون null أو بلا headers */
+    const ip = req && req.headers ? clientIp(req) : '';
     const saved = db.addAudit({
       guildId: entry.guildId ?? null,
       actorId: actor?.id || null,
