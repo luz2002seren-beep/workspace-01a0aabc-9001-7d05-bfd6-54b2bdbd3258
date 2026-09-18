@@ -76,6 +76,19 @@ const ic = (name, size = 17) => icon(name, { size });
 const esc = (s) =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+/* معرّف هذه الصفحة: نرسله مع كل طلب حتى نعرف التغييرات اللي صارت من مكان تاني */
+const PAGE_CLIENT_ID = (() => {
+  try {
+    const existing = sessionStorage.getItem('nl-client-id');
+    if (existing) return existing;
+    const made = `p-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    sessionStorage.setItem('nl-client-id', made);
+    return made;
+  } catch {
+    return 'p-anonymous';
+  }
+})();
+
 async function api(path, options = {}) {
   const res = await fetch(`/api${path}`, {
     ...options,
@@ -83,6 +96,7 @@ async function api(path, options = {}) {
       'Content-Type': 'application/json',
       /* رأس الموقع: طبقة ثانية لمنع الطلبات من مواقع خارجية (CSRF) */
       'X-Requested-With': 'neverland-dashboard',
+      'X-Client-Id': PAGE_CLIENT_ID,
       ...(options.headers || {}),
     },
     credentials: 'same-origin',
@@ -1045,6 +1059,25 @@ const SECTIONS = {
           enabledWrap.appendChild(sw);
           enabledWrap.appendChild(el('div', { html: '<b>الأوامر بلا بريفيكست</b><span>اكتب اسم الأمر بالإنجليزي مباشرة في الشات</span>' }));
 
+          /* اقتراح الأوامر المشابهة: لو عضو كتب كلمة تشبه أمرًا، يردّ عليه البوت بالبدائل */
+          const sgWrap = el('label', { class: 'cmd-cd' });
+          const sgSwitch = el('label', { class: 'd-switch' });
+          const sgInput = el('input', { type: 'checkbox' });
+          sgInput.checked = data.suggest !== false;
+          sgSwitch.appendChild(sgInput);
+          sgSwitch.appendChild(el('span'));
+          sgInput.addEventListener('change', async () => {
+            try {
+              await api(`/guilds/${state.guildId}/commands/options`, { method: 'POST', body: { suggest: sgInput.checked } });
+              toast(sgInput.checked ? 'اقتراح الأوامر المشابهة صار مشتغل' : 'تم إيقاف اقتراح الأوامر المشابهة');
+            } catch (err) {
+              sgInput.checked = !sgInput.checked;
+              toast(err.message, true);
+            }
+          });
+          sgWrap.appendChild(sgSwitch);
+          sgWrap.appendChild(el('div', { html: '<b>اقتراح الأوامر المشابهة</b><span>مثال: يكتبون «طير» فيردّ عليهم بالأوامر القريبة</span>' }));
+
           const cd = el('input', { class: 'd-in', type: 'number', min: '0', max: '60', value: String(data.cooldownSeconds ?? 3) });
           const cdWrap = el('label', { class: 'cmd-cd' });
           cdWrap.appendChild(el('span', { text: 'حد الاستخدام (ثانية)' }));
@@ -1066,8 +1099,15 @@ const SECTIONS = {
           bar.appendChild(enabledWrap);
           bar.appendChild(counts);
           bar.appendChild(el('span', { class: 'grow' }));
+          bar.appendChild(sgWrap);
           bar.appendChild(cdWrap);
           statusBox.appendChild(bar);
+
+          /* قاعدة المنشن: الأوامر اللي تحتاج عضو ما تنفّذ إلا بمنشن صريح */
+          statusBox.appendChild(el('div', {
+            class: 'cmd-rule',
+            html: `${ic('userRound', 15)} <span>الأوامر اللي تحتاج عضو (<code dir="ltr">ban</code> · <code dir="ltr">kick</code> · <code dir="ltr">timeout</code>…) تنفّذ <b>بمنشن صريح @العضو فقط</b> — مو بالرد على رسالة ولا بكتابة الاسم.</span>`,
+          }));
 
           /*
            * مجموعتان واضحتان:
@@ -2798,6 +2838,7 @@ function buildSyncBar() {
     else if (s.hasToken) parts.push('<span class="sync-warn">البوت متوقّف — نعرض آخر مزامنة محفوظة</span>');
     else parts.push('<span class="sync-warn">لم يُربط توكن البوت بعد</span>');
     if (s.guildsKnown) parts.push(`<span class="sync-count">${esc(String(s.guildsKnown))} سيرفر</span>`);
+    parts.push(`<span class="sync-live"><i class="live-dot"></i> تغييرات فورية: الموقع ← البوت · وديسكورد ← اللوحة</span>`);
     info.innerHTML = parts.join(' · ');
   };
   paint();
@@ -2823,12 +2864,47 @@ function buildSyncBar() {
     bar.appendChild(btn);
   }
 
+  /* وميض خفيف على شارة الربط الحيّ كل ما يوصل تغيير من مكان تاني */
+  window.__livePaint = () => {
+    const badge = bar.querySelector('.sync-live');
+    if (!badge) return;
+    badge.classList.add('flash');
+    setTimeout(() => badge.classList.remove('flash'), 1400);
+  };
+
   window.__syncPaint = paint;
   return bar;
 }
 
-/** البث الحيّ: أي مزامنة تحدّث الصفحة المفتوحة فورًا بدون تحديث يدوي */
+/**
+ * البثّ الحيّ: أي تغيير في الإعدادات يوصل للصفحة المفتوحة لحظيًا.
+ *   - تغيير من ديسكورد (أوامر البوت) ← نعيد تحميل القسم المفتوح تلقائيًا
+ *   - تغيير من جلسة ثانية على الموقع ← نفس الشي
+ *   - تغيير أنت سوّيته من هذه الصفحة ← نتجاهله (شغلك محفوظ ومحدّث عندك)
+ */
 let liveConnected = false;
+
+/** يعيد تحميل بيانات السيرفر ويُرسم القسم المفتوح من جديد بعد تغيير خارجي */
+let reloadingAfterChange = false;
+async function refreshAfterExternalChange(payload) {
+  if (reloadingAfterChange) return;
+  reloadingAfterChange = true;
+  try {
+    const data = await api(`/guilds/${state.guildId}`);
+    state.settings = data.settings;
+    state.guild = data.guild;
+    state.stats = data.stats;
+    state.meta = data.meta;
+    state.dirty = false;
+    if (state.section && SECTIONS[state.section]) renderSection(state.section);
+    toast(payload?.source === 'bot'
+      ? 'تغيّر الإعدادات من ديسكورد — حُدّثت اللوحة تلقائيًا'
+      : 'تغيّر الإعدادات من جلسة ثانية — حُدّثت اللوحة تلقائيًا');
+  } catch { /* نتجاهل: يحاول مع الدفعة الجاية */ } finally {
+    reloadingAfterChange = false;
+  }
+}
+
 function connectLive() {
   if (liveConnected || typeof EventSource === 'undefined') return;
   liveConnected = true;
@@ -2839,6 +2915,17 @@ function connectLive() {
         const payload = JSON.parse(ev.data);
         state.sync = payload;
         if (window.__syncPaint) window.__syncPaint(payload);
+      } catch { /* تجاهل */ }
+    });
+    es.addEventListener('settings', (ev) => {
+      try {
+        const payload = JSON.parse(ev.data);
+        if (state.live !== false) state.live = true;
+        if (window.__livePaint) window.__livePaint(payload);
+        /* التغيير من هذي الصفحة نفسها؟ ما نعمل شي */
+        if (payload?.clientId && payload.clientId === PAGE_CLIENT_ID) return;
+        if (payload?.guildId && String(payload.guildId) !== String(state.guildId)) return;
+        refreshAfterExternalChange(payload);
       } catch { /* تجاهل */ }
     });
     es.addEventListener('sync-error', (ev) => {

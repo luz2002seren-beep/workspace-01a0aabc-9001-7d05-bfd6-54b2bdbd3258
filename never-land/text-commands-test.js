@@ -155,7 +155,7 @@ async function run() {
 
   /* ----------------------- ١) أوامر مباشرة ----------------------- */
   calls.length = 0;
-  assert.strictEqual(await doIt('ban ahmed سبام شديد 7d'), true, 'أمر ban بلا بريفيكست ما اشتغل');
+  assert.strictEqual(await doIt('ban <@111111111111111111> سبام شديد 7d'), true, 'أمر ban بلا بريفيكست ما اشتغل');
   assert.strictEqual(calls.length, 1, 'الأمر ما نُفّذ');
   assert.strictEqual(calls[0].raw.user, 'ahmed', 'العضو ما انربط');
   assert.strictEqual(calls[0].raw.reason, 'سبام شديد', 'السبب انقطع (لازم ياخذ باقي الجملة)');
@@ -175,7 +175,7 @@ async function run() {
   assert.strictEqual(calls[0].raw.count, 100, 'العدد ما انربط');
 
   calls.length = 0;
-  await doIt('timeout add ahmed 10m إزعاج');
+  await doIt('timeout add <@111111111111111111> 10m إزعاج');
   assert.strictEqual(calls[0].sub, 'add');
   assert.strictEqual(calls[0].raw.user, 'ahmed');
   assert.strictEqual(calls[0].raw.duration, '10m');
@@ -208,7 +208,7 @@ async function run() {
   calls.length = 0;
   await doIt('top');
   assert.strictEqual(calls.length, 1, 'الأمر ما رجع بعد تشغيله');
-  const botMessage = makeMessage('ban ahmed');
+  const botMessage = makeMessage('ban <@111111111111111111>');
   botMessage.author.bot = true;
   assert.strictEqual(await text.handleMessage(client, botMessage), false, 'البوت نفّذ أمرًا');
   console.log(`٣) الكلمات العربية والبوتات: ما تنفّذ شي · والأوامر المطفية من الموقع تتوقف ✅ (ملاحظة: كلمة إنجليزية شائعة مثل top قد تلمس الأمر${triggeredByPlainWord ? ' — والمفتاح لكل أمر يوقفها' : ''})`);
@@ -222,7 +222,7 @@ async function run() {
   assert.strictEqual(okAdd.ok, true, 'إضافة اختصار إنجليزي فشلت');
 
   calls.length = 0;
-  await doIt('bn ahmed');
+  await doIt('bn <@111111111111111111>');
   assert.strictEqual(calls[0]?.name, 'ban', 'الاختصار المضاف ما اشتغل');
 
   const taken = text.setAliases(GUILD, 'kick', ['bn']);
@@ -232,11 +232,11 @@ async function run() {
   const removed = text.setAliases(GUILD, 'ban', []);
   assert.strictEqual(removed.ok, true);
   calls.length = 0;
-  await doIt('bn ahmed', plainMember);
+  await doIt('bn <@111111111111111111>', plainMember);
   assert.strictEqual(calls.length, 0, 'الاختصار المحذوف بقي شغّال');
 
   calls.length = 0;
-  await doIt('ban ahmed');
+  await doIt('ban <@111111111111111111>');
   assert.strictEqual(calls[0]?.name, 'ban', 'اسم الأمر نفسه ما اشتغل بعد حذف الاختصار');
   console.log('٤) الاختصارات: إضافة · منع التعارض · رفض العربي · حذف — كله صح ✅');
 
@@ -244,16 +244,16 @@ async function run() {
   const turnedOff = text.setOptions(GUILD, { enabled: false });
   assert.strictEqual(turnedOff.ok, true);
   calls.length = 0;
-  assert.strictEqual(await doIt('ban ahmed'), false, 'الأوامر شغّالة رغم إيقافها من الموقع!');
+  assert.strictEqual(await doIt('ban <@111111111111111111>'), false, 'الأوامر شغّالة رغم إيقافها من الموقع!');
   text.setOptions(GUILD, { enabled: true });
   calls.length = 0;
-  assert.strictEqual(await doIt('ban ahmed'), true, 'الأوامر ما رجعت بعد التشغيل');
+  assert.strictEqual(await doIt('ban <@111111111111111111>'), true, 'الأوامر ما رجعت بعد التشغيل');
   console.log('٥) الإيقاف والتشغيل من الموقع يُطبَّقان فورًا ✅');
 
   /* ----------------------- ٦) الصلاحيات ----------------------- */
   calls.length = 0;
   replies.length = 0;
-  const guestResult = await doIt('kick ahmed', plainMember);
+  const guestResult = await doIt('kick <@111111111111111111>', plainMember);
   assert.strictEqual(guestResult, true, 'الأمر ما تعامل وياه');
   assert.strictEqual(calls.length, 0, 'عضو بلا صلاحية نفّذ أمرًا إداريًا!');
   assert.ok(String(replies[replies.length - 1]?.content || '').length > 5, 'ما في رسالة توضّح نقص الصلاحية');

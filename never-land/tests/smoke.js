@@ -1797,6 +1797,54 @@ console.log('[نجاح] كل الاختبارات نجحت!');
   console.log('  [تم] أوامر الأعضاء (10) تشتغل لأي عضو · أوامر الإدارة (19) مخفية عن الأعضاء في ديسكورد وفي الموقع');
   }
 
+ console.log('[اختبار] 44: ربط الموقع بالبوت · اقتراح الأوامر المشابهة (طير) · التنفيذ بمنشن صريح فقط');
+  {
+    const fs44 = require('node:fs');
+    const path44 = require('node:path');
+    const root44 = path44.join(__dirname, '..');
+    const read44 = (rel) => fs44.readFileSync(path44.join(root44, rel), 'utf8');
+
+    // ١) الربط الحيّ: بثّ تغييرات الإعدادات + وسم مصدرها
+    const live44 = read44('src/lib/live.js');
+    for (const needle of ['settingsChanged', 'onSettings', 'noteSiteWrite', 'endSiteWrite', "source: fromSite ? 'site' : 'bot'"]) {
+      assert.ok(live44.includes(needle), `الرابط الحيّ ينقصه ${needle}`);
+    }
+    for (const file of ['src/database/sqlite.js', 'src/database/json.js']) {
+      assert.ok(read44(file).includes('notifyLive(guildId)'), `${file} ما يبثّ تغييرات الإعدادات`);
+    }
+    assert.ok(read44('src/web/routes/api.js').includes('event: settings'), 'البثّ الحيّ ما يبثّ تغييرات الإعدادات');
+    const app44 = read44('src/web/public/app.js');
+    for (const needle of ['PAGE_CLIENT_ID', "addEventListener('settings'", 'refreshAfterExternalChange', 'sync-live']) {
+      assert.ok(app44.includes(needle), `اللوحة ينقصها ${needle}`);
+    }
+
+    // ٢) اقتراح الأوامر المشابهة
+    const sug44 = read44('src/systems/suggestions.js');
+    for (const needle of ["'طير'", "'اسكت'", 'HINTS', 'COOLDOWN_MS', 'هل تقصد']) {
+      assert.ok(sug44.includes(needle), `نظام الاقتراحات ينقصه ${needle}`);
+    }
+    assert.ok(read44('src/events/messageCreate.js').includes('suggestions.handleMessage'), 'مسار الرسائل ما يستدعي الاقتراحات');
+    assert.ok(read44('src/systems/textCommands.js').includes('suggest: true'), 'مفتاح الاقتراح مش موصول بالإعدادات');
+    assert.ok(app44.includes('اقتراح الأوامر المشابهة'), 'مفتاح الاقتراح ناقص من اللوحة');
+
+    // ٣) المنشن الصريح فقط
+    const text44 = read44('src/systems/textCommands.js');
+    assert.ok(text44.includes('checkMention') && text44.includes('منشن صريح'), 'قاعدة المنشن الصريح ناقصة');
+    const userBranch44 = text44.split("if (kind === 'user')")[1].split('continue;')[0];
+    assert.ok(!userBranch44.includes('findMember(guild, t)'), 'لسا يقبل كتابة الاسم بلا منشن');
+    assert.ok(app44.includes('منشن صريح'), 'قاعدة المنشن غير موضّحة في اللوحة');
+
+    // ٤) الاختبار العملي (٣ أقسام)
+    const { execFileSync } = require('node:child_process');
+    const out44 = execFileSync('node', [path44.join(root44, 'live-link-test.js')], { cwd: root44, encoding: 'utf8' });
+    for (const needle of ['١) الربط الحيّ', '٢) «طير»', '٣) ردّ على رسالة شخص']) {
+      assert.ok(out44.includes(needle), `اختبار الربط ينقصه: ${needle}`);
+    }
+    assert.ok(out44.includes('🎉'), 'اختبار الربط الحيّ ما نجح');
+
+  console.log('  [تم] الربط الحيّ (موقع ↔ بوت) · «هل تقصد؟» للأوامر المشابهة · والتنفيذ بمنشن صريح فقط');
+  }
+
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');
 
   process.exit(0);

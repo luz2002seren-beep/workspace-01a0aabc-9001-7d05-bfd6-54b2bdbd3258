@@ -14,6 +14,13 @@ const path = require('node:path');
 const { mergeSettings } = require('./defaults');
 const { migrateSettings } = require('./migrate');
 
+/** إشعار البثّ الحيّ: أي كتابة إعدادات تصل للصفحات المفتوحة لحظيًا */
+function notifyLive(guildId) {
+  try {
+    require('../lib/live').settingsChanged(guildId);
+  } catch { /* البثّ ما يوقف الحفظ أبدًا */ }
+}
+
 let store = null;
 let file = null;
 let saveTimer = null;
@@ -136,6 +143,10 @@ module.exports = {
     row.updatedAt = now();
     if (row.settings.language) row.locale = row.settings.language;
     scheduleSave();
+
+    /* الرابط الحيّ: نُشعر الصفحات المفتوحة أن الإعدادات تغيّرت (بوت أو موقع) */
+    notifyLive(guildId);
+
     return hydrateGuild(guildId, defaults);
   },
 

@@ -31,7 +31,7 @@ function defaultsFor() {
   for (const [name, meta] of Object.entries(catalog.COMMANDS)) {
     aliases[name] = Array.isArray(meta.aliases) ? [...meta.aliases] : [];
   }
-  return { enabled: true, aliases, cooldownSeconds: 3, disabled: [] };
+  return { enabled: true, aliases, cooldownSeconds: 3, disabled: [], suggest: true };
 }
 
 /**
@@ -83,6 +83,8 @@ function configFor(guildId) {
     aliases,
     /* أوامر مطفية: ما تشتغل بلا بريفيكست (مفيدة للأوامر اللي اسمها كلمة إنجليزية شائعة) */
     disabled: Array.isArray(saved.disabled) ? saved.disabled.filter((n) => catalog.COMMANDS[n]) : base.disabled,
+    /* اقتراح الأوامر المشابهة: لو كتب عضو كلمة تشبه أمرًا (طير · اسكت · bann) يردّ عليه بالبدائل */
+    suggest: saved.suggest === undefined ? base.suggest : Boolean(saved.suggest),
   };
 }
 
@@ -232,16 +234,15 @@ function bindArguments(interaction, guild, message, tokens, defs) {
     const kind = kindOf(def);
 
     if (kind === 'user') {
-      let idx = tokens.findIndex((t, i) => !claimed[i] && /^<@!?\d+>$/.test(t));
-      if (idx < 0) {
-        const mentioned = mentionMember();
-        if (mentioned) idx = tokens.findIndex((t, i) => !claimed[i] && t.includes(mentioned.id));
-      }
-      if (idx < 0) idx = tokens.findIndex((t, i) => !claimed[i] && !!findMember(guild, t));
+      /*
+       * العضو المطلوب يُحدَّد بمنشن صريح فقط (@العضو) — مو بالرد على رسالة،
+       * ولا بكتابة اسم، ولا بأي شي ثاني. هيك ما ينعقب أحد بالغلط.
+       */
+      const idx = tokens.findIndex((t, i) => !claimed[i] && /^<@!?\d+>$/.test(t));
       if (idx >= 0) {
-        const member = /^<@!?\d+>$/.test(tokens[idx])
-          ? (mentionMember() || findMember(guild, tokens[idx]))
-          : findMember(guild, tokens[idx]);
+        const id = tokens[idx].replace(/[^0-9]/g, '');
+        const mentioned = mentionMember();
+        const member = (mentioned && mentioned.id === id ? mentioned : null) || findMember(guild, tokens[idx]);
         claimed[idx] = true;
         if (member) store.set(def.name, { user: member.user, member });
       }
@@ -363,11 +364,11 @@ function leftoverAssign(defs, leftovers, store) {
 /** تعريفات وسائط السلاش الفعلية لهذا الأمر (أو للأمر الفرعي المختار) */
 function optionDefs(command, sub) {
   const json = command.data.toJSON();
-  const map = new Map(); // name → type
+  const map = new Map(); // name → { type, required }
   const collect = (options) => {
     for (const option of options || []) {
       if (option.type === 1 || option.type === 2) continue;
-      map.set(option.name, option.type);
+      map.set(option.name, { type: option.type, required: Boolean(option.required) });
     }
   };
   if (sub) {
@@ -378,7 +379,7 @@ function optionDefs(command, sub) {
     /* بلا أمر فرعي: لو الأمر نفسه فيه أوامر فرعية نأخذ أول مجموعة وسائط عامة */
     collect(json.options);
   }
-  return [...map.entries()].map(([name, type]) => ({ name, type }));
+  return [...map.entries()].map(([name, meta]) => ({ name, type: meta.type, required: meta.required }));
 }
 
 /**
@@ -460,6 +461,16 @@ async function handleMessage(client, message) {
   }
 
   /* واجهة وهمية بنفس شكل interaction حتى نعيد استخدام نفس الكود */
+  const defs = optionDefs(command, sub);
+  const mention = checkMention(message, args, defs);
+  if (!mention.ok) {
+    await message.reply({
+      content: `اكتب الأمر مع منشن العضو — مثال: \`${exampleFor(command, mention.option)}\``,
+      allowedMentions: { repliedUser: false },
+    }).catch(() => {});
+    return true;
+  }
+
   const fake = makeFakeInteraction(client, message, command, args, sub);
   try {
     await command.run(client, fake, 'ar');
@@ -478,6 +489,40 @@ async function handleMessage(client, message) {
     await fake.reply({ content: 'صار خطأ أثناء تنفيذ الأمر.', flags: MessageFlags.Ephemeral }).catch(() => {});
   }
   return true;
+}
+
+/**
+ * فحص شرط العضو: الأوامر اللي تحتاج عضو (ban · kick · timeout …)
+ * ما تنفّذ إلا لما يكون فيه **منشن صريح @العضو** لنفس الشخص المذكور.
+ *   • الرد على رسالة شخص ← ما ينفع
+ *   • كتابة الاسم بلا منشن ← ما ينفع
+ *   • منشن لعضو مو موجود بالسيرفر ← ما ينفع
+ * @returns {{ok: boolean, option?: string}}
+ */
+function checkMention(message, args, defs) {
+  const need = defs.find((def) => kindOf(def) === 'user' && def.required);
+  if (!need) return { ok: true };
+
+  const token = args.find((t) => /^<@!?\d+>$/.test(String(t)));
+  if (!token) return { ok: false, option: need.name };
+
+  const id = String(token).replace(/[^0-9]/g, '');
+  const mentioned = message.mentions?.members?.first?.() || null;
+  const resolved = (mentioned && String(mentioned.id) === id ? mentioned : null)
+    || findMember(message.guild, token);
+  if (!resolved) return { ok: false, option: need.name };
+
+  return { ok: true };
+}
+
+/** مثال كتابة جاهز من كتالوج الأوامر (أو من الخيارات نفسها) */
+function exampleFor(command, optionName) {
+  const meta = catalog.COMMANDS[command.data.name];
+  const fromCatalog = meta?.examples?.[0] || meta?.usage?.[0];
+  if (fromCatalog && fromCatalog.includes('@')) return fromCatalog;
+  const opts = optionDefs(command, null)
+    .map((def) => (kindOf(def) === 'user' ? '@العضو' : def.required ? `<${def.name}>` : `[${def.name}]`));
+  return [command.data.name, ...opts].join(' ');
 }
 
 /** خريطة الأوامر الفرعية لاسم الأمر */
@@ -633,6 +678,7 @@ function adminSnapshot(guildId, commandNames = [], { staffViewer = true } = {}) 
     enabled: config.enabled,
     cooldownSeconds: config.cooldownSeconds,
     disabled: config.disabled,
+    suggest: config.suggest,
     items,
     audiences: catalog.AUDIENCES,
     counts: {
@@ -678,6 +724,7 @@ function setOptions(guildId, patch = {}) {
   if (patch.disabled !== undefined) {
     clean.disabled = [...new Set([].concat(patch.disabled).filter((n) => catalog.COMMANDS[n]))];
   }
+  if (patch.suggest !== undefined) clean.suggest = Boolean(patch.suggest);
   if (!Object.keys(clean).length) return { ok: false, error: 'empty' };
   db.updateGuildSettings(guildId, { [PREFIX_KEY]: clean });
   return { ok: true, config: configFor(guildId) };
@@ -698,6 +745,7 @@ function setCommandEnabled(guildId, commandName, enabled) {
 module.exports = {
   PREFIX_KEY,
   setCommandEnabled,
+  setOptions,
   defaultsFor,
   configFor,
   normalizeAlias,

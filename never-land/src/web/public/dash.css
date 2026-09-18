@@ -904,3 +904,21 @@ tr.au-warn td { background: rgba(240, 199, 94, .05); }
 .guide-chips.guide-aud{margin-inline-start:auto}
 .guide-aud .chip.active{background:rgba(88,101,242,.24);border-color:rgba(88,101,242,.6);color:#dfe3ff}
 @media (max-width:700px){.guide-chips.guide-aud{margin-inline-start:0}}
+
+/* ============ شارة الربط الحيّ (الموقع ↔ البوت) ============ */
+.sync-live{display:inline-flex;align-items:center;gap:6px;color:#8ff0b3;transition:color .3s}
+.sync-live .live-dot{width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 0 rgba(74,222,128,.7);animation:livePulse 2.4s infinite}
+.sync-live.flash{color:#fff;font-weight:600}
+@keyframes livePulse{0%{box-shadow:0 0 0 0 rgba(74,222,128,.65)}70%{box-shadow:0 0 0 7px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+@media (prefers-reduced-motion:reduce){.sync-live .live-dot{animation:none}}
+
+/* ============ قاعدة المنشن (لأوامر الأعضاء) ============ */
+.cmd-rule{
+  direction:rtl;margin:10px 14px 2px;padding:10px 12px;border-radius:11px;font-size:.82rem;line-height:1.85;
+  background:rgba(240,199,94,.08);border:1px solid rgba(240,199,94,.32);color:#f3dda1;display:flex;gap:8px;align-items:flex-start;
+}
+.cmd-rule svg{flex:0 0 auto;margin-top:3px;color:#f0c75e}
+.cmd-rule b{color:#fff}
+.cmd-cd b{display:block;font-size:.85rem}
+.cmd-cd span{color:var(--muted);font-size:.78rem}
+.cmd-bar{flex-wrap:wrap;gap:14px}

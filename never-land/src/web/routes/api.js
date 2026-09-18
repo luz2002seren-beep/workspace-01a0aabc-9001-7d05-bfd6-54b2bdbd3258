@@ -74,6 +74,26 @@ function canEdit(req) {
  *  - القراءة (GET) متاحة للجميع عند تفعيل الوصول العام
  *  - الكتابة (POST/PATCH/DELETE) تحتاج تسجيل دخول Discord
  */
+/*
+ * أي حفظ من الموقع يتوسّم قبل تنفيذ المسار، حتى نعرف أن هذا التغيير «من موقع»
+ * لا «من ديسكورد» — فنحدّث الصفحات الثانية فقط، والصفحة اللي كتبت ما تتحدّث.
+ */
+router.use((req, res, next) => {
+  if (req.method !== 'GET') {
+    /* نوسم فقط الكتابات اللي تغيّر إعدادات السيرفر (حفظ/اختصارات/أوامر/إجراءات) */
+    const match = /^\/guilds\/([^/]+)\/(settings|commands|actions)/.exec(req.path || '');
+    if (match) {
+      try {
+        const live = require('../../lib/live');
+        const guildId = decodeURIComponent(match[1]);
+        live.noteSiteWrite(guildId, req.get('X-Client-Id') || null);
+        res.on('close', () => live.endSiteWrite(guildId));
+      } catch { /* الوسم اختياري */ }
+    }
+  }
+  next();
+});
+
 router.use(async (req, res, next) => {
   if (config.web.demoData) {
     req.roleOk = true;
@@ -443,8 +463,8 @@ router.post('/guilds/:guildId/commands/options', async (req, res) => {
   const { guildId } = req.params;
   if (!(await canAccess(req, guildId))) return res.status(403).json({ error: 'forbidden' });
 
-  const { enabled, cooldownSeconds } = req.body || {};
-  const result = textCommands.setOptions(guildId, { enabled, cooldownSeconds });
+  const { enabled, cooldownSeconds, suggest } = req.body || {};
+  const result = textCommands.setOptions(guildId, { enabled, cooldownSeconds, suggest });
   if (!result.ok) return res.status(400).json({ error: result.error, message: 'ما في تغيير للحفظ.' });
 
   audit.guild(req, guildId, {
@@ -772,6 +792,14 @@ router.get('/events', (req, res) => {
     } catch { /* انقطع الاتصال */ }
   });
 
+  /* تغييرات الإعدادات: من اللوحة أو من أوامر البوت داخل ديسكورد */
+  const live = require('../../lib/live');
+  const offSettings = live.onSettings((payload) => {
+    try {
+      res.write(`event: settings\ndata: ${JSON.stringify(payload)}\n\n`);
+    } catch { /* انقطع الاتصال */ }
+  });
+
   const ping = setInterval(() => {
     try {
       res.write(': ping\n\n');
@@ -781,6 +809,7 @@ router.get('/events', (req, res) => {
   req.on('close', () => {
     clearInterval(ping);
     off();
+    offSettings();
   });
 });
 

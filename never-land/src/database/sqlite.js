@@ -14,6 +14,13 @@ const Database = require('better-sqlite3');
 const { mergeSettings } = require('./defaults');
 const { migrateSettings } = require('./migrate');
 
+/** إشعار البثّ الحيّ: أي كتابة إعدادات تصل للصفحات المفتوحة لحظيًا */
+function notifyLive(guildId) {
+  try {
+    require('../lib/live').settingsChanged(guildId);
+  } catch { /* البثّ ما يوقف الحفظ أبدًا */ }
+}
+
 let db = null;
 
 const now = () => Date.now();
@@ -135,6 +142,10 @@ module.exports = {
     const merged = mergeSettings(current.settings, patch);
     db.prepare('UPDATE guilds SET settings = ?, locale = ?, updated_at = ? WHERE id = ?')
       .run(JSON.stringify(merged), merged.language || current.locale, now(), guildId);
+
+    /* الرابط الحيّ: نُشعر الصفحات المفتوحة أن الإعدادات تغيّرت (بوت أو موقع) */
+    notifyLive(guildId);
+
     return { ...current, settings: merged, updatedAt: now() };
   },
 
