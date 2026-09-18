@@ -1423,11 +1423,40 @@ console.log('[نجاح] كل الاختبارات نجحت!');
     assert.strictEqual(cfg38.settingsVersion, 2, 'إصدار نموذج الإعدادات غير مضبوط');
 
     const { migrateSettings } = require('../src/database/migrate');
-    const migrated = migrateSettings({ leveling: { cooldownSeconds: 60, minXp: 15, maxXp: 25 } });
+    /* إعدادات نموذج قديم: كولداون ٦٠ + مفاتيح minXp/maxXp */
+    const migrated = migrateSettings({ leveling: { cooldownSeconds: 60, minXp: 15, maxXp: 25, voiceMinXp: 5, voiceMaxXp: 10 } });
     assert.strictEqual(migrated.leveling.cooldownSeconds, 0, 'الكولداون القديم (٦٠) ما انتقل للنموذج الجديد');
     assert.strictEqual(migrated.leveling.settingsVersion, 2, 'الإصدار ما ترقّى');
-    const custom = migrateSettings({ leveling: { cooldownSeconds: 120 } });
+    assert.ok(!('minXp' in migrated.leveling) && !('maxXp' in migrated.leveling), 'مفاتيح النموذج القديم ما انشالت');
+    /* كولداون مخصّص (١٢٠): يبقى كما هو */
+    const custom = migrateSettings({ leveling: { cooldownSeconds: 120, minXp: 15 } });
     assert.strictEqual(custom.leveling.cooldownSeconds, 120, 'كولداون مخصّص تغيّر (لازم يبقى)');
+    /* إعدادات النموذج الجديد: ما تتغيّر */
+    const fresh = migrateSettings({ leveling: { cooldownSeconds: 0, textXpPerChars: 5 } });
+    assert.strictEqual(fresh.leveling.cooldownSeconds, 0, 'إعدادات النموذج الجديد تأثّرت');
+
+    /* ترقية فعلية على قاعدة بيانات حقيقية (مشغّل SQLite) */
+    const os38 = require('node:os');
+    const tmp38 = path38.join(os38.tmpdir(), `nl-migrate-${process.pid}.db`);
+    try {
+      fs38.rmSync(tmp38, { force: true });
+      const sqliteDriver = require('../src/database/sqlite');
+      const cfgDefaults38 = require('../src/config').defaults;
+      sqliteDriver.init({ database: { path: tmp38 }, defaults: cfgDefaults38 });
+      /* نحفظ إعدادات نموذج قديم مباشرة في القاعدة */
+      sqliteDriver.updateGuildSettings(
+        'g-legacy',
+        { leveling: { enabled: true, textXp: true, voiceXp: true, cooldownSeconds: 60, minXp: 15, maxXp: 25 } },
+        cfgDefaults38,
+      );
+      const readBack = sqliteDriver.getGuild('g-legacy', cfgDefaults38).settings.leveling;
+      assert.strictEqual(readBack.cooldownSeconds, 0, 'الترقية على قاعدة حقيقية ما اشتغلت');
+      assert.ok(!('minXp' in readBack), 'المفاتيح القديمة ما انشالت من قاعدة حقيقية');
+      assert.strictEqual(readBack.textXpPerChars, 5, 'قيم النموذج الجديد ما وصلت للقراءة');
+      sqliteDriver.close?.();
+    } finally {
+      try { fs38.rmSync(tmp38, { force: true }); } catch { /* تجاهل */ }
+    }
 
     // ٦) الاختبار العملي (١٣ مجموعة في اختبار المستويات)
     const { execFileSync } = require('node:child_process');
