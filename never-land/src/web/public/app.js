@@ -983,16 +983,17 @@ const SECTIONS = {
         const card = el('div', { class: 'ar-rule' });
         card.appendChild(head);
         card.appendChild(triggersInput);
-        card.appendChild(
-          el('div', { class: 'ar-grid' }, [
-            dField('نوع المطابقة', 'كيف نطابق رسالة العضو', [modeSelect]),
-            dField('القناة', 'افتراضي: كل رومات السيرفر', [channelSelect]),
-            dField('كولداون (ثانية)', 'منع تكرار الرد على نفس العضو', [cooldownInput]),
-            dField('حذف الرد بعد (ثانية)', '٠ = يبقى', [delInput]),
-            dField('تنبيه العضو', 'يجعل الرد منشن للعضو', [pingSwitch]),
-            dField('القاعدة مفعّلة', 'إيقاف قاعدة واحدة بدون حذفها', [activeSwitch]),
-          ]),
-        );
+        /* ملاحظة: el() وسيطها الثالث نص HTML — نضيف العناصر بـ appendChild لا بمصفوفة */
+        const grid = el('div', { class: 'ar-grid' });
+        [
+          dField('نوع المطابقة', 'كيف نطابق رسالة العضو', [modeSelect]),
+          dField('القناة', 'افتراضي: كل رومات السيرفر', [channelSelect]),
+          dField('كولداون (ثانية)', 'منع تكرار الرد على نفس العضو', [cooldownInput]),
+          dField('حذف الرد بعد (ثانية)', '٠ = يبقى', [delInput]),
+          dField('تنبيه العضو', 'يجعل الرد منشن للعضو', [pingSwitch]),
+          dField('القاعدة مفعّلة', 'إيقاف قاعدة واحدة بدون حذفها', [activeSwitch]),
+        ].forEach((node) => grid.appendChild(node));
+        card.appendChild(grid);
         card.appendChild(dField('نص الرد', 'المتغيّرات: {user} منشن · {name} الاسم · {server} السيرفر · {channel} القناة — وفصل بين أكثر من رد بـ |', [replyArea], { wide: true }));
         card.appendChild(preview);
         rows.appendChild(card);

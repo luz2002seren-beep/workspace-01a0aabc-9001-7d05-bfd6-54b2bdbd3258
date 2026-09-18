@@ -1515,6 +1515,10 @@ console.log('[نجاح] كل الاختبارات نجحت!');
 
     // ٥) اللوحة: قسم كامل بأيقونته وحقوله
     const app39 = read39('src/web/public/app.js');
+    /* el() وسيطها الثالث نص HTML — تمرير مصفوفة عناصر يُظهر «[object HTMLDivElement]» */
+    const badElCalls = [...app39.matchAll(/el\(['"][a-zA-Z]+['"], \{[^}]*\}, \[/g)].length;
+    assert.strictEqual(badElCalls, 0, `يوجد ${badElCalls} استدعاء el() بمصفوفة بدل نص (يعرض [object HTMLDivElement])`);
+
     for (const needle of ['autoReply: {', "autoReply: 'bubbles'", 'label: \'الردود التلقائية\'', 'autoReply.rules', 'autoReply.anywhereInServer', 'pickLocalReply']) {
       assert.ok(app39.includes(needle), `لوحة الردود التلقائية ينقصها ${needle}`);
     }

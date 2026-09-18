@@ -119,6 +119,11 @@ async function run() {
     const title = content?.querySelector('.d-page-title')?.textContent?.trim() || '';
     assert.ok(painted, `القسم «${label}» ما رسم أي محتوى عند فتحه`);
     assert.ok(title && !title.includes('undefined'), `عنوان القسم «${label}» غير سليم (${title})`);
+    /* ما يظهر نص تقني مكان عنصر (مثل [object HTMLDivElement]) */
+    const rawText = content.textContent || '';
+    assert.ok(!rawText.includes('[object'), `القسم «${label}» يعرض نصًا تقنيًا مكان عنصر: ${rawText.match(/\[object[^\]]*\]/)?.[0] || ''}`);
+    assert.ok(!rawText.includes('undefined'), `القسم «${label}» يعرض كلمة undefined`);
+    assert.ok(!rawText.includes('NaN'), `القسم «${label}» يعرض NaN`);
     visited.push(label);
   }
   assert.strictEqual(visited.length, navItems.length, 'ما مرّينا على كل الأقسام');
