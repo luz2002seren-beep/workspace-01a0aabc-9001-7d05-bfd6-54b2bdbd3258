@@ -67,7 +67,6 @@ function mainPanel(settings) {
   const row2 = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('setup:quick').setLabel('الإعداد السريع الموصى به').setEmoji('⚡').setStyle(ButtonStyle.Success),
     new ButtonBuilder().setCustomId('setup:view').setLabel('عرض كل الإعدادات').setEmoji('📋').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId('setup:dashboard').setLabel('لوحة التحكم').setEmoji('🌐').setStyle(ButtonStyle.Link).setURL(require('../config').web.url),
   );
 
   return { embeds: [embed], components: [row1, row2] };
@@ -226,7 +225,7 @@ async function handleButton(client, interaction, action, lang) {
     }
 
     case 'dashboard':
-      return interaction.reply({ content: `🌐 لوحة التحكم: ${require('../config').web.url}`, flags: MessageFlags.Ephemeral });
+      return interaction.reply({ content: 'رابط الموقع يطلع بكلمة **نيفر** في الشات — لأعضاء الموقع المسجّلين.', flags: MessageFlags.Ephemeral });
 
     case 'open':
       return interaction.update(modulePanel(arg, settings, interaction.guild));
@@ -296,7 +295,7 @@ function fullSettingsEmbed(settings) {
       { name: 'قناة الترحيب', value: settings.welcome.channelId ? `<#${settings.welcome.channelId}>` : '—', inline: true },
       { name: 'الرتب التلقائية', value: (settings.autorole.roleIds || []).map((r) => `<@&${r}>`).join(' ') || '—', inline: false },
     ],
-    footer: `Never Land • ${require('../config').web.url}`,
+    footer: 'Never Land',
   });
 }
 

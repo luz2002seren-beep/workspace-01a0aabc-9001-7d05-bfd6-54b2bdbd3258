@@ -28,8 +28,8 @@ const catalog = require('../data/commandCatalog');
  */
 const HINTS = {
   /* إدارة الأعضاء */
-  'طير': ['kick', 'ban', 'timeout'],
-  'طيّر': ['kick', 'ban', 'timeout'],
+  'طير': ['ban', 'kick', 'timeout'],
+  'طيّر': ['ban', 'kick', 'timeout'],
   'اطرد': ['kick'],
   'أطرد': ['kick'],
   'طرد': ['kick'],
@@ -258,7 +258,7 @@ function similar(text, { staff = false, limit = 5 } = {}) {
   const matches = [...scored.entries()]
     .sort((a, b) => b[1].score - a[1].score)
     .slice(0, limit)
-    .map(([name]) => {
+    .map(([name, info]) => {
       const meta = catalog.COMMANDS[name];
       return {
         name,
@@ -266,6 +266,8 @@ function similar(text, { staff = false, limit = 5 } = {}) {
         what: meta.what,
         usage: meta.usage?.[0] || name,
         example: meta.examples?.[0] || meta.usage?.[0] || name,
+        why: info.why,
+        score: info.score,
         audience: catalog.audienceOf(name),
         audienceBadge: catalog.AUDIENCES[catalog.audienceOf(name)]?.badge || '',
         subs: meta.subs ? Object.keys(meta.subs) : [],
@@ -275,57 +277,77 @@ function similar(text, { staff = false, limit = 5 } = {}) {
   return { word: words.join(' '), matches };
 }
 
+/** اختصارات الأمر في البطاقة: اختصارات اللوحة (إنجليزي) + الكلمات العربية المشابهة */
+function cardAliases(name, guildId = '') {
+  const out = [];
+  try {
+    const text = require('./textCommands');
+    const cfg = text.configFor ? text.configFor(guildId || '') : null;
+    for (const alias of cfg?.aliases?.[name] || []) out.push(alias);
+  } catch { /* الاختصارات اختيارية */ }
+  for (const [word, names] of Object.entries(HINTS)) {
+    if (names.includes(name)) out.push(word);
+  }
+  return [...new Set(out)].slice(0, 14);
+}
+
+/** أي سطر استخدام/مثال يبدأ بـ «/» */
+function asSlash(line) {
+  const value = String(line || '').trim();
+  if (!value) return value;
+  return value.startsWith('/') ? value : `/${value}`;
+}
+
 /**
- * يرسل رسالة «هل تقصد؟» بنفس أسلوب بوتات الأوامر المعروفة:
- * الأوامر المشابهة مع طريقة كتابتها ومثال جاهز.
+ * بطاقة الأمر — نفس شكل بوتات الأوامر المعروفة:
+ *   العنوان:  Command: ban
+ *   الوصف:    شو يعمل الأمر (وسطر «كتبت bann — أقرب أمر» عند الغلط)
+ *   وبعدها:   #الاختصارات · #الاستخدام · #أمثلة للأمر
+ */
+function card(name, { guildId = '', word = '', note = '', similar = [] } = {}) {
+  const embeds = require('../lib/embeds');
+  const meta = catalog.COMMANDS[name] || {};
+  const aliases = cardAliases(name, guildId);
+  const usage = (meta.usage || [name]).map(asSlash);
+  const examples = (meta.examples || []).map(asSlash);
+
+  const fields = [];
+  if (aliases.length) fields.push({ name: '#الاختصارات', value: aliases.map((a) => `#${a}`).join('، ') });
+  if (usage.length) fields.push({ name: '#الاستخدام', value: usage.map((u) => `\`${u}\``).join('\n') });
+  if (examples.length) fields.push({ name: '#أمثلة للأمر', value: examples.map((e) => `\`${e}\``).join('\n') });
+
+  const lines = [meta.what || meta.label || ''];
+  if (word && String(word).trim().toLowerCase() !== name) {
+    lines.push(`كتبت **${word}** — أقرب أمر: **${name}**`);
+  }
+  if (note) lines.push(note);
+  if (similar.length) lines.push(`> أوامر مشابهة: ${similar.join(' · ')}`);
+
+  return embeds.base({
+    color: 0x5865f2,
+    title: `Command: ${name}`,
+    description: lines.filter(Boolean).join('\n\n').slice(0, 4000),
+    fields,
+  });
+}
+
+/**
+ * «هل تقصد؟» — يرد ببطاقة أمر واحدة بنفس شكل بوتات الأوامر:
+ * الأمر الأقرب بالتفصيل (اختصاراته · كيف يُكتب · أمثلة جاهزة)،
+ * والأوامر المشابهة الباقية بسطر واحد. بلا أي رابط موقع وبلا أزرار.
  */
 async function reply(message, result, { staff = false } = {}) {
-  const embeds = require('../lib/embeds');
-  const config = require('../config');
-  const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-
-  const lines = result.matches.map((m) => {
-    const badge = m.audience === 'member' ? 'للأعضاء' : 'للإدارة';
-    return [
-      `**\`${m.example}\`** — ${m.label} (${badge})`,
-      `> ${m.what}`,
-    ].join('\n');
+  if (!result?.matches?.length) return null;
+  const top = result.matches[0];
+  const others = result.matches.slice(1, 4).map((m) => m.name);
+  const isTypo = Boolean(top.why) && top.why !== 'عربي';
+  const embed = card(top.name, {
+    guildId: message.guild?.id || '',
+    word: isTypo ? result.word : '',
+    similar: others,
   });
-
-  const fields = result.matches.length > 3 ? null : undefined;
-  const embed = embeds.base({
-    color: 0x5865f2,
-    title: `هل تقصد «${result.matches[0].label}»؟`,
-    description: [
-      `كتبت **${result.word}** — هاي الأوامر المشابهة:`,
-      '',
-      ...lines,
-    ].join('\n').slice(0, 3800),
-    footer: staff
-      ? 'اكتب الأمر مباشرة بلا أي رمز قبله · أو استعمل السلاش /'
-      : 'كلها أوامر أعضاء — اكتب الأمر مباشرة بلا أي رمز قبله',
-    ...(fields ? { fields } : {}),
-  });
-
-  const base = String(config.web.url || '').replace(/\/$/, '');
-  const components = [];
-  if (/^https?:\/\//i.test(base)) {
-    components.push(
-      new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setLabel('شرح كل الأوامر في الموقع')
-          .setStyle(ButtonStyle.Link)
-          .setURL(message.guild ? `${base}/dashboard/${message.guild.id}#commandGuide` : `${base}/dashboard`),
-        new ButtonBuilder().setLabel('لوحة التحكم').setStyle(ButtonStyle.Link).setURL(`${base}/dashboard`),
-      ),
-    );
-  }
-
-  await message.reply({
-    embeds: [embed],
-    components,
-    allowedMentions: { repliedUser: false },
-  }).catch(() => null);
+  if (staff) embed.setFooter({ text: 'بلا أي رمز قبل الأمر · أو استعمل السلاش /' });
+  await message.reply({ embeds: [embed], allowedMentions: { repliedUser: false } }).catch(() => null);
 }
 
 /** فترة الهدوء: رد واحد لكل عضو كل ٤٥ ثانية (حتى ما يزعّج) */
@@ -379,4 +401,4 @@ async function handleMessage(client, message, { staff = false, enabled = true } 
   return true;
 }
 
-module.exports = { similar, reply, handleMessage, HINTS, distance, normalize };
+module.exports = { similar, reply, card, cardAliases, handleMessage, HINTS, distance, normalize };

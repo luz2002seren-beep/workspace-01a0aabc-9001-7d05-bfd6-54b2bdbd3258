@@ -64,14 +64,11 @@ module.exports = {
             inline: false,
           },
         ],
-        footer: `Never Land • ${config.web.url}`,
+        footer: 'Never Land',
       });
 
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setLabel('فتح لوحة التحكم').setEmoji('🌐').setStyle(ButtonStyle.Link).setURL(`${config.web.url}/dashboard`),
-      );
-
-      return interaction.reply({ embeds: [embed], components: [row], flags: 64 });
+      /* بلا زر رابط: رابط الموقع يطلع بكلمة «نيفر» في الشات */
+      return interaction.reply({ embeds: [embed], flags: 64 });
     }
 
     /* --------------------------- اللغة --------------------------- */
@@ -94,7 +91,7 @@ module.exports = {
       return interaction.reply({
         embeds: [
           embeds.info('🌐 لوحة التحكم', [
-            `الرابط: **${config.web.url}**`,
+            'رابط الموقع ما يظهر في الردود — اكتب كلمة **نيفر** في الشات ويظهر لأعضاء الموقع المسجّلين.',
             '',
             '**كيف أدخل؟**',
             '1️⃣ افتح الرابط في المتصفح.',

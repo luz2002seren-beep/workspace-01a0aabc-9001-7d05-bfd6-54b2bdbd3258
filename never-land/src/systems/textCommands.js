@@ -464,10 +464,12 @@ async function handleMessage(client, message) {
   const defs = optionDefs(command, sub);
   const mention = checkMention(message, args, defs);
   if (!mention.ok) {
-    await message.reply({
-      content: `اكتب الأمر مع منشن العضو — مثال: \`${exampleFor(command, mention.option)}\``,
-      allowedMentions: { repliedUser: false },
-    }).catch(() => {});
+    /* ناقص منشن: نرد ببطاقة الأمر نفسها + تنبيه بسيط (بدل رسالة نصية قصيرة) */
+    const card = require('./suggestions').card(name, {
+      guildId,
+      note: `> اكتب الأمر مع **منشن العضو** — مثال: \`${asSlash(exampleFor(command, mention.option))}\``,
+    });
+    await message.reply({ embeds: [card], allowedMentions: { repliedUser: false } }).catch(() => {});
     return true;
   }
 
@@ -513,6 +515,13 @@ function checkMention(message, args, defs) {
   if (!resolved) return { ok: false, option: need.name };
 
   return { ok: true };
+}
+
+/** أي سطر مثال يبدأ بـ «/» */
+function asSlash(line) {
+  const value = String(line || '').trim();
+  if (!value) return value;
+  return value.startsWith('/') ? value : `/${value}`;
 }
 
 /** مثال كتابة جاهز من كتالوج الأوامر (أو من الخيارات نفسها) */

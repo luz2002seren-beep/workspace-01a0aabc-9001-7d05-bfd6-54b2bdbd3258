@@ -1,8 +1,14 @@
 'use strict';
 /**
- * help-test.js — يتأكد أن أمر /help يحمل زرًا حقيقيًا يفتح الموقع.
+ * help-test.js — يتأكد أن ردود البوت بلا أي رابط موقع:
+ *   • /help وتفاصيل الأوامر: بلا أزرار روابط وبلا رابط في النص
+ *   • الطريقة الوحيدة للرابط: كلمة «نيفر» — وبشرطين (رول دخول الموقع + تسجيل)
  *   node help-test.js
  */
+process.env.DATABASE_PATH = require('node:path').join(
+  require('node:os').tmpdir(),
+  `nl-help-${Date.now()}-${Math.random().toString(36).slice(2)}.db`,
+);
 const assert = require('node:assert');
 const { Collection } = require('discord.js');
 const config = require('./src/config');
@@ -72,36 +78,43 @@ function linkButtons(rows) {
   assert.ok(payload?.embeds?.length, 'لم يُرسل embed');
 
   const links = linkButtons(payload.components || []);
-  console.log('٢) أزرار الروابط في /help:', links.map((l) => `${l.label} → ${l.url}`).join(' | '));
-  assert.ok(links.length >= 2, 'أزرار الروابط ناقصة');
-  assert.strictEqual(links[0].label, 'افتح الموقع');
-  assert.strictEqual(links[0].url, config.web.url, 'رابط «افتح الموقع» غير مطابق');
-  assert.strictEqual(links[1].label, 'لوحة التحكم');
-  assert.strictEqual(links[1].url, `${config.web.url}/dashboard`.replace('//dashboard', '/dashboard'), 'رابط اللوحة غير مطابق');
+  console.log('٢) أزرار روابط في /help:', links.length, '(المطلوب 0 — ما في أي رابط موقع في الردود)');
+  assert.strictEqual(links.length, 0, 'لسا في أزرار روابط في /help');
 
   const desc = payload.embeds[0].data?.description || payload.embeds[0].description || '';
-  console.log('٣) نص الرسالة يحتوي رابط الموقع:', desc.includes(config.web.url) ? '✅' : '❌');
-  assert.ok(desc.includes(config.web.url), 'النص لا يحتوي الرابط');
+  console.log('٣) النص فيه رابط الموقع؟', desc.includes(config.web.url) ? 'إي (غلط)' : 'لا ✔');
+  assert.ok(!desc.includes(config.web.url), 'النص لسا فيه رابط الموقع');
+  assert.ok(desc.includes('نيفر'), 'ما في إشارة لكلمة «نيفر» كطريقة طلب الرابط');
 
-  // ٤) تفاصيل أمر معيّن: زر الموقع موجود أيضًا
+  // ٤) تفاصيل أمر معيّن: بلا أي زر رابط كذلك
   const interaction2 = fakeInteraction();
   interaction2.options.getString = () => 'ban';
   await help.run(client, interaction2, 'ar');
   const links2 = linkButtons(interaction2.captured.replies[0].components || []);
-  console.log('٤) تفاصيل /ban → أزرار:', links2.map((l) => l.label).join(' | '));
-  assert.ok(links2.some((l) => l.label === 'افتح الموقع'), 'زر الموقع ناقص في تفاصيل الأمر');
+  console.log('٤) تفاصيل /ban → أزرار روابط:', links2.length, '(المطلوب 0)');
+  assert.strictEqual(links2.length, 0, 'زر رابط باقي في تفاصيل الأمر');
 
-  // ٥) لو الرابط غير مضبوط: ما نعرض زرًا مكسورًا
-  const good = config.web.url;
-  config.web.url = 'localhost:3000';
-  const interaction3 = fakeInteraction();
-  await help.run(fakeClient(), interaction3, 'ar');
-  const links3 = linkButtons(interaction3.captured.replies[0].components || []);
-  console.log('٥) رابط غير صالح → أزرار روابط:', links3.length, '(المتوقع 0)');
-  assert.strictEqual(links3.length, 0, 'ظهر زر مكسور مع رابط غير صالح');
-  const desc3 = interaction3.captured.replies[0].embeds[0].data?.description || '';
-  assert.ok(desc3.includes('DASHBOARD_URL'), 'ما ظهر تنبيه بضبط الرابط');
-  config.web.url = good;
+  // ٥) الطريقة الوحيدة لرابط الموقع: كلمة «نيفر» — وبشرطين (رول الموقع + تسجيل)
+  const siteLink = require('./src/systems/siteLink');
+  const siteUsers = require('./src/web/siteUsers');
+  const roleId = String(config.web.requiredRoleId || '');
+  const out = [];
+  const fakeMsg = (content, member) => ({
+    guild: { id: '100000000000000001' },
+    content,
+    author: { id: member.id, tag: 'x#1' },
+    member,
+    reply: async (payload2) => { out.push(payload2); return { delete: async () => {} }; },
+  });
+  const roleOnly = { id: '501', roles: { cache: new Map([[roleId, {}]]) } };
+  await siteLink.handleMessage({}, fakeMsg('نيفر', roleOnly));
+  assert.ok(!/https?:/.test(JSON.stringify(out.at(-1))), 'طلع رابط لمين ما سجّل بالموقع');
+  assert.ok(/رول دخول الموقع/.test(out.at(-1).content || ''), 'ما شرحنا شرط الرابط');
+  const fullMember2 = { id: '502', roles: { cache: new Map([[roleId, {}]]) } };
+  siteUsers.recordLogin({ id: '502', username: 'x' });
+  await siteLink.handleMessage({}, fakeMsg('نيفر', fullMember2));
+  assert.ok(JSON.stringify(out.at(-1)).includes(config.web.url), 'الرابط ما ظهر للمسجّل صاحب الرول');
+  console.log('٥) رابط الموقع: بلا تسجيل → بلا رابط ✔ · رول + تسجيل → الرابط ظهر ✔');
 
   // ٦) العضو العادي: أوامر الإدارة مخفية عنه تمامًا
   const plain = fakeInteraction();
@@ -133,7 +146,7 @@ function linkButtons(rows) {
   assert.strictEqual(staffNames.length, 19, 'عدد أوامر الإدارة تغيّر');
   assert.strictEqual(memberNames.length + staffNames.length, Object.keys(catalog.COMMANDS).length, 'أمر بلا تصنيف');
 
-  console.log('\n🎉 أمر /help يحمل زرًا فعّالًا يفتح الموقع واللوحة · وأوامر الإدارة مخفية عن الأعضاء');
+  console.log('\n🎉 ردود البوت بلا أي رابط موقع · والرابط يطلع بكلمة «نيفر» للمسجّلين اللي عندهم الرول · وأوامر الإدارة مخفية عن الأعضاء');
 })().catch((e) => {
   console.error('❌', e.message);
   process.exit(1);

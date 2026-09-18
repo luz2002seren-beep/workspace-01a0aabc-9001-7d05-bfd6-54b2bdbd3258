@@ -89,7 +89,18 @@ async function run() {
   const memberView = suggestions.similar('طير', { staff: false });
   console.log('٢) «طير» للإدارة →', staffView.matches.map((m) => m.name).join(' · '));
   console.log('   «طير» لعضو عادي →', memberView ? memberView.matches.map((m) => m.name).join(' · ') : 'بلا اقتراح (أوامر إدارة)');
-  assert.deepStrictEqual(staffView.matches.slice(0, 3).map((m) => m.name), ['kick', 'ban', 'timeout'], 'ترتيب الأوامر المشابهة لكلمة «طير» غير صحيح');
+  assert.deepStrictEqual(staffView.matches.slice(0, 3).map((m) => m.name), ['ban', 'kick', 'timeout'], 'ترتيب الأوامر المشابهة لكلمة «طير» غير صحيح');
+
+  /* بطاقة الأمر: نفس شكل بوتات الأوامر (Command: ban + #الاختصارات · #الاستخدام · #أمثلة للأمر) */
+  const card = suggestions.card('ban', { guildId: GUILD });
+  const cardData = card.data || card;
+  console.log('   بطاقة الأمر:', cardData.title, '| الحقول:', (cardData.fields || []).map((f) => f.name).join(' · '));
+  assert.strictEqual(cardData.title, 'Command: ban', 'عنوان البطاقة ما صار Command: ban');
+  assert.deepStrictEqual((cardData.fields || []).map((f) => f.name), ['#الاختصارات', '#الاستخدام', '#أمثلة للأمر'], 'حقول البطاقة ناقصة');
+  assert.ok(cardData.fields[0].value.includes('#طير'), 'الاختصارات ما فيها الكلمة العربية «طير»');
+  assert.ok(cardData.fields[1].value.includes('/ban '), 'سطر الاستخدام ما يبدأ بـ /ban');
+  assert.ok(cardData.fields[2].value.split('\n').every((l) => l.startsWith('`/ban')), 'الأمثلة ما صارت بكتابة /ban');
+  assert.ok(!/https?:/.test(JSON.stringify(cardData)), 'البطاقة فيها رابط موقع');
   assert.ok(!memberView || memberView.matches.every((m) => m.audience === 'member'), 'أوامر الإدارة انكشفت لعضو عادي');
 
   const cases = [
@@ -187,6 +198,7 @@ async function run() {
     channels: { cache: new Map() },
   };
   const replies = [];
+  const warnCards = [];
   const msg = (content, extra = {}) => ({
     guild,
     content,
@@ -201,7 +213,7 @@ async function run() {
       channels: { first: () => null },
     },
     ...extra,
-    reply: async (payload) => { replies.push(payload.content || '[embed]'); return { delete: async () => {} }; },
+    reply: async (payload) => { warnCards.push(payload); replies.push(payload.content || JSON.stringify(payload.embeds?.[0]?.data || payload.embeds?.[0] || '[embed]')); return { delete: async () => {} }; },
   });
 
   /* أ) الرد على رسالة شخص ما يعتبر منشن */
@@ -209,6 +221,11 @@ async function run() {
   console.log('٣) ردّ على رسالة شخص (بلا منشن) → نُفّذ؟', calls.length, '| الرد:', JSON.stringify(replies.at(-1)));
   assert.strictEqual(calls.length, 0, 'الأمر نُفّذ بدون منشن (على الرد)');
   assert.ok(/منشن العضو/.test(replies.at(-1) || ''), 'ما ظهر تنبيه المنشن');
+  const warnData = warnCards.at(-1)?.embeds?.[0]?.data || {};
+  console.log('   البطاقة اللي طلعت بدل التنبيه:', warnData.title);
+  assert.strictEqual(warnData.title, 'Command: ban', 'تنبيه المنشن ما صار بطاقة أمر');
+  assert.ok(!/https?:/.test(JSON.stringify(warnData)), 'بطاقة التنبيه فيها رابط موقع');
+  assert.ok(!warnCards.at(-1)?.components?.length, 'بطاقة التنبيه فيها أزرار');
 
   /* ب) كتابة الاسم بلا منشن */
   await textCommands.handleMessage(client2, msg('ban سارة السبب'));
@@ -228,6 +245,47 @@ async function run() {
   /* المثال في التنبيه مأخوذ من الكتالوج */
   assert.ok(/ban @العضو/.test(replies.find((r) => /منشن العضو/.test(r)) || ''), 'المثال في التنبيه غير مفيد');
 
+  /* ==================== ٤) رابط الموقع: «نيفر» + المسجّلين فقط ==================== */
+  const siteLink = require('./src/systems/siteLink');
+  const siteUsers = require('./src/web/siteUsers');
+  const roleId = String(require('./src/config').web.requiredRoleId || '');
+  const out4 = [];
+  const linkMsg = (content, member) => ({
+    guild: { id: GUILD },
+    content,
+    author: { id: member.id, tag: 'x#1' },
+    member,
+    reply: async (payload) => { out4.push(payload); return { delete: async () => {} }; },
+  });
+  const withRole = { id: '900', roles: { cache: new Map([[roleId, {}]]) } };
+  const noRole = { id: '901', roles: { cache: new Map() } };
+  const hasUrl = (payload) => /https?:/.test(JSON.stringify(payload));
+
+  /* ١) عنده الرول بس ما سجّل بالموقع → بلا رابط */
+  await siteLink.handleMessage(client, linkMsg('نيفر', withRole));
+  assert.ok(!hasUrl(out4.at(-1)), 'طلع رابط لمين ما سجّل بالموقع');
+  /* ٢) مسجّل بس بلا رول → بلا رابط */
+  siteUsers.recordLogin({ id: '901', username: 'sara' });
+  await siteLink.handleMessage(client, linkMsg('نيفر', noRole));
+  assert.ok(!hasUrl(out4.at(-1)), 'طلع رابط لمين ما عنده الرول');
+  /* ٣) رول + تسجيل → الرابط يطلع (عضو ثالث حتى ما يتعطّل بفترة الهدوء) */
+  const fullMember = { id: '903', roles: { cache: new Map([[roleId, {}]]) } };
+  siteUsers.recordLogin({ id: '903', username: 'ahmed' });
+  await siteLink.handleMessage(client, linkMsg('نيفر', fullMember));
+  console.log('٤) رابط الموقع: بلا تسجيل أو بلا رول → بلا رابط ✔ · رول + تسجيل →', hasUrl(out4.at(-1)) ? 'الرابط ظهر ✔' : 'ما ظهر ✘');
+  assert.ok(hasUrl(out4.at(-1)), 'الرابط ما ظهر للمسجّل صاحب الرول');
+  assert.ok((out4.at(-1).embeds?.[0]?.data?.title || '').includes('Never Land'), 'بطاقة الرابط بلا عنوان المشروع');
+  /* ٤) كلمة «نيفر» لأي عضو ثاني محظور عليها فترة الهدوء — نتحقق من الشكل نفسه */
+  assert.strictEqual(siteLink.isSiteWord('نيفر'), true, 'كلمة «نيفر» ما انعرفت');
+  assert.strictEqual(siteLink.isSiteWord('نيفر بليز'), false, 'جملة فيها كلمة انحسبت طلب رابط');
+  assert.strictEqual(siteLink.isSiteWord('never'), true, 'never ما انعرفت');
+  /* ٥) ولا رد بالبوت فيه رابط موقع */
+  for (const rel of ['src/commands/general/help.js', 'src/commands/general/botinfo.js', 'src/commands/config/settings.js', 'src/systems/setupWizard.js', 'src/systems/suggestions.js', 'src/systems/textCommands.js']) {
+    assert.ok(!/web\.url/.test(read(rel)), `رابط موقع باقي في ${rel}`);
+  }
+  assert.ok(read('src/systems/siteLink.js').includes('نيفر'), 'ملف رابط الموقع ناقص');
+  assert.ok(read('src/events/messageCreate.js').includes('siteLink.handleMessage'), 'مسار الرسائل ما يستدعي رابط الموقع');
+
   /* ==================== الملفات: الحماية في الكود ==================== */
   const textSrc = read('src/systems/textCommands.js');
   assert.ok(textSrc.includes('منشن صريح'), 'قاعدة المنشن غير مشروحة في الكود');
@@ -238,11 +296,11 @@ async function run() {
   assert.ok(read('src/lib/live.js').includes('settingsChanged'), 'الرابط الحيّ ناقص');
   assert.ok(read('src/web/routes/api.js').includes('event: settings'), 'البثّ الحيّ ما يبثّ تغييرات الإعدادات');
   const appSrc = read('src/web/public/app.js');
-  for (const needle of ['PAGE_CLIENT_ID', "addEventListener('settings'", 'refreshAfterExternalChange', 'sync-live', 'اقتراح الأوامر المشابهة', 'منشن صريح']) {
+  for (const needle of ['PAGE_CLIENT_ID', "addEventListener('settings'", 'refreshAfterExternalChange', 'sync-live', 'اقتراح الأوامر المشابهة', 'منشن صريح', 'نيفر']) {
     assert.ok(appSrc.includes(needle), `اللوحة ينقصها ${needle}`);
   }
 
-  console.log('\n🎉 الربط الحيّ (موقع ↔ بوت) · اقتراح الأوامر المشابهة · والتنفيذ بمنشن صريح فقط');
+  console.log('\n🎉 الربط الحيّ (موقع ↔ بوت) · بطاقة الأوامر · المنشن الصريح · ورابط الموقع للمسجّلين فقط');
 }
 
 run().catch((err) => {

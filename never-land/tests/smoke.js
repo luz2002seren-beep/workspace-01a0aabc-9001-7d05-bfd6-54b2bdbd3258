@@ -616,10 +616,11 @@ console.log('[نجاح] كل الاختبارات نجحت!');
     const path7 = require('node:path');
     const root7 = path7.join(__dirname, '..');
 
-    // ١) أمر /help يحمل زر رابط فعّال
+    // ١) ردود البوت بلا أي رابط موقع — والرابط يطلع بكلمة «نيفر» للمسجّلين فقط
     const outHelp = execFileSync('node', [path7.join(root7, 'help-test.js')], { cwd: root7, encoding: 'utf8' });
-    assert.ok(outHelp.includes('افتح الموقع'), 'زر «افتح الموقع» ناقص من /help');
-    assert.ok(outHelp.includes('لوحة التحكم'), 'زر «لوحة التحكم» ناقص من /help');
+    assert.ok(outHelp.includes('نيفر'), 'ما في إشارة لطريقة طلب رابط الموقع');
+    assert.ok(outHelp.includes('بلا رابط'), 'شرط الرابط (تسجيل/رول) غير مُختبر');
+    assert.ok(outHelp.includes('الرابط ظهر'), 'رابط الموقع ما ظهر للمسجّل صاحب الرول');
 
     // ٢) منطق الرول المطلوب
     const cfg7 = require('../src/config');
@@ -1676,11 +1677,12 @@ console.log('[نجاح] كل الاختبارات نجحت!');
       assert.ok(dash41.includes(needle), `أنماط الأوامر ينقصها ${needle}`);
     }
 
-    // ٥) أمر /help يشرح الطريقة بلا بريفيكست ويوصل لمكتبة الموقع
+    // ٥) أمر /help يشرح الطريقة بلا بريفيكست — وبلا أي رابط موقع في الرد
     const help41 = read41('src/commands/general/help.js');
-    for (const needle of ['commandCatalog', 'guideButton', 'بلا بريفيكست', '#commandGuide']) {
+    for (const needle of ['commandCatalog', 'بلا بريفيكست', 'نيفر']) {
       assert.ok(help41.includes(needle), `أمر /help ينقصه ${needle}`);
     }
+    assert.ok(!/web\.url/.test(help41), 'لسا في رابط موقع في ردود /help');
 
     // ٦) الاختبار العملي الكامل (١٠ مجموعات)
     const { execFileSync } = require('node:child_process');
@@ -1818,10 +1820,20 @@ console.log('[نجاح] كل الاختبارات نجحت!');
       assert.ok(app44.includes(needle), `اللوحة ينقصها ${needle}`);
     }
 
-    // ٢) اقتراح الأوامر المشابهة
+    // ٢) بطاقة الأمر (نفس شكل بوتات الأوامر)
     const sug44 = read44('src/systems/suggestions.js');
-    for (const needle of ["'طير'", "'اسكت'", 'HINTS', 'COOLDOWN_MS', 'هل تقصد']) {
+    for (const needle of ["'طير'", "'اسكت'", 'HINTS', 'COOLDOWN_MS', 'هل تقصد', 'Command: ', '#الاختصارات', '#الاستخدام', '#أمثلة للأمر']) {
       assert.ok(sug44.includes(needle), `نظام الاقتراحات ينقصه ${needle}`);
+    }
+
+    // ٢ب) رابط الموقع: ما يطلع في أي رد — يطلع بكلمة «نيفر» للمسجّلين اللي عندهم الرول
+    const site44 = read44('src/systems/siteLink.js');
+    for (const needle of ['نيفر', 'allowed', 'hasSiteRole', 'isRegistered', 'requiredRoleId']) {
+      assert.ok(site44.includes(needle), `ملف رابط الموقع ينقصه ${needle}`);
+    }
+    assert.ok(read44('src/events/messageCreate.js').includes('siteLink.handleMessage'), 'مسار الرسائل ما يستدعي رابط الموقع');
+    for (const rel of ['src/commands/general/help.js', 'src/commands/general/botinfo.js', 'src/commands/config/settings.js', 'src/systems/setupWizard.js', 'src/systems/suggestions.js', 'src/systems/textCommands.js']) {
+      assert.ok(!/web\.url/.test(read44(rel)), `رابط موقع باقي في ردود ${rel}`);
     }
     assert.ok(read44('src/events/messageCreate.js').includes('suggestions.handleMessage'), 'مسار الرسائل ما يستدعي الاقتراحات');
     assert.ok(read44('src/systems/textCommands.js').includes('suggest: true'), 'مفتاح الاقتراح مش موصول بالإعدادات');
@@ -1837,12 +1849,12 @@ console.log('[نجاح] كل الاختبارات نجحت!');
     // ٤) الاختبار العملي (٣ أقسام)
     const { execFileSync } = require('node:child_process');
     const out44 = execFileSync('node', [path44.join(root44, 'live-link-test.js')], { cwd: root44, encoding: 'utf8' });
-    for (const needle of ['١) الربط الحيّ', '٢) «طير»', '٣) ردّ على رسالة شخص']) {
+    for (const needle of ['١) الربط الحيّ', '٢) «طير»', 'بطاقة الأمر: Command: ban', '٣) ردّ على رسالة شخص', '٤) رابط الموقع']) {
       assert.ok(out44.includes(needle), `اختبار الربط ينقصه: ${needle}`);
     }
     assert.ok(out44.includes('🎉'), 'اختبار الربط الحيّ ما نجح');
 
-  console.log('  [تم] الربط الحيّ (موقع ↔ بوت) · «هل تقصد؟» للأوامر المشابهة · والتنفيذ بمنشن صريح فقط');
+  console.log('  [تم] الربط الحيّ (موقع ↔ بوت) · بطاقة الأوامر (Command: ban) · المنشن الصريح · ورابط الموقع للمسجّلين فقط');
   }
 
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');

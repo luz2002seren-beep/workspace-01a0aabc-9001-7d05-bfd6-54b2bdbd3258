@@ -8,9 +8,10 @@
  *   2) الخط الفاصل التلقائي (AutoLine)
  *   3) التفاعلات التلقائية (AutoReaction)
  *   4) الأوامر النصية بلا بريفيكست (TextCommands) — إن تعاملت مع الرسالة نتوقف
- *   5) الردود التلقائية (AutoReply) — رد على كلمة مفتاحية في أي روم
- *   6) اقتراح الأوامر المشابهة («هل تقصد؟» — طير · اسكت · bann …)
- *   7) نظام الخبرة (Leveling)
+ *   5) رابط الموقع بكلمة «نيفر» — ما يطلعه إلا لأعضاء الموقع المسجّلين
+ *   6) الردود التلقائية (AutoReply) — رد على كلمة مفتاحية في أي روم
+ *   7) اقتراح الأوامر المشابهة (بطاقة الأمر: طير · اسكت · bann …)
+ *   8) نظام الخبرة (Leveling)
  * -------------------------------------------------------------
  */
 
@@ -22,6 +23,7 @@ const autoreact = require('../systems/autoreact');
 const autoreply = require('../systems/autoreply');
 const textCommands = require('../systems/textCommands');
 const suggestions = require('../systems/suggestions');
+const siteLink = require('../systems/siteLink');
 const leveling = require('../systems/leveling');
 
 module.exports = {
@@ -44,10 +46,14 @@ module.exports = {
     const usedCommand = await textCommands.handleMessage(client, message);
     if (usedCommand) return;
 
-    // 5) الردود التلقائية
+    // 5) رابط الموقع: ما يطلع في أي رد — يطلع بكلمة «نيفر» وبشرطين (رول الموقع + تسجيل)
+    const linked = await siteLink.handleMessage(client, message);
+    if (linked) return;
+
+    // 6) الردود التلقائية
     await autoreply.handleMessage(client, message);
 
-    // 6) اقتراح الأوامر المشابهة: «هل تقصد؟» — للأعضاء بأوامرهم، وللإدارة بكل الأوامر
+    // 7) اقتراح الأوامر المشابهة: بطاقة الأمر — للأعضاء بأوامرهم، وللإدارة بكل الأوامر
     const settings = require('../database').getGuildSettings(message.guild.id);
     const staff = isStaff(message.member);
     const suggested = await suggestions.handleMessage(client, message, {
@@ -56,7 +62,7 @@ module.exports = {
     });
     if (suggested) return;
 
-    // 7) الخبرة
+    // 8) الخبرة
     await leveling.handleMessage(client, message);
   },
 };

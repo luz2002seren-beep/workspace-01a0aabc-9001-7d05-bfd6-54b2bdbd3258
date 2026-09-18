@@ -36,7 +36,7 @@ module.exports = {
         { name: 'Node.js', value: `\`${process.version}\``, inline: true },
         { name: 'قاعدة البيانات', value: `\`${db.driverName}\``, inline: true },
         { name: 'الرتبة العليا', value: `\`${interaction.guild?.members.me?.roles.highest.name ?? '—'}\``, inline: true },
-        { name: 'لوحة التحكم', value: config.web.url, inline: false },
+        { name: 'لوحة التحكم', value: 'اكتب **نيفر** في الشات — لأعضاء الموقع المسجّلين', inline: false },
       ],
       footer: 'Never Land • بُني بـ discord.js v14',
     });

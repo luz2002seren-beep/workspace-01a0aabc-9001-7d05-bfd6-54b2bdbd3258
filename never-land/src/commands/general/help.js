@@ -81,49 +81,19 @@ function buildCategoryEmbed(client, categoryId, lang, member = null) {
     color: 0x5865f2,
     title: `${category.emoji} ${category.label} — ${commands.length} أمر`,
     description: lines.join('\n\n').slice(0, 4000) || 'لا توجد أوامر في هذا القسم.',
-    footer: webUrlOk(config.web.url) ? `${config.web.siteName} • ${config.web.url}` : config.web.siteName,
+    footer: config.web.siteName,
   });
 }
 
 
-/** هل رابط الموقع صالح للنقر؟ */
-function webUrlOk(url) {
-  return typeof url === 'string' && /^https?:\/\//i.test(url) && url !== '#';
-}
-
-/** زر «افتح الموقع» و«لوحة التحكم» — تظهر فقط إذا كان الرابط صالحًا */
-function webButtons() {
-  const base = (config.web.url || '').replace(/\/$/, '');
-  if (!webUrlOk(base)) return null;
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setLabel('افتح الموقع').setStyle(ButtonStyle.Link).setURL(base),
-    new ButtonBuilder().setLabel('لوحة التحكم').setStyle(ButtonStyle.Link).setURL(`${base}/dashboard`),
-  );
-  return row;
-}
-
-/** أسطر تعريفية بالموقع تُضاف للنص */
+/**
+ * الموقع — بلا أي رابط في الردود:
+ * الرابط يطلع بكلمة «نيفر» في الشات، ولمن عنده رول دخول الموقع ومسجّل فيه.
+ */
 function webLines() {
-  const base = (config.web.url || '').replace(/\/$/, '');
-  if (!webUrlOk(base)) return ['> موقع اللوحة لم يُضبط بعد — أضف `DASHBOARD_URL` في الإعدادات.'];
-  const isLocal = /localhost|127\.0\.0\.1/.test(base);
   return [
-    `**الموقع:** ${base}`,
-    isLocal
-      ? '> هذا الرابط محلي: يفتح فقط على الجهاز الذي يشغّل البوت (ويكون الموقع شغّالًا عليه).'
-      : 'اضغط زر «افتح الموقع» بالأسفل — يفتح مباشرة في المتصفح.',
-    '> الدخول يحتاج تأكيد بحساب Discord، وبعدها يجب أن يملك حسابك الرول المطلوب.',
+    '**الموقع:** اكتب كلمة **نيفر** في الشات — يظهر لك الرابط إذا كان عندك رول دخول الموقع وكنت مسجّلًا فيه.',
   ];
-}
-
-/** زر «شرح الأوامر في الموقع» — يفتح قسم مكتبة الأوامر مباشرة */
-function guideButton(guildId) {
-  const base = (config.web.url || '').replace(/\/$/, '');
-  if (!webUrlOk(base)) return null;
-  const url = guildId ? `${base}/dashboard/${guildId}#commandGuide` : `${base}/dashboard`;
-  return new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setLabel('شرح كل الأوامر في الموقع').setStyle(ButtonStyle.Link).setURL(url),
-  );
 }
 
 /** أزرار التنقل */
@@ -144,12 +114,8 @@ function buildComponents(client, activeId, guildId = null, member = null) {
         .setStyle(c.id === activeId ? ButtonStyle.Primary : ButtonStyle.Secondary),
     ),
   );
-  const rows = [buttons, menu];
-  const linkRow = webButtons();
-  const guideRow = guideButton(guildId);
-  if (linkRow) rows.push(linkRow);
-  if (guideRow) rows.push(guideRow);
-  return rows;
+  /* بلا أزرار روابط: رابط الموقع يطلع بكلمة «نيفر» ولمن عنده رول الموقع ومسجّل فيه */
+  return [buttons, menu];
 }
 
 module.exports = {
@@ -191,7 +157,6 @@ module.exports = {
         });
       }
       const usage = command.data.options?.map((o) => `\`${o.name}\` ${o.required ? '(إلزامي)' : '(اختياري)'} — ${o.description}`).join('\n') || 'لا توجد خيارات.';
-      const linkRow = webButtons();
 
       /* شرح الكتالوج: طريقة الكتابة بلا بريفيكست + مثال جاهز */
       const meta = catalog.COMMANDS[command.data.name];
@@ -220,12 +185,9 @@ module.exports = {
 
       return interaction.reply({
         embeds: [
-          embeds.info(`/${command.data.name}`, command.data.description, {
-            fields,
-            footer: webUrlOk(config.web.url) ? `الموقع: ${config.web.url}` : undefined,
-          }),
+          embeds.info(`/${command.data.name}`, command.data.description, { fields }),
         ],
-        components: linkRow ? [linkRow] : [],
+        components: [],
         flags: MessageFlags.Ephemeral,
       });
     }
