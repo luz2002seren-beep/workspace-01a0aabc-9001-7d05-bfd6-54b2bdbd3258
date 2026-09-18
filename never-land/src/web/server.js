@@ -51,6 +51,20 @@ function createApp() {
     }),
   );
 
+  // ترويسات التخزين المؤقّت:
+  //   • أصول الواجهة (CSS/JS) تُحمَّل مع بصمة نسخة في الرابط ⇒ تخزين طويل آمن
+  //   • صفحات HTML بلا تخزين أبدًا حتى يرى الزائر الروابط الجديدة فورًا
+  const VERSIONED_ASSETS = new Set(['style.css', 'dash.css', 'app.js', 'icons.js']);
+  app.use((req, res, next) => {
+    const base = path.basename(req.path || '');
+    if (VERSIONED_ASSETS.has(base)) {
+      res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    } else if (req.method === 'GET' && !path.extname(req.path || '') && !req.path.startsWith('/api')) {
+      res.set('Cache-Control', 'no-store');
+    }
+    next();
+  });
+
   // الملفات الثابتة (CSS/JS)
   app.use(express.static(path.join(__dirname, 'public')));
 

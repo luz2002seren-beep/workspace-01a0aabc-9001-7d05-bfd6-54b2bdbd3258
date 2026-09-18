@@ -20,6 +20,29 @@ const router = express.Router();
 const { icon, logoMark } = require('../public/icons');
 const access = require('../access');
 
+/**
+ * بصمة الأصول (CSS/JS): تُحسب من محتوى الملفات، فيتغيّر الرابط تلقائيًا
+ * مع أي تعديل ⇒ ما يبقى المتصفح يعرض نسخة قديمة (مشكلة الأيقونة الدائرة).
+ */
+const ASSET_FILES = ['style.css', 'dash.css', 'app.js', 'icons.js'];
+const assetStamp = (() => {
+  const crypto = require('node:crypto');
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const hash = crypto.createHash('sha1');
+  for (const file of ASSET_FILES) {
+    try {
+      hash.update(fs.readFileSync(path.join(__dirname, '..', 'public', file)));
+    } catch {
+      hash.update(file);
+    }
+  }
+  return hash.digest('hex').slice(0, 10);
+})();
+
+/** رابط الأصل مع بصمة النسخة */
+const asset = (name) => `/${name}?v=${assetStamp}`;
+
 /** تخطيط الصفحة العام */
 function layout({ title, body, user = null, extraHead = '', bodyClass = '' }) {
   const SITE_NAME = config.web.siteName;
@@ -57,8 +80,8 @@ function layout({ title, body, user = null, extraHead = '', bodyClass = '' }) {
 <link rel="icon" href="/icon.svg">
 <link rel="apple-touch-icon" href="/icon.svg">
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="stylesheet" href="/style.css">
-${bodyClass === 'dashboard' ? '<link rel="stylesheet" href="/dash.css">' : ''}
+<link rel="stylesheet" href="${asset('style.css')}">
+${bodyClass === 'dashboard' ? `<link rel="stylesheet" href="${asset('dash.css')}">` : ''}
 <script>
   /* السمة: المفضّل المحفوظ ← وإلا إعداد الجهاز نفسه (ليلي/نهاري/تلقائي) */
   (function () {
@@ -589,7 +612,8 @@ router.get('/dashboard/:guildId', requireAuth, async (req, res) => {
   <div id="app" data-guild="${escapeHtml(guildId)}" data-edit="${req.canEdit ? '1' : '0'}">
     <div class="loading">جارٍ تحميل الإعدادات...</div>
   </div>
-  <script src="/app.js"></script>`;
+  <script src="${asset('icons.js')}"></script>
+  <script src="${asset('app.js')}"></script>`;
 
   res.send(
     layout({

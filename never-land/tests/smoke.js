@@ -424,7 +424,7 @@ console.log('[نجاح] كل الاختبارات نجحت!');
     assert.ok(fs2.existsSync(path2.join(publicDir, 'dash.css')), 'ملف dash.css ناقص');
     assert.ok(fs2.readFileSync(path2.join(publicDir, 'dash.css'), 'utf8').includes('.d-shell'), 'أنماط اللوحة ناقصة');
     const pagesSource = fs2.readFileSync(path2.join(__dirname, '..', 'src', 'web', 'routes', 'pages.js'), 'utf8');
-    assert.ok(pagesSource.includes('/dash.css'), 'صفحة اللوحة لا تُحمّل dash.css');
+    assert.ok(pagesSource.includes("asset('dash.css')"), 'صفحة اللوحة لا تُحمّل dash.css');
 
     // نقطة الإجراءات التجريبية موجودة في الـ API
     const apiSource = fs2.readFileSync(path2.join(__dirname, '..', 'src', 'web', 'routes', 'api.js'), 'utf8');
@@ -1152,6 +1152,36 @@ console.log('[نجاح] كل الاختبارات نجحت!');
     assert.ok(navBlock.includes('nowrap') && navBlock.includes('ellipsis'), 'اسم العنصر ما زال قابلاً للكسر');
 
   console.log('  [تم] 95 أيقونة (13 جديدة + 30 محسّنة) · قسم «تفاعل» بأيقونة كأس · القائمة الجانبية بلا كسر نص');
+
+    // ٧) المصدر الواحد للأيقونات: app.js بلا نسخة مكرّرة
+    const appSrc18 = fs18.readFileSync(path18.join(root18, 'src', 'web', 'public', 'app.js'), 'utf8');
+    assert.ok(appSrc18.includes('window.ICONS'), 'app.js لا يقرأ الأيقونات من icons.js');
+    assert.ok(!/const ICONS = \{\s*\n\s*dashboard:/.test(appSrc18), 'app.js ما زال فيه نسخة مكرّرة من الأيقونات');
+    assert.ok(!/const LOG_ICONS = \{\s*\n\s*message:/.test(appSrc18), 'app.js ما زال فيه نسخة مكرّرة من أيقونات السجلات');
+
+    // ٨) كل أيقونة يستخدمها app.js موجودة فعلاً في icons.js
+    const used = new Set();
+    for (const m of appSrc18.matchAll(/ic\(\s*'([A-Za-z][A-Za-z0-9]*)'/g)) used.add(m[1]);
+    const secIcons = appSrc18.match(/const SECTION_ICONS = \{([\s\S]*?)\n\};/);
+    if (secIcons) for (const m of secIcons[1].matchAll(/'([A-Za-z][A-Za-z0-9]*)'/g)) used.add(m[1]);
+    const missingIcons = [...used].filter((n) => !ICONS[n]);
+    assert.strictEqual(missingIcons.length, 0, `أيقونات مفقودة من الحزمة: ${missingIcons.join(', ')}`);
+    assert.ok(ICONS[appSrc18.match(/top: '([A-Za-z]+)'/)[1]], 'أيقونة قسم تفاعل غير موجودة في الحزمة');
+
+    // ٩) تحميل icons.js قبل app.js + بصمة نسخة تمنع الكاش القديم
+    const pages18 = fs18.readFileSync(path18.join(root18, 'src', 'web', 'routes', 'pages.js'), 'utf8');
+    const iIcons = pages18.indexOf("asset('icons.js')");
+    const iApp = pages18.indexOf("asset('app.js')");
+    assert.ok(iIcons > 0 && iApp > iIcons, 'icons.js لازم تُحمَّل قبل app.js');
+    assert.ok(pages18.includes('assetStamp') && pages18.includes('ASSET_FILES'), 'بصمة نسخة الأصول ناقصة');
+    for (const f of ['style.css', 'dash.css', 'app.js', 'icons.js']) {
+      assert.ok(pages18.includes(`'${f}'`), `الأصل ${f} غير مشمول في البصمة`);
+    }
+    const srv18 = fs18.readFileSync(path18.join(root18, 'src', 'web', 'server.js'), 'utf8');
+    assert.ok(srv18.includes('VERSIONED_ASSETS') && srv18.includes('immutable'), 'ترويسات التخزين للأصول ناقصة');
+    assert.ok(srv18.includes('no-store'), 'ترويسة منع تخزين صفحات HTML ناقصة');
+
+  console.log('  [تم] الأيقونات من مصدر واحد + بصمة نسخة تمنع عرض أيقونة قديمة');
   }
 
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');
