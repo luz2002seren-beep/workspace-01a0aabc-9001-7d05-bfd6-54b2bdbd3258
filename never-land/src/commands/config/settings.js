@@ -55,7 +55,7 @@ module.exports = {
             inline: true,
           },
           { name: '🎫 التذاكر', value: `${onOff(settings.tickets.enabled)}\n${settings.tickets.categoryId ? `<#${settings.tickets.categoryId}>` : 'بدون قسم'}`, inline: true },
-          { name: '📈 المستويات', value: `${onOff(settings.leveling.enabled)}\n${settings.leveling.minXp}-${settings.leveling.maxXp} XP`, inline: true },
+          { name: '📈 المستويات', value: `${onOff(settings.leveling.enabled)}\nكل ${settings.leveling.textXpPerChars ?? 5} أحرف = 1 خبرة`, inline: true },
           { name: '🎭 الرتب التلقائية', value: `${onOff(settings.autorole.enabled)}\n${(settings.autorole.roleIds || []).length} رتبة`, inline: true },
           { name: '🚀 الدعم', value: onOff(settings.boost.enabled), inline: true },
           {

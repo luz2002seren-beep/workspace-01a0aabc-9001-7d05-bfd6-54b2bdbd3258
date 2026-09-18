@@ -162,7 +162,11 @@ function seed() {
     autorole: { enabled: true, roleIds: ['100000000000000021'], botRoleIds: [] },
     leveling: {
       enabled: true,
-      minXp: 15,
+      textXpPerChars: 5,
+      textXpPerCharsAmount: 1,
+      maxTextXpPerMessage: 100,
+      voiceIntervalSeconds: 60,
+      voiceXpPerInterval: 1,
       maxXp: 25,
       cooldownSeconds: 45,
       voiceXp: true,

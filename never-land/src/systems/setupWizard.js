@@ -115,7 +115,8 @@ function modulePanel(moduleId, settings, guild) {
   } else if (moduleId === 'leveling') {
     rows.push(
       ['الحالة', cfg.leveling.enabled ? '🟢 مُفعّل' : '🔴 مُعطّل'],
-      ['الخبرة لكل رسالة', `${cfg.leveling.minXp} - ${cfg.leveling.maxXp}`],
+      ['الخبرة الكتابية', `كل ${cfg.leveling.textXpPerChars ?? 5} أحرف = ${cfg.leveling.textXpPerCharsAmount ?? 1} خبرة`],
+      ['الخبرة الصوتية', `كل ${cfg.leveling.voiceIntervalSeconds ?? 60} ثانية = ${cfg.leveling.voiceXpPerInterval ?? 1} خبرة`],
       ['XP صوتي', cfg.leveling.voiceXp ? '🟢' : '🔴'],
       ['قناة الإعلان', cfg.leveling.announceChannelId ? `<#${cfg.leveling.announceChannelId}>` : 'غير محدّدة'],
       ['مكافآت الرتب', `${(cfg.leveling.rewards || []).length} مكافأة`],

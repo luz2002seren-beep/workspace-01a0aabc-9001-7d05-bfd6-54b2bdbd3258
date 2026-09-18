@@ -534,7 +534,7 @@ const SECTIONS = {
     group: 'الأعضاء',
     label: 'المستويات',
     title: 'المستويات والخبرة',
-    desc: 'نقاط خبرة على الرسائل والصوت، مع مكافآت رتب ورسائل ترقية.',
+    desc: 'خبرة كتابية (كل ٥ أحرف = ١) · صوتية (كل ٦٠ ثانية = ١) · تفاعل، مع حماية ذكية من السبام ومكافآت رتب.',
     render() {
       const rewards = state.settings.leveling.rewards || [];
       const rows = el('div');
@@ -588,15 +588,25 @@ const SECTIONS = {
       [levelInput, roleSelect, addReward].forEach((n) => adder.appendChild(n));
 
       return [
-        dCard('الخبرة الكتابية (الشات)', 'خبرة على الرسائل في القنوات', 'message', [
+        dCard('الخبرة الكتابية', 'خبرة على الرسائل — تُحسب بالأحرف: كل ٥ أحرف = ١ خبرة', 'message', [
           dField('تفعيل النظام', 'المفتاح الرئيسي لكل مصادر الخبرة', [dSwitch('leveling.enabled')]),
           dField('خبرة كتابية', 'منح خبرة على كل رسالة', [dSwitch('leveling.textXp')]),
-          dField('نقاط لكل رسالة', 'أقل وأكثر خبرة تُعطى عشوائيًا', [dNumber('leveling.minXp'), dNumber('leveling.maxXp')]),
-          dField('الفاصل الزمني (ثانية)', 'منع تكرار الخبرة بسرعة', [dNumber('leveling.cooldownSeconds')]),
+          dField('خبرة لكل عدد أحرف', 'الافتراضي ٥ — يعني كل ٥ أحرف = ١ خبرة', [dNumber('leveling.textXpPerChars', { min: 1, max: 200 })]),
+          dField('خبرة كل مجموعة أحرف', 'كم خبرة تُعطى لكل مجموعة (الافتراضي ١)', [dNumber('leveling.textXpPerCharsAmount', { min: 1, max: 100 })]),
+          dField('سقف خبرة الرسالة', 'أقصى خبرة من الرسالة الواحدة', [dNumber('leveling.maxTextXpPerMessage', { min: 1, max: 1000 })]),
         ]),
-        dCard('الخبرة الصوتية', 'خبرة مقابل البقاء في الرومات الصوتية (كل دقيقة)', 'speaker', [
+        dCard('الخبرة الصوتية', 'خبرة مقابل البقاء في الرومات الصوتية — كل ٦٠ ثانية = ١ خبرة', 'speaker', [
           dField('خبرة صوتية', 'لازم يكون معك حد ثاني في الروم', [dSwitch('leveling.voiceXp')]),
-          dField('نقاط الدقيقة', 'أقل وأكثر خبرة لكل دقيقة', [dNumber('leveling.voiceMinXp'), dNumber('leveling.voiceMaxXp')]),
+          dField('الفاصل الصوتي (ثانية)', 'كل كم ثانية يأخذ خبرة (الافتراضي ٦٠)', [dNumber('leveling.voiceIntervalSeconds', { min: 30, max: 3600 })]),
+          dField('خبرة كل فاصل', 'كم خبرة في كل فاصل صوتي (الافتراضي ١)', [dNumber('leveling.voiceXpPerInterval', { min: 1, max: 100 })]),
+        ]),
+        dCard('الحماية الذكية من السبام', 'من يكرّر الكلام أو يسبام: ما تُحسب خبرته ٥ دقايق', 'shield', [
+          dField('مكافحة السبام', 'الفحص الذكي لكل رسالة قبل منح الخبرة', [dSwitch('leveling.antiSpam.enabled')]),
+          dField('مدة المنع (دقائق)', 'كم دقيقة يبقى بلا خبرة (الافتراضي ٥)', [dNumber('leveling.antiSpam.muteMinutes', { min: 1, max: 120 })]),
+          dField('حد تكرار الكلام', 'نفس الرسالة كم مرة قبل ما تُعتبر سبام', [dNumber('leveling.antiSpam.repeatLimit', { min: 2, max: 20 })]),
+          dField('نافذة المراقبة (ثانية)', 'المدة اللي نراقب فيها التكرار', [dNumber('leveling.antiSpam.windowSeconds', { min: 15, max: 600 })]),
+          dField('رسائل سريعة متتالية', 'عدد الرسائل في المدة القصيرة', [dNumber('leveling.antiSpam.rateMessages', { min: 3, max: 50 })]),
+          dField('خلال كم ثانية', 'مدة العدّ للرسائل السريعة', [dNumber('leveling.antiSpam.rateSeconds', { min: 3, max: 120 })]),
         ]),
         dCard('خبرة التفاعل', 'خبرة لما يتفاعل الأعضاء مع رسائل بعضهم', 'activity', [
           dField('خبرة تفاعل', 'صاحب الرسالة ياخذ خبرة على التفاعلات', [dSwitch('leveling.interactXp')]),

@@ -12,6 +12,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const Database = require('better-sqlite3');
 const { mergeSettings } = require('./defaults');
+const { migrateSettings } = require('./migrate');
 
 let db = null;
 
@@ -34,7 +35,7 @@ function hydrateGuild(row, defaults) {
     premium: Boolean(row.premium),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    settings: mergeSettings(defaults, settings),
+    settings: migrateSettings(mergeSettings(defaults, settings)),
   };
 }
 

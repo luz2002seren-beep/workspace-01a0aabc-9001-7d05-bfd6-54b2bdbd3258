@@ -10,6 +10,10 @@
  *   ٤) حمايات التفاعل: بلا بوت، بلا تفاعل على نفسك، مرة واحدة لكل شخص،
  *      سقف لكل رسالة، كولداون بين نفس الشخصين، وسقف يومي
  *   ٥) الترقية عند الوصول لمستوى جديد
+ *   ١١) الخبرة الكتابية بالأحرف: ١ خبرة لكل ٥ أحرف
+ *   ١٢) الخبرة الصوتية: ١ خبرة كل ٦٠ ثانية (+ الفاصل القابل للضبط)
+ *   ١٣) الحماية الذكية من السبام: تكرار الكلام · رسائل سريعة · حروف مكررة
+ *        → بلا خبرة (كتابي وصوتي وتفاعل) لمدة ٥ دقايق
  *
  * التشغيل:  node leveling-test.js
  * -------------------------------------------------------------
@@ -290,6 +294,155 @@ const client = { user: { id: 'bot-1' } };
   assert.strictEqual(mockDb.getLevelRow(GUILD, 'ahmed'), null, 'التصفير ما مسح المستوى');
   assert.strictEqual(mockDb.getPeriodRow(GUILD, 'ahmed', 'day', periods.dayKey(new Date(), settings.leveling)), null, 'التصفير ما مسح فترة اليوم');
   console.log('١٠) التصفير يمسح المستوى + توب داي + توب ويك ✅');
+
+  /* ١١) الخبرة الكتابية بالأحرف: كل ٥ أحرف = ١ خبرة */
+  settingsFor();
+  const cfgText = settings.leveling;
+  const cases = [
+    ['مرحبا', 5, 1],
+    ['كيفكم اليوم', 10, 2],
+    ['السلام عليكم ورحمة الله', 20, 4],
+    ['هلا', 3, 1], // أقل من ٥ أحرف = بحد أدنى ١ خبرة
+    ['<:n:1> <a:m:2>', 0, 0], // إيموجي فقط = بلا خبرة
+    ['https://example.com/very/long/link/here', 1, 1], // الرابط = حرف واحد
+  ];
+  for (const [text, chars, xp] of cases) {
+    const got = leveling.textXpFor(text, cfgText);
+    assert.strictEqual(got.chars, chars, `عدد أحرف «${text}» خطأ (${got.chars} ≠ ${chars})`);
+    assert.strictEqual(got.xp, xp, `خبرة «${text}» خطأ (${got.xp} ≠ ${xp})`);
+  }
+  // سقف الرسالة الواحدة
+  const longXp = leveling.textXpFor('ا'.repeat(5000), cfgText);
+  assert.strictEqual(longXp.xp, cfgText.maxTextXpPerMessage, 'سقف خبرة الرسالة ما اشتغل');
+
+  // رسالة حقيقية عبر handleMessage: ٣٠ حرفًا وليست مكرّرة = ٦ خبرة
+  const writer = fakeMember('writer');
+  const beforeText = mockDb.getLevelRow(GUILD, 'writer')?.xp || 0;
+  const realText = 'الجو اليوم حلو كتير وشكرا لكم جميعا'; // ٢٩ حرفًا → ٥ خبرة
+  const expectedXp = leveling.textXpFor(realText, settings.leveling).xp;
+  assert.strictEqual(expectedXp, 5, `حساب أحرف الرسالة الحقيقية خطأ (${expectedXp})`);
+  const posted = await leveling.handleMessage(client, { ...fakeMessage(writer, 'msg-text-1'), content: realText });
+  assert.ok(posted && posted.xp === expectedXp, `خبرة الرسالة الحقيقية خطأ (${posted && posted.xp})`);
+  assert.strictEqual(mockDb.getLevelRow(GUILD, 'writer').xp, beforeText + expectedXp, 'الخبرة ما انضافت للعضو');
+  console.log('١١) الخبرة الكتابية: ١ خبرة لكل ٥ أحرف + سقف الرسالة ✅');
+
+  /* ١٢) الخبرة الصوتية: ١ خبرة كل ٦٠ ثانية */
+  settingsFor({ voiceXp: true, voiceIntervalSeconds: 60, voiceXpPerInterval: 1 });
+  const talker = fakeMember('talker');
+  const voiceGuild = talker.guild;
+  voiceGuild.voiceStates = {
+    cache: new Map([
+      [
+        'talker',
+        {
+          member: talker,
+          channelId: 'voice-1',
+          selfDeaf: false,
+          deaf: false,
+          channel: { members: { filter: () => ({ size: 2 }) } },
+        },
+      ],
+    ]),
+  };
+  client.guilds = { cache: new Map([[GUILD, voiceGuild]]) };
+
+  await leveling.tickVoiceXp(client);
+  const voiceRow = mockDb.getLevelRow(GUILD, 'talker');
+  assert.strictEqual(voiceRow.voice_xp, 1, `خبرة الصوت بعد دقيقة خطأ (${voiceRow.voice_xp})`);
+  assert.strictEqual(voiceRow.voice_minutes, 1, 'دقائق الصوت خطأ');
+
+  // فاصل أطول (١٢٠ ثانية) = خبرة كل دورتين
+  settingsFor({ voiceXp: true, voiceIntervalSeconds: 120, voiceXpPerInterval: 1 });
+  const slow = fakeMember('slow');
+  voiceGuild.voiceStates.cache = new Map([
+    ['slow', { member: slow, channelId: 'voice-2', selfDeaf: false, deaf: false, channel: { members: { filter: () => ({ size: 3 }) } } }],
+  ]);
+  // دورتان = خبرة واحدة بالضبط (الفاصل ١٢٠ ثانية = كل دورتين)
+  await leveling.tickVoiceXp(client);
+  await leveling.tickVoiceXp(client);
+  assert.strictEqual(mockDb.getLevelRow(GUILD, 'slow').voice_xp, 1, 'الفاصل الصوتي ١٢٠ ثانية ما اشتغل صح في الدورة الأولى');
+  await leveling.tickVoiceXp(client);
+  await leveling.tickVoiceXp(client);
+  assert.strictEqual(mockDb.getLevelRow(GUILD, 'slow').voice_xp, 2, 'الفاصل الصوتي ١٢٠ ثانية ما اشتغل صح في الدورة الثانية');
+
+  // لحاله في الروم = بلا خبرة (نفس القاعدة القديمة)
+  voiceGuild.voiceStates.cache = new Map([
+    ['solo', { member: fakeMember('solo'), channelId: 'voice-3', selfDeaf: false, deaf: false, channel: { members: { filter: () => ({ size: 1 }) } } }],
+  ]);
+  await leveling.tickVoiceXp(client);
+  assert.strictEqual(mockDb.getLevelRow(GUILD, 'solo'), null, 'عضو لحاله في الروم أخذ خبرة صوتية');
+  settingsFor();
+  console.log('١٢) الخبرة الصوتية: ١ خبرة كل ٦٠ ثانية + الفاصل القابل للضبط + بلا خبرة لو لحالك ✅');
+
+  /* ١٣) الحماية الذكية من السبام */
+  settingsFor({ antiSpam: { enabled: true, muteMinutes: 5, repeatLimit: 3, windowSeconds: 90, similarity: 0.85, rateMessages: 8, rateSeconds: 10, repeatChars: 8 } });
+  const spammer = fakeMember('spammer');
+
+  // ٦ رسائل مختلفة (تحت حد السرعة) = مسموح — ما في تكرار
+  const distinct = ['صباح الخير جميعا', 'شو أخبار المشروع الجديد', 'بدي اسأل عن الرتبة', 'متى الاجتماع القادم', 'شكرا الك على التوضيح', 'فكرة ممتازة بصراحة'];
+  for (const [i, text] of distinct.entries()) {
+    assert.ok(!leveling.spamStatus(GUILD, 'spammer').muted, 'اتُّهم بالسبام وهو يتكلم طبيعي');
+    await leveling.handleMessage(client, { ...fakeMessage(spammer, `ok-${i}`), content: text });
+  }
+  assert.ok(!leveling.spamStatus(GUILD, 'spammer').muted, 'كلام طبيعي كثيف اتعامل معه كسبام');
+  const scored = mockDb.getLevelRow(GUILD, 'spammer');
+  assert.ok(scored.xp > 0, 'الكلام الطبيعي ما أخذ خبرة');
+
+  // ٨ رسائل سريعة متتالية (كلام مختلف) = سبام بالسرعة
+  const fast = fakeMember('fast');
+  const lines = ['نص مختلف اول', 'نص مختلف تاني', 'نص مختلف تالت', 'نص مختلف رابع', 'نص مختلف خامس', 'نص مختلف سادس', 'نص مختلف سابع', 'نص مختلف تامن'];
+  let flaggedAt = 0;
+  for (const [i, text] of lines.entries()) {
+    const r = await leveling.handleMessage(client, { ...fakeMessage(fast, `fast-${i}`), content: text });
+    if (r && r.blocked) {
+      flaggedAt = i + 1;
+      break;
+    }
+  }
+  assert.strictEqual(flaggedAt, 8, `حد السرعة ما اشتغل صح (اتمنع عند ${flaggedAt})`);
+  leveling.clearSpamMute(GUILD, 'fast');
+
+  // نفس الرسالة ٣ مرات = سبام
+  const repeated = 'ارسلوا الرابط هنا بسرعة';
+  const spammer2 = fakeMember('spammer2');
+  await leveling.handleMessage(client, { ...fakeMessage(spammer2, 'sp-1'), content: repeated });
+  assert.ok(!leveling.spamStatus(GUILD, 'spammer2').muted, 'مُنع من أول رسالة');
+  await leveling.handleMessage(client, { ...fakeMessage(spammer2, 'sp-2'), content: repeated });
+  assert.ok(!leveling.spamStatus(GUILD, 'spammer2').muted, 'مُنع من ثاني رسالة');
+  const thirdPost = await leveling.handleMessage(client, { ...fakeMessage(spammer2, 'sp-3'), content: repeated });
+  const spamNow = leveling.spamStatus(GUILD, 'spammer2');
+  assert.ok(spamNow.muted, 'تكرار نفس الكلام ٣ مرات ما اعتُبر سبام');
+  assert.strictEqual(thirdPost.blocked, true, 'رسالة السبام الثلاثية أعطت خبرة');
+  assert.ok(spamNow.remainingMs > 4 * 60 * 1000, 'مدة المنع أقل من ٥ دقايق');
+
+  // خلال المنع: بلا خبرة من أي مصدر (كتابي · صوتي · تفاعل)
+  const xpBefore = mockDb.getLevelRow(GUILD, 'spammer2')?.xp || 0;
+  const blockedText = await leveling.handleMessage(client, { ...fakeMessage(spammer2, 'sp-4'), content: 'رسالة جديدة تماما وطويلة فيها كلام كثير مختلف' });
+  assert.strictEqual(blockedText.blocked, true, 'المسبام أخذ خبرة كتابية');
+  assert.strictEqual(await leveling.addXp(client, spammer2, 50, { source: 'voice', bypassCooldown: true, voiceMinutes: 1 }), null, 'المسبام أخذ خبرة صوتية');
+  assert.strictEqual(await leveling.addXp(client, spammer2, 50, { source: 'interact', bypassCooldown: true }), null, 'المسبام أخذ خبرة تفاعل');
+  const reactedMsg = fakeMessage(spammer2, 'sp-react');
+  assert.strictEqual(await leveling.handleReaction(client, { message: reactedMsg, emoji: {} }, { id: 'fan-1', bot: false }), false, 'تفاعل مع رسالة المسبام أعطاه خبرة');
+  assert.strictEqual(mockDb.getLevelRow(GUILD, 'spammer2')?.xp || 0, xpBefore, 'خبرة المسبام تغيّرت خلال المنع');
+
+  // رفع المنع يدويًا → يرجع طبيعي
+  assert.strictEqual(leveling.clearSpamMute(GUILD, 'spammer2'), true, 'رفع المنع فشل');
+  const afterMute = await leveling.handleMessage(client, { ...fakeMessage(spammer2, 'sp-5'), content: 'شكرا الكم جميعا على المساعدة اليوم' });
+  assert.ok(afterMute && !afterMute.blocked, 'بعد رفع المنع ما قدر ياخذ خبرة');
+  assert.ok(leveling.spamStatus(GUILD, 'spammer2').remainingMs === 0, 'المنع ما ارتفع');
+
+  // تطبيع النص: تشابه «مَرْحَبا» و«مرحبا» و«مرحبه» = ١
+  assert.ok(leveling.similarity(leveling.normalizeForCompare('مَرْحَبا يا شباب'), leveling.normalizeForCompare('مرحبا يا شباب')) > 0.95, 'التطبيع ما شال التشكيل');
+
+  // الحماية معطّلة → السبام مسموح
+  settingsFor({ antiSpam: { enabled: false } });
+  const freeSpeaker = fakeMember('freeSpeaker');
+  for (let i = 0; i < 4; i += 1) {
+    const r = await leveling.handleMessage(client, { ...fakeMessage(freeSpeaker, `free-${i}`), content: 'كرر كرر كرر' });
+    assert.ok(!r.blocked, 'الحماية معطّلة لكن المنع اشتغل');
+  }
+  settingsFor();
+  console.log('١٣) الحماية الذكية من السبام: تكرار الكلام · رسائل سريعة · حروف مكررة → بلا خبرة ٥ دقايق ✅');
 
   console.log('\n🎉 نظام الخبرة كامل: كتابي · صوتي · تفاعل — مع توب داي وتوب ويك\n');
 })().catch((err) => {

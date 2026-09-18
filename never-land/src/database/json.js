@@ -12,6 +12,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { mergeSettings } = require('./defaults');
+const { migrateSettings } = require('./migrate');
 
 let store = null;
 let file = null;
@@ -58,7 +59,7 @@ function hydrateGuild(id, defaults) {
     premium: Boolean(row.premium),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
-    settings: mergeSettings(defaults, row.settings || {}),
+    settings: migrateSettings(mergeSettings(defaults, row.settings || {})),
   };
 }
 

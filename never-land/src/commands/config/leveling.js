@@ -56,14 +56,18 @@ module.exports = {
     builder.addSubcommand(sub('disable', 'تعطيل نظام المستويات'));
 
     builder.addSubcommand(
-      sub('config', 'ضبط الخبرة: كتابي · صوتي · تفاعل')
-        .addIntegerOption((o) => o.setName('أدنى_خبرة').setDescription('أدنى خبرة لكل رسالة').setMinValue(1).setMaxValue(500))
-        .addIntegerOption((o) => o.setName('أعلى_خبرة').setDescription('أعلى خبرة لكل رسالة').setMinValue(1).setMaxValue(500))
-        .addIntegerOption((o) => o.setName('الكولداون').setDescription('ثواني بين كل خبرة وأخرى').setMinValue(0).setMaxValue(3600))
+      sub('config', 'ضبط الخبرة: أحرف الرسالة · الفاصل الصوتي · مكافحة السبام')
+        .addIntegerOption((o) => o.setName('خبرة_كتابية_لكل_أحرف').setDescription('كل كم حرف يأخذ العضو خبرة واحدة (الافتراضي 5)').setMinValue(1).setMaxValue(200))
+        .addIntegerOption((o) => o.setName('سقف_الرسالة').setDescription('أقصى خبرة من الرسالة الواحدة').setMinValue(1).setMaxValue(1000))
+        .addIntegerOption((o) => o.setName('الفاصل_الصوتي').setDescription('كل كم ثانية يأخذ خبرة صوتية (الافتراضي 60)').setMinValue(30).setMaxValue(3600))
+        .addIntegerOption((o) => o.setName('خبرة_كل_فاصل_صوتي').setDescription('كم خبرة في كل فاصل صوتي (الافتراضي 1)').setMinValue(1).setMaxValue(100))
         .addBooleanOption((o) => o.setName('خبرة_كتابية').setDescription('منح خبرة على الرسائل في الشات'))
         .addBooleanOption((o) => o.setName('خبرة_صوتية').setDescription('منح خبرة على البقاء في القنوات الصوتية'))
         .addBooleanOption((o) => o.setName('خبرة_تفاعل').setDescription('منح خبرة عند التفاعل مع رسائل الأعضاء'))
-        .addIntegerOption((o) => o.setName('سقف_التفاعل_اليومي').setDescription('أقصى خبرة تفاعل في اليوم للعضو').setMinValue(0).setMaxValue(1000)),
+        .addIntegerOption((o) => o.setName('سقف_التفاعل_اليومي').setDescription('أقصى خبرة تفاعل في اليوم للعضو').setMinValue(0).setMaxValue(1000))
+        .addBooleanOption((o) => o.setName('مكافحة_السبام').setDescription('إيقاف خبرة من يكرّر الكلام أو يسبام'))
+        .addIntegerOption((o) => o.setName('مدة_منع_السبام').setDescription('كم دقيقة تُوقف خبرة المسبام (الافتراضي 5)').setMinValue(1).setMaxValue(120))
+        .addIntegerOption((o) => o.setName('حد_التكرار').setDescription('كم مرة يتكرر نفس الكلام قبل اعتباره سبام (الافتراضي 3)').setMinValue(2).setMaxValue(20)),
     );
 
     builder.addSubcommand(
@@ -144,21 +148,32 @@ module.exports = {
         return interaction.reply({ embeds: [embeds.error('صلاحيات', 'تحتاج صلاحية "إدارة السيرفر".')], flags: 64 });
       }
       const patch = {};
-      const min = interaction.options.getInteger('أدنى_خبرة');
-      const max = interaction.options.getInteger('أعلى_خبرة');
-      const cooldown = interaction.options.getInteger('الكولداون');
+      const perChars = interaction.options.getInteger('خبرة_كتابية_لكل_أحرف');
+      const msgCap = interaction.options.getInteger('سقف_الرسالة');
+      const voiceInterval = interaction.options.getInteger('الفاصل_الصوتي');
+      const voiceAmount = interaction.options.getInteger('خبرة_كل_فاصل_صوتي');
       const text = interaction.options.getBoolean('خبرة_كتابية');
       const voice = interaction.options.getBoolean('خبرة_صوتية');
       const interact = interaction.options.getBoolean('خبرة_تفاعل');
       const cap = interaction.options.getInteger('سقف_التفاعل_اليومي');
-      if (min) patch.minXp = min;
-      if (max) patch.maxXp = max;
-      if (cooldown !== null) patch.cooldownSeconds = cooldown;
+      const anti = interaction.options.getBoolean('مكافحة_السبام');
+      const antiMinutes = interaction.options.getInteger('مدة_منع_السبام');
+      const antiRepeats = interaction.options.getInteger('حد_التكرار');
+      if (perChars) patch.textXpPerChars = perChars;
+      if (msgCap) patch.maxTextXpPerMessage = msgCap;
+      if (voiceInterval) patch.voiceIntervalSeconds = voiceInterval;
+      if (voiceAmount) patch.voiceXpPerInterval = voiceAmount;
       if (text !== null) patch.textXp = text;
       if (voice !== null) patch.voiceXp = voice;
       if (interact !== null) patch.interactXp = interact;
       if (cap !== null) patch.interactDailyCap = cap;
-      if (min && max && min > max) patch.maxXp = min;
+      if (anti !== null || antiMinutes || antiRepeats) {
+        patch.antiSpam = {
+          ...(anti !== null ? { enabled: anti } : {}),
+          ...(antiMinutes ? { muteMinutes: antiMinutes } : {}),
+          ...(antiRepeats ? { repeatLimit: antiRepeats } : {}),
+        };
+      }
 
       db.updateGuildSettings(interaction.guildId, { leveling: { ...patch, enabled: true } });
       const cfg = db.getGuildSettings(interaction.guildId).leveling;
@@ -166,11 +181,25 @@ module.exports = {
         embeds: [
           embeds.success('ضبط المستويات', undefined, {
             fields: [
-              { name: 'الخبرة لكل رسالة', value: `${cfg.minXp} - ${cfg.maxXp}`, inline: true },
-              { name: 'الكولداون', value: `${cfg.cooldownSeconds} ثانية`, inline: true },
-              { name: 'خبرة كتابية', value: cfg.textXp === false ? 'معطّلة' : 'مفعّلة', inline: true },
-              { name: 'خبرة صوتية', value: cfg.voiceXp ? 'مفعّلة' : 'معطّلة', inline: true },
-              { name: 'خبرة تفاعل', value: cfg.interactXp === false ? 'معطّلة' : 'مفعّلة', inline: true },
+              {
+                name: 'الخبرة الكتابية',
+                value: `كل ${cfg.textXpPerChars ?? 5} أحرف = ${cfg.textXpPerCharsAmount ?? 1} خبرة · سقف الرسالة ${cfg.maxTextXpPerMessage ?? 100}`,
+                inline: true,
+              },
+              {
+                name: 'الخبرة الصوتية',
+                value: `كل ${cfg.voiceIntervalSeconds ?? 60} ثانية = ${cfg.voiceXpPerInterval ?? 1} خبرة`,
+                inline: true,
+              },
+              { name: 'مصادر الخبرة', value: `كتابي ${cfg.textXp === false ? '✗' : '✓'} · صوتي ${cfg.voiceXp ? '✓' : '✗'} · تفاعل ${cfg.interactXp === false ? '✗' : '✓'}`, inline: false },
+              {
+                name: 'مكافحة السبام',
+                value:
+                  cfg.antiSpam?.enabled === false
+                    ? 'معطّلة'
+                    : `مفعّلة — تكرار ${cfg.antiSpam?.repeatLimit ?? 3} مرات أو ${cfg.antiSpam?.rateMessages ?? 8} رسائل في ${cfg.antiSpam?.rateSeconds ?? 10} ثانية = إيقاف الخبرة ${cfg.antiSpam?.muteMinutes ?? 5} دقايق`,
+                inline: false,
+              },
               { name: 'سقف التفاعل اليومي', value: `${cfg.interactDailyCap ?? 60} XP`, inline: true },
               { name: 'تجديد توب داي/توب ويك', value: `${cfg.resetOffsetHours || 0}+ UTC`, inline: true },
             ],

@@ -37,6 +37,160 @@ const randomXp = (min, max) => {
   return Math.floor(Math.random() * (hi - lo + 1)) + lo;
 };
 
+/* ==========================================================================
+ * الخبرة الكتابية: ١ خبرة لكل ٥ أحرف
+ * ========================================================================== */
+
+/** تنظيف النص قبل العدّ: بلا مسافات · بلا إيموجي · بلا منشن · بلا روابط طويلة */
+function countChars(raw) {
+  const text = String(raw || '')
+    .replace(/<a?:\w+:\d+>/g, ' ') // إيموجي مخصص
+    .replace(/https?:\/\/\S+/g, 'x') // الرابط = حرف واحد
+    .replace(/<@[!&]?\d+>/g, ' ') // منشن
+    .replace(/<#\d+>/g, ' ') // قناة
+    .replace(/[\u200B-\u200F\uFEFF]/g, ''); // محارف صفرية العرض
+  const marks = text.match(/[\p{L}\p{N}]/gu); // حروف وأرقام فقط
+  return marks ? marks.length : 0;
+}
+
+/**
+ * خبرة الرسالة = (عدد الأحرف ÷ ٥) × ١ — بأرضية، وبحد أدنى ١ خبرة لأي رسالة فيها حرف.
+ * مثال: «مرحبا» (٥) = ١ · «كيفكم اليوم» (١١) = ٢ · «السلام عليكم ورحمة الله» (٢٠) = ٤
+ */
+function textXpFor(content, cfg = {}) {
+  const chars = countChars(content);
+  if (!chars) return { xp: 0, chars: 0 };
+  const perChars = Math.max(1, Number(cfg.textXpPerChars ?? 5));
+  const perAmount = Math.max(1, Number(cfg.textXpPerCharsAmount ?? 1));
+  const cap = Math.max(1, Number(cfg.maxTextXpPerMessage ?? 100));
+  const xp = Math.min(cap, Math.max(1, Math.floor(chars / perChars) * perAmount));
+  return { xp, chars };
+}
+
+/* ==========================================================================
+ * الحماية الذكية من السبام
+ *   • تكرار نفس الكلام (تشابه نصّي ٨٥٪+)
+ *   • رسائل سريعة متتالية
+ *   • حروف مكرّرة (ااااااا) / رموز مكرّرة
+ *   العقوبة: لا خبرة له (كتابي · صوتي · تفاعل) لمدة ٥ دقايق.
+ * ========================================================================== */
+
+/** عدّاد مؤقتات الرومات الصوتية لكل سيرفر (لضبط الفاصل الزمني) */
+const voiceTicks = new Map();
+
+/** آخر رسائل كل عضو: `${guildId}:${userId}` → [{at, text}] */
+const msgHistory = new Map();
+/** من هو ممنوع من الخبرة الآن: `${guildId}:${userId}` → وقت الانتهاء */
+const spamMutes = new Map();
+
+/** تنظيف للمقارنة: بلا تشكيل · بلا رموز · توحيد الألف والياء والتاء */
+function normalizeForCompare(raw) {
+  return String(raw || '')
+    .replace(/<a?:\w+:\d+>/g, '')
+    .replace(/https?:\/\/\S+/g, '')
+    .replace(/[\u064B-\u065F\u0670]/g, '')
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/[ىئ]/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .replace(/[^\p{L}\p{N}]+/gu, '')
+    .toLowerCase();
+}
+
+/** معامل تشابه (Dice على الثنائيات) — ١ = متطابق تمامًا */
+function similarity(a, b) {
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  if (a.length < 4 || b.length < 4) return a === b ? 1 : 0;
+  const bigrams = (s) => {
+    const map = new Map();
+    for (let i = 0; i < s.length - 1; i++) {
+      const g = s.slice(i, i + 2);
+      map.set(g, (map.get(g) || 0) + 1);
+    }
+    return map;
+  };
+  const A = bigrams(a);
+  const B = bigrams(b);
+  let inter = 0;
+  for (const [g, count] of A) if (B.has(g)) inter += Math.min(count, B.get(g));
+  return (2 * inter) / (a.length - 1 + b.length - 1);
+}
+
+/** هل هذا العضو ممنوع من الخبرة الآن؟ */
+function spamStatus(guildId, userId) {
+  const key = `${guildId}:${userId}`;
+  const until = spamMutes.get(key) || 0;
+  const now = Date.now();
+  if (until && until <= now) {
+    spamMutes.delete(key);
+    return { muted: false, remainingMs: 0, until: 0 };
+  }
+  return { muted: until > now, remainingMs: Math.max(0, until - now), until };
+}
+
+/** فحص رسالة جديدة: هل هي سبام؟ ولو نعم → نوقف خبرته ٥ دقايق */
+function noteMessage(guildId, userId, content, cfg = {}) {
+  const key = `${guildId}:${userId}`;
+  const anti = cfg.antiSpam || {};
+  const now = Date.now();
+
+  if (anti.enabled === false) return { spam: false, muted: false };
+
+  const clean = normalizeForCompare(content);
+  const windowMs = Math.max(10, Number(anti.windowSeconds ?? 90)) * 1000;
+  const history = (msgHistory.get(key) || []).filter((m) => now - m.at < windowMs);
+  history.push({ at: now, text: clean });
+  if (history.length > 30) history.splice(0, history.length - 30);
+  msgHistory.set(key, history);
+
+  const reasons = [];
+
+  /* ١) تكرار نفس الكلام (تشابه ٨٥٪+) */
+  const repeatLimit = Math.max(2, Number(anti.repeatLimit ?? 3));
+  if (clean.length >= 3) {
+    const threshold = Number(anti.similarity ?? 0.85);
+    const dupes = history.filter((m) => m.text.length >= 3 && similarity(m.text, clean) >= threshold).length;
+    if (dupes >= repeatLimit) reasons.push('تكرار نفس الكلام');
+  }
+
+  /* ٢) رسائل سريعة متتالية */
+  const rateWindow = Math.max(2, Number(anti.rateSeconds ?? 12)) * 1000;
+  const rateLimit = Math.max(3, Number(anti.rateMessages ?? 7));
+  const burst = history.filter((m) => now - m.at < rateWindow).length;
+  if (burst >= rateLimit) reasons.push('رسائل سريعة متتالية');
+
+  /* ٣) حروف/رموز مكرّرة (ااااااا · !!!!!!!) */
+  const repeatChars = Math.max(4, Number(anti.repeatChars ?? 8));
+  const raw = String(content || '');
+  if (new RegExp(`(.)\\1{${repeatChars - 1},}`, 'u').test(raw)) reasons.push('حروف مكرّرة');
+
+  /* تنظيف الذاكرة */
+  if (msgHistory.size > 3000) msgHistory.clear();
+  if (spamMutes.size > 3000) {
+    for (const [k, until] of spamMutes) if (until <= now) spamMutes.delete(k);
+  }
+
+  if (!reasons.length) return { spam: false, muted: spamStatus(guildId, userId).muted };
+
+  const minutes = Math.max(1, Number(anti.muteMinutes ?? 5));
+  const until = now + minutes * 60 * 1000;
+  spamMutes.set(key, until);
+  msgHistory.delete(key); // نبدأ صفحة جديدة بعد العقوبة
+  console.log(`[حماية] سبام من عضو (${reasons[0]}) — إيقاف خبرته ${minutes} دقائق`);
+
+  return { spam: true, muted: true, until, reason: reasons[0], minutes };
+}
+
+/** رفع الحظر اليدوي (للاختبار/أمر إداري) */
+function clearSpamMute(guildId, userId) {
+  return spamMutes.delete(`${guildId}:${userId}`);
+}
+
+/** معرفة سبب سبام مسجّل (للعرض) */
+function spamReason(guildId, userId) {
+  return spamStatus(guildId, userId);
+}
+
 /* --------------------------- حمايات التفاعل (ذاكرة) --------------------------- */
 
 /** من تفاعل مع كل رسالة (نمنع تكرار نفس الشخص + نحدّد سقفًا لكل رسالة) */
@@ -90,9 +244,12 @@ async function addXp(client, member, amount, options = {}) {
     if (!cfg?.enabled) return null;
     if (!sourceEnabled(cfg, source)) return null;
 
+    /* الحماية الذكية: الممنوع بسبب سبام ما ياخذ خبرة من أي مصدر (كتابي · صوتي · تفاعل) */
+    if (options.respectSpamGuard !== false && spamStatus(guild.id, member.id).muted) return null;
+
     const row = db.getLevelRow(guild.id, member.id);
     const now = Date.now();
-    const cooldownMs = Math.max(0, cfg.cooldownSeconds || 60) * 1000;
+    const cooldownMs = Math.max(0, Number(cfg.cooldownSeconds ?? 60)) * 1000; // ٠ = بلا كولداون
 
     // الكولداون يخصّ الخبرة الكتابية فقط (الصوتية والتفاعل لها حماياتها)
     if (source === 'text' && !bypassCooldown && row && now - row.last_xp_at < cooldownMs) return null;
@@ -172,6 +329,12 @@ async function tickVoiceXp(client) {
       const cfg = settings.leveling;
       if (!cfg?.enabled || !cfg.voiceXp) continue;
 
+      /* الفاصل الصوتي: المؤقت يشتغل كل دقيقة، ونمنح كل ما مرّ الفاصل المطلوب */
+      const intervalSeconds = Math.max(30, Number(cfg.voiceIntervalSeconds ?? 60));
+      voiceTicks.set(guild.id, (voiceTicks.get(guild.id) || 0) + 1);
+      const ticksNeeded = Math.max(1, Math.round(intervalSeconds / 60));
+      if (voiceTicks.get(guild.id) % ticksNeeded !== 0) continue;
+
       const afkChannelId = guild.afkChannelId;
       for (const state of guild.voiceStates.cache.values()) {
         const member = state.member;
@@ -183,10 +346,11 @@ async function tickVoiceXp(client) {
         if (humans < 2) continue;
         if ((cfg.ignoredRoles || []).some((r) => member.roles.cache.has(r))) continue;
 
-        await addXp(client, member, randomXp(cfg.voiceMinXp ?? 5, cfg.voiceMaxXp ?? 10), {
+        const perInterval = Math.max(1, Number(cfg.voiceXpPerInterval ?? 1));
+        await addXp(client, member, perInterval, {
           source: 'voice',
           bypassCooldown: true,
-          voiceMinutes: 1,
+          voiceMinutes: Math.round(intervalSeconds / 60),
         });
       }
     }
@@ -206,8 +370,15 @@ async function handleMessage(client, message) {
   if ((cfg.ignoredChannels || []).includes(message.channelId)) return null;
   if ((cfg.ignoredRoles || []).some((r) => message.member.roles.cache.has(r))) return null;
 
+  /* فحص السبام أولًا: تكرار الكلام أو رسائل سريعة = بلا خبرة ٥ دقايق */
+  const spam = noteMessage(message.guild.id, message.author.id, message.content, cfg);
+  if (spam.muted) return { blocked: true, reason: spam.reason || 'spam_mute' };
+
+  const { xp, chars } = textXpFor(message.content, cfg);
+  if (!xp) return null; // رسالة بلا حروف (إيموجي/صور فقط) = بلا خبرة
+
   db.bumpDaily(message.guild.id, 'messages');
-  return addXp(client, message.member, randomXp(cfg.minXp, cfg.maxXp), { source: 'text', messages: 1 });
+  return addXp(client, message.member, xp, { source: 'text', messages: 1, chars });
 }
 
 /**
@@ -490,10 +661,20 @@ function sourcesEmbed(guildId, lang = 'ar') {
       return db.getXpTotals(guildId, 'week', periods.weekKey(new Date(), cfg));
     })(),
   };
+  const cfg = db.getGuildSettings(guildId).leveling || {};
+  const how = ar
+    ? `**كيف تُحسب الخبرة**\nكتابي: كل **${cfg.textXpPerChars ?? 5} أحرف** = **${cfg.textXpPerCharsAmount ?? 1}** خبرة\nصوتي: كل **${cfg.voiceIntervalSeconds ?? 60} ثانية** في الروم = **${cfg.voiceXpPerInterval ?? 1}** خبرة\nتفاعل: خبرة لما يتفاعل الأعضاء مع رسائلك\n${
+        cfg.antiSpam?.enabled === false
+          ? ''
+          : `حماية السبام: من يكرّر الكلام أو يسبام → **بلا خبرة ${cfg.antiSpam?.muteMinutes ?? 5} دقايق**`
+      }`
+    : `Text: every **${cfg.textXpPerChars ?? 5} chars** = **${cfg.textXpPerCharsAmount ?? 1}** XP · Voice: every **${cfg.voiceIntervalSeconds ?? 60}s** = **${cfg.voiceXpPerInterval ?? 1}** XP`;
+
   return base({
     color: 0x5865f2,
     title: ar ? 'مصادر الخبرة في السيرفر' : 'Server XP sources',
     fields: [
+      { name: ar ? 'طريقة الحساب' : 'How XP works', value: how, inline: false },
       ...periods.PERIOD_KEYS.map((key) => ({
         name: periods.PERIODS[key].short,
         value: ar
@@ -510,8 +691,8 @@ module.exports = {
   addXp,
   handleMessage,
   handleReaction,
-  handleLevelUp,
   tickVoiceXp,
+  handleLevelUp,
   getRankData,
   getBoard,
   rankEmbed,
@@ -521,4 +702,14 @@ module.exports = {
   PERIODS: periods.PERIODS,
   SOURCES: periods.SOURCES,
   randomXp,
+  /* الخبرة الكتابية بالأحرف */
+  countChars,
+  textXpFor,
+  /* الحماية الذكية من السبام */
+  noteMessage,
+  spamStatus,
+  spamReason,
+  clearSpamMute,
+  normalizeForCompare,
+  similarity,
 };

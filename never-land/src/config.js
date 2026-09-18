@@ -279,17 +279,20 @@ const config = {
       channelId: null,
     },
     leveling: {
+      /* إصدار نموذج الإعدادات — يرفعه الكود عند تغيير النموذج (انظر src/database/migrate.js) */
+      settingsVersion: 2,
       /* النظام مفعّل افتراضيًا حتى يشتغل من أول لحظة — يُطفأ من اللوحة أو /leveling disable */
       enabled: true,
-      /* خبرة كتابية (الرسائل) */
+      /* خبرة كتابية: ١ خبرة لكل ٥ أحرف (تُحسب الأحرف بلا مسافات ولا رموز إيموجي) */
       textXp: true,
-      minXp: 15,
-      maxXp: 25,
-      cooldownSeconds: 60,
-      /* خبرة صوتية (البقاء في الرومات) */
+      textXpPerChars: 5,
+      textXpPerCharsAmount: 1,
+      maxTextXpPerMessage: 100, // سقف أمان للرسالة الواحدة (يمنع رسالة طويلة واحدة تعطي مئات)
+      cooldownSeconds: 0, // بلا كولداون — الحماية الذكية من السبام هي اللي تنظّم
+      /* خبرة صوتية: ١ خبرة كل ٦٠ ثانية بقاء في الروم (لازم معك حد ثاني) */
       voiceXp: true,
-      voiceMinXp: 5,
-      voiceMaxXp: 10,
+      voiceIntervalSeconds: 60,
+      voiceXpPerInterval: 1,
       /* خبرة تفاعل (التفاعلات على رسائلك) */
       interactXp: true,
       interactMinXp: 2,
@@ -297,6 +300,19 @@ const config = {
       interactGivenXp: false,
       interactMaxPerMessage: 5,
       interactDailyCap: 60,
+      /* -------------------- الحماية الذكية من السبام --------------------
+         السبام = تكرار نفس الكلام · رسائل سريعة متتالية · حروف مكررة (اااااا)
+         العقوبة: ما تُحسب له أي خبرة (كتابي · صوتي · تفاعل) لمدة ٥ دقايق. */
+      antiSpam: {
+        enabled: true,
+        muteMinutes: 5,
+        repeatLimit: 3, // نفس الرسالة كم مرة قبل ما نعتبرها سبام
+        windowSeconds: 90, // نافذة المراقبة
+        similarity: 0.85, // نسبة التشابه اللي تعتبر الرسالة مكرّرة
+        rateMessages: 8, // عدد الرسائل السريعة
+        rateSeconds: 10, // خلال كم ثانية
+        repeatChars: 8, // حروف متتالية متشابهة تعتبر سبام
+      },
       /* تجديد توب داي / توب ويك (إزاحة عن UTC بالساعات) */
       resetOffsetHours: 0,
       announceChannelId: null,

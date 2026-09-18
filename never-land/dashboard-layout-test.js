@@ -106,7 +106,19 @@ async function run({ quiet = false } = {}) {
   const base = `http://127.0.0.1:${server.address().port}`;
   const demoGuild = require('./src/web/demo').DEMO_GUILD_ID;
 
-  const browser = await playwright.chromium.launch();
+  let browser;
+  try {
+    browser = await playwright.chromium.launch();
+  } catch (err) {
+    /* المتصفح غير منزّل على هذا الجهاز → نتخطّى بهدوء بدل ما نفشّل النشر */
+    if (/Executable doesn't exist|playwright install|browserType\.launch/i.test(String(err.message))) {
+      webGuilds.canAccessGuild = prevAccess;
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+      say('  [تخطّي] متصفح Chromium غير منزّل على هذا الجهاز — تخطّي فحص التخطيط الحقيقي');
+      return { skipped: true, reason: 'no_browser' };
+    }
+    throw err;
+  }
   const errors = [];
   const measured = [];
 
