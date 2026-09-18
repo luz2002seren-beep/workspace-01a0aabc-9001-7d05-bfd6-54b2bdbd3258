@@ -30,7 +30,8 @@ function base({ color = config.bot.colors.primary, title, description, footer, t
   if (image) embed.setImage(image);
   if (author) embed.setAuthor(author);
   if (fields?.length) embed.addFields(fields);
-  embed.setFooter({ text: footer || 'Never Land • لوحة تحكم وبوت متكامل' });
+  /* footer: false ⇒ بلا فوتر إطلاقًا (يبقى وقت الرسالة فقط) */
+  if (footer !== false) embed.setFooter({ text: footer || 'Never Land • لوحة تحكم وبوت متكامل' });
   return embed;
 }
 

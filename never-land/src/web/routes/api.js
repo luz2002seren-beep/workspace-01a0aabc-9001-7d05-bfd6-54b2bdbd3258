@@ -417,7 +417,7 @@ router.post('/guilds/:guildId/commands/aliases', async (req, res) => {
   if (!result.ok) {
     const messages = {
       unknown_command: 'هذا الأمر غير موجود.',
-      invalid_alias: 'الاختصار لازم يكون إنجليزي بحروف صغيرة (بلا مسافات أو رموز).',
+      invalid_alias: 'الاختصار لازم يكون حروف عربية أو إنجليزية بلا مسافات (مثال: حظر · ban2) — بحد أقصى ٢٠ حرفًا.',
       alias_taken: 'الاختصار محجوز لأمر ثاني.',
     };
     return res.status(400).json({

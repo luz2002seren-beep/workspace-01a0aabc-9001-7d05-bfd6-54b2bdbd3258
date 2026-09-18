@@ -92,12 +92,15 @@ async function run() {
   assert.deepStrictEqual(staffView.matches.slice(0, 3).map((m) => m.name), ['ban', 'kick', 'timeout'], 'ترتيب الأوامر المشابهة لكلمة «طير» غير صحيح');
 
   /* بطاقة الأمر: نفس شكل بوتات الأوامر (Command: ban + #الاختصارات · #الاستخدام · #أمثلة للأمر) */
+  textCommands.setAliases(GUILD, 'ban', ['b', 'حظر', 'طير']);
   const card = suggestions.card('ban', { guildId: GUILD });
   const cardData = card.data || card;
   console.log('   بطاقة الأمر:', cardData.title, '| الحقول:', (cardData.fields || []).map((f) => f.name).join(' · '));
   assert.strictEqual(cardData.title, 'Command: ban', 'عنوان البطاقة ما صار Command: ban');
   assert.deepStrictEqual((cardData.fields || []).map((f) => f.name), ['#الاختصارات', '#الاستخدام', '#أمثلة للأمر'], 'حقول البطاقة ناقصة');
-  assert.ok(cardData.fields[0].value.includes('#طير'), 'الاختصارات ما فيها الكلمة العربية «طير»');
+  assert.strictEqual(cardData.fields[0].value, '#b، #حظر، #طير', 'الاختصارات ما هي نفسها المزبوطة من الموقع');
+  assert.ok(!cardData.description, 'البطاقة فيها وصف — المطلوب بلا وصف');
+  assert.ok(!cardData.footer, 'البطاقة فيها فوتر — المطلوب وقت الرسالة فقط');
   assert.ok(cardData.fields[1].value.includes('/ban '), 'سطر الاستخدام ما يبدأ بـ /ban');
   assert.ok(cardData.fields[2].value.split('\n').every((l) => l.startsWith('`/ban')), 'الأمثلة ما صارت بكتابة /ban');
   assert.ok(!/https?:/.test(JSON.stringify(cardData)), 'البطاقة فيها رابط موقع');
@@ -222,8 +225,10 @@ async function run() {
   assert.strictEqual(calls.length, 0, 'الأمر نُفّذ بدون منشن (على الرد)');
   assert.ok(/منشن العضو/.test(replies.at(-1) || ''), 'ما ظهر تنبيه المنشن');
   const warnData = warnCards.at(-1)?.embeds?.[0]?.data || {};
-  console.log('   البطاقة اللي طلعت بدل التنبيه:', warnData.title);
+  console.log('   البطاقة اللي طلعت بدل التنبيه:', warnData.title, '| الوصف:', (warnData.description || '').slice(0, 60));
   assert.strictEqual(warnData.title, 'Command: ban', 'تنبيه المنشن ما صار بطاقة أمر');
+  assert.ok(!warnData.footer, 'بطاقة التنبيه فيها فوتر');
+  assert.ok(!/أوامر مشابهة/.test(warnData.description || ''), 'لسا في سطر «أوامر مشابهة»');
   assert.ok(!/https?:/.test(JSON.stringify(warnData)), 'بطاقة التنبيه فيها رابط موقع');
   assert.ok(!warnCards.at(-1)?.components?.length, 'بطاقة التنبيه فيها أزرار');
 

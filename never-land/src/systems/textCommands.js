@@ -88,10 +88,27 @@ function configFor(guildId) {
   };
 }
 
-/** تنظيف الاختصار: إنجليزي فقط، بلا مسافات، بحروف صغيرة، بحد أقصى ٢٠ حرفًا */
+/**
+ * تنظيف الاختصار: عربي أو إنجليزي، بلا مسافات، بحد أقصى ٢٠ حرفًا.
+ *   • يُقبل رمز # قبله (زي ما يطلع في بطاقة الأمر) ويُنزع
+ *   • التشكيل يُشال، والهمزات/التاء المربوطة/الألف المقصورة تُوحَّد
+ *   • الإنجليزي يُصغَّر
+ */
 function normalizeAlias(value) {
-  const clean = String(value || '').trim().toLowerCase().replace(/\s+/g, '').slice(0, 20);
-  return /^[a-z][a-z0-9_-]*$/.test(clean) ? clean : '';
+  let clean = String(value || '').trim().replace(/^#/, '').replace(/\s+/g, '');
+  clean = clean
+    .replace(/[\u064B-\u0652\u0670]/g, '')
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .replace(/ؤ/g, 'و')
+    .replace(/ئ/g, 'ي')
+    .toLowerCase()
+    .slice(0, 20);
+  if (!clean) return '';
+  if (/^[a-z][a-z0-9_-]*$/.test(clean)) return clean; /* إنجليزي */
+  if (/^[\u0621-\u064A][\u0621-\u064A0-9_-]*$/.test(clean)) return clean; /* عربي */
+  return '';
 }
 
 /** كل الاختصارات مع أسماء الأوامر ومستخدِميها */

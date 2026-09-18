@@ -1187,7 +1187,7 @@ const SECTIONS = {
                 chips.innerHTML = '';
                 if (!current.length) chips.appendChild(el('span', { class: 'cmd-none', text: 'بلا اختصار' }));
                 current.forEach((alias) => {
-                  const chip = el('button', { class: 'cmd-chip', title: 'شيل الاختصار', html: `${esc(alias)} ${ic('close', 12)}` });
+                  const chip = el('button', { class: 'cmd-chip', title: 'شيل الاختصار', html: `${esc(`#${alias}`)} ${ic('close', 12)}` });
                   chip.addEventListener('click', () => {
                     current = current.filter((a) => a !== alias);
                     save();
@@ -1208,7 +1208,7 @@ const SECTIONS = {
                 }
               };
 
-              const addInput = el('input', { class: 'cmd-alias-input', placeholder: 'اختصار جديد', maxlength: '20', dir: 'ltr' });
+              const addInput = el('input', { class: 'cmd-alias-input', placeholder: 'اختصار جديد (عربي أو إنجليزي)', maxlength: '20', dir: 'auto' });
               const addBtn = el('button', { class: 'cmd-add', html: `${ic('plus', 13)} إضافة` });
               const commit = () => {
                 const value = String(addInput.value || '').trim().toLowerCase();
@@ -1226,6 +1226,7 @@ const SECTIONS = {
               editor.appendChild(chips);
               editor.appendChild(addInput);
               editor.appendChild(addBtn);
+              editor.appendChild(el('div', { class: 'cmd-alias-hint', html: 'هذه الاختصارات هي اللي تطلع في <b>بطاقة الأمر</b> في ديسكورد — والكتابة العربية مسموحة.' }));
               row.appendChild(editor);
 
               body.appendChild(row);

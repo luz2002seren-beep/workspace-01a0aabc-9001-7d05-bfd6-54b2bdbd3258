@@ -922,3 +922,7 @@ tr.au-warn td { background: rgba(240, 199, 94, .05); }
 .cmd-cd b{display:block;font-size:.85rem}
 .cmd-cd span{color:var(--muted);font-size:.78rem}
 .cmd-bar{flex-wrap:wrap;gap:14px}
+
+/* ملاحظة محرّر الاختصارات: هي نفسها اللي تطلع في بطاقة الأمر */
+.cmd-alias-hint{color:#8f98b8;font-size:.78rem;margin-top:6px;line-height:1.7}
+.cmd-alias-hint b{color:#cfd6f5}

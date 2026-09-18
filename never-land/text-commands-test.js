@@ -214,9 +214,19 @@ async function run() {
   console.log(`٣) الكلمات العربية والبوتات: ما تنفّذ شي · والأوامر المطفية من الموقع تتوقف ✅ (ملاحظة: كلمة إنجليزية شائعة مثل top قد تلمس الأمر${triggeredByPlainWord ? ' — والمفتاح لكل أمر يوقفها' : ''})`);
 
   /* ----------------------- ٤) الاختصارات ----------------------- */
-  const added = text.setAliases(GUILD, 'ban', ['bn', 'حظر']);
-  assert.strictEqual(added.ok, false, 'اختصار عربي انقبل!');
-  assert.deepStrictEqual(added.invalid, ['حظر'], 'الاختصار العربي ما انرفض صح');
+  /* العربي صار مسموحًا (المالك يضبط اختصاراته من الموقع وتطلع في بطاقة الأمر) */
+  const arabicAdd = text.setAliases(GUILD, 'ban', ['حظر', 'طير']);
+  assert.strictEqual(arabicAdd.ok, true, 'الاختصار العربي ما انقبل');
+  assert.deepStrictEqual(arabicAdd.aliases, ['حظر', 'طير'], 'الاختصار العربي ما انحفظ صح');
+
+  calls.length = 0;
+  await doIt('حظر <@111111111111111111> سبام');
+  assert.strictEqual(calls[0]?.name, 'ban', 'الاختصار العربي ما شغّل أمر الحظر');
+  assert.strictEqual(calls[0]?.raw.user, 'ahmed', 'الاختصار العربي ما ربط العضو');
+
+  const badAlias = text.setAliases(GUILD, 'ban', ['حظر', 'حظر!']);
+  assert.strictEqual(badAlias.ok, false, 'اختصار فيه رمز انقبل!');
+  assert.deepStrictEqual(badAlias.invalid, ['حظر!'], 'الاختصار الغلط ما انرفض');
 
   const okAdd = text.setAliases(GUILD, 'ban', ['bn']);
   assert.strictEqual(okAdd.ok, true, 'إضافة اختصار إنجليزي فشلت');
@@ -238,7 +248,7 @@ async function run() {
   calls.length = 0;
   await doIt('ban <@111111111111111111>');
   assert.strictEqual(calls[0]?.name, 'ban', 'اسم الأمر نفسه ما اشتغل بعد حذف الاختصار');
-  console.log('٤) الاختصارات: إضافة · منع التعارض · رفض العربي · حذف — كله صح ✅');
+  console.log('٤) الاختصارات: إضافة (إنجليزي وعربي) وتنفيذها · منع التعارض · رفض الفاضي أو اللي فيه رموز · حذف — كله صح ✅');
 
   /* ----------------------- ٥) الإيقاف والإعدادات ----------------------- */
   const turnedOff = text.setOptions(GUILD, { enabled: false });
