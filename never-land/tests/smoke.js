@@ -390,7 +390,7 @@ console.log('[نجاح] كل الاختبارات نجحت!');
     // الأقسام المطلوبة موجودة
     const expectedSections = [
       'overview', 'general', 'welcome', 'autorole', 'leveling',
-      'automod', 'moderation', 'autoline', 'autoreact',
+      'automod', 'moderation', 'autoline', 'autoreact', 'autoReply',
       'tickets', 'staffapp', 'logs', 'data',
     ];
     for (const id of expectedSections) {
@@ -404,7 +404,7 @@ console.log('[نجاح] كل الاختبارات نجحت!');
     const paths = [...appSource.matchAll(/['"`]((?:[a-zA-Z]+\.)+(?:[a-zA-Z]+|[0-9]+))['"`]/g)]
       .map((m) => m[1])
       .filter((p) => !p.includes('discord.com') && !p.includes('http'))
-      .filter((p) => /^(welcome|leave|boost|logs|autoline|autoreact|automod|moderation|leveling|tickets|staffApplication|autorole|referral|reports)\./.test(p));
+      .filter((p) => /^(welcome|leave|boost|logs|autoline|autoreact|autoReply|automod|moderation|leveling|tickets|staffApplication|autorole|referral|reports)\./.test(p));
     const uniquePaths = [...new Set(paths)];
     const settings = db.getGuildSettings('999999999999999999');
     const missing = uniquePaths.filter((p2) => {
@@ -1467,6 +1467,71 @@ console.log('[نجاح] كل الاختبارات نجحت!');
     assert.ok(out38.includes('🎉'), 'اختبار نظام الخبرة ما نجح');
 
   console.log('  [تم] ٥ أحرف = ١ خبرة · ٦٠ ثانية صوت = ١ خبرة · السبام (تكرار/سرعة/حروف مكررة) = بلا خبرة ٥ دقايق');
+  }
+
+ console.log('[اختبار] 39: الردود التلقائية — كلمة مفتاحية ← رد · في كل الرومات · من الموقع');
+  {
+    const fs39 = require('node:fs');
+    const path39 = require('node:path');
+    const root39 = path39.join(__dirname, '..');
+    const read39 = (rel) => fs39.readFileSync(path39.join(root39, rel), 'utf8');
+
+    const engine39 = read39('src/systems/autoreply.js');
+    const lib39 = read39('src/lib/arabicText.js');
+    const cfg39 = require('../src/config').defaults.autoReply;
+
+    // ١) الإعدادات الافتراضية: مفعّل + كل الرومات + قواعد فارغة
+    assert.strictEqual(cfg39.enabled, true, 'الردود التلقائية لازم تكون مفعّلة افتراضيًا');
+    assert.strictEqual(cfg39.anywhereInServer, true, 'الردود لازم تشتغل في كل الرومات افتراضيًا');
+    assert.ok(Array.isArray(cfg39.rules), 'حقل القواعد ناقص');
+    for (const key of ['cooldownSeconds', 'deleteAfterSeconds', 'ignoreBots']) {
+      assert.ok(key in cfg39, `إعداد ${key} ناقص`);
+    }
+
+    // ٢) المحرّك: مطابقة عربية + متغيّرات + صيغ متعددة + نطاق + كولداون
+    for (const fn of ['handleMessage', 'preview', 'matchRule', 'findRule', 'pickReply', 'applyVariables', 'ruleTriggers', 'channelAllowed']) {
+      assert.ok(engine39.includes(`${fn}(`) || engine39.includes(`${fn} =`), `دالة ${fn} ناقصة من محرّك الردود`);
+    }
+    for (const needle of ['{user}', '{name}', '{server}', '{channel}', 'anywhereInServer', 'replyCooldown']) {
+      assert.ok(engine39.includes(needle), `محرّك الردود ينقصه «${needle}»`);
+    }
+    for (const fn of ['normalizeArabic', 'similarity', 'containsWord']) {
+      assert.ok(lib39.includes(`function ${fn}`), `المكتبة المشتركة ينقصها ${fn}`);
+    }
+
+    // ٣) مربوط بمسار الرسائل قبل نظام الخبرة
+    const evt39 = read39('src/events/messageCreate.js');
+    assert.ok(evt39.includes("require('../systems/autoreply')"), 'الردود التلقائية غير مربوطة بمسار الرسائل');
+    assert.ok(
+      evt39.indexOf('autoreply.handleMessage') < evt39.indexOf('leveling.handleMessage'),
+      'الردود التلقائية لازم تكون قبل الخبرة في الترتيب',
+    );
+
+    // ٤) أمر ديسكورد
+    const cmd39 = read39('src/commands/config/autoreply.js');
+    for (const needle of ["setName('autoreply')", "sub('add'", "sub('remove'", "sub('list'", "sub('test'", 'نوع_المطابقة', 'تنبيه_العضو']) {
+      assert.ok(cmd39.includes(needle), `أمر /autoreply ينقصه ${needle}`);
+    }
+
+    // ٥) اللوحة: قسم كامل بأيقونته وحقوله
+    const app39 = read39('src/web/public/app.js');
+    for (const needle of ['autoReply: {', "autoReply: 'bubbles'", 'label: \'الردود التلقائية\'', 'autoReply.rules', 'autoReply.anywhereInServer', 'pickLocalReply']) {
+      assert.ok(app39.includes(needle), `لوحة الردود التلقائية ينقصها ${needle}`);
+    }
+    const dash39 = read39('src/web/public/dash.css');
+    for (const needle of ['.ar-rule', '.ar-preview', '.ar-num', '.ar-grid']) {
+      assert.ok(dash39.includes(needle), `أنماط الردود التلقائية ينقصها ${needle}`);
+    }
+
+    // ٦) الاختبار العملي (٦ مجموعات)
+    const { execFileSync } = require('node:child_process');
+    const out39 = execFileSync('node', [path39.join(root39, 'autoreply-test.js')], { cwd: root39, encoding: 'utf8' });
+    for (const needle of ['١) التطبيع العربي', '٢) المطابقة', '٣) المتغيّرات', '٤) كل الرومات', '٥) الكولداون', '٦) حمايات']) {
+      assert.ok(out39.includes(needle), `اختبار الردود ينقصه: ${needle}`);
+    }
+    assert.ok(out39.includes('🎉'), 'اختبار الردود التلقائية ما نجح');
+
+  console.log('  [تم] الردود التلقائية: كلمة ← رد · كل الرومات · متغيّرات · كولداون · أمر /autoreply · قسم كامل في الموقع');
   }
 
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');

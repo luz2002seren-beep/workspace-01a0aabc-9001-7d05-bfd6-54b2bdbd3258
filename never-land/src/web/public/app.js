@@ -334,6 +334,7 @@ const SECTION_ICONS = {
   logs: 'scroll',
   data: 'folder',
   top: 'trophy',
+  autoReply: 'bubbles',
   siteMembers: 'key',
 };
 
@@ -888,6 +889,170 @@ const SECTIONS = {
   },
 
   /* ------------------------------ التفاعلات التلقائية ------------------------------ */
+  /* ------------------------------ الردود التلقائية ------------------------------ */
+  autoReply: {
+    group: 'الأعضاء',
+    label: 'الردود التلقائية',
+    title: 'الردود التلقائية',
+    desc: 'حدّد كلمة، والبوت يرد عليك بالرسالة اللي تكتبها — في كل رومات السيرفر.',
+    render() {
+      const cfg = state.settings.autoReply || {};
+      const rules = Array.isArray(cfg.rules) ? cfg.rules : [];
+
+      const MODES = [
+        { value: 'contains', label: 'تحتوي على الكلمة' },
+        { value: 'exact', label: 'الرسالة نفسها بالضبط' },
+        { value: 'starts', label: 'تبدأ بالكلمة' },
+      ];
+
+      /* صفوف القواعد: كل قاعدة تُعدّل مباشرة */
+      const rows = el('div');
+      rules.forEach((rule, index) => {
+        const patch = (part) => {
+          const list = rules.map((r, i) => (i === index ? { ...r, ...part } : r));
+          setPath('autoReply.rules', list);
+        };
+
+        const triggersInput = el('input', {
+          class: 'd-input',
+          value: (rule.triggers || []).join('، '),
+          placeholder: 'مرحبا، هلا، السلام عليكم',
+        });
+        triggersInput.addEventListener('input', () =>
+          patch({ triggers: triggersInput.value.split(/[,،|]/).map((t) => t.trim()).filter(Boolean) }),
+        );
+
+        const modeSelect = el('select', { class: 'd-select' });
+        MODES.forEach((m) => modeSelect.appendChild(el('option', { value: m.value, text: m.label, selected: (rule.match || 'contains') === m.value ? 'selected' : '' })));
+        modeSelect.addEventListener('change', () => patch({ match: modeSelect.value }));
+
+        const channelSelect = el('select', { class: 'd-select' });
+        channelSelect.appendChild(el('option', { value: '', text: 'كل رومات السيرفر', selected: !(rule.channels || []).length ? 'selected' : '' }));
+        channelOptions().forEach((o) => channelSelect.appendChild(el('option', { value: o.value, text: o.label, selected: (rule.channels || [])[0] === o.value ? 'selected' : '' })));
+        channelSelect.addEventListener('change', () => patch({ channels: channelSelect.value ? [channelSelect.value] : [] }));
+
+        const replyArea = el('textarea', { class: 'd-textarea', placeholder: 'أهلًا {user} — وفصل بين أكثر من رد بـ |' });
+        replyArea.value = rule.reply || '';
+        replyArea.addEventListener('input', () => patch({ reply: replyArea.value }));
+
+        const cooldownInput = el('input', { class: 'd-input narrow', type: 'number', min: 0, max: 3600 });
+        cooldownInput.value = rule.cooldownSeconds ?? cfg.cooldownSeconds ?? 15;
+        cooldownInput.addEventListener('input', () => patch({ cooldownSeconds: Math.max(0, Math.min(3600, Number(cooldownInput.value) || 0)) }));
+
+        const delInput = el('input', { class: 'd-input narrow', type: 'number', min: 0, max: 3600 });
+        delInput.value = rule.deleteAfterSeconds ?? cfg.deleteAfterSeconds ?? 0;
+        delInput.addEventListener('input', () => patch({ deleteAfterSeconds: Math.max(0, Math.min(3600, Number(delInput.value) || 0)) }));
+
+        const pingSwitch = el('label', { class: 'd-switch' });
+        const pingInput = el('input', { type: 'checkbox' });
+        pingInput.checked = rule.pingUser === true;
+        pingInput.addEventListener('change', () => patch({ pingUser: pingInput.checked }));
+        pingSwitch.appendChild(pingInput);
+        pingSwitch.appendChild(el('span'));
+
+        const activeSwitch = el('label', { class: 'd-switch' });
+        const activeInput = el('input', { type: 'checkbox' });
+        activeInput.checked = rule.enabled !== false;
+        activeInput.addEventListener('change', () => patch({ enabled: activeInput.checked }));
+        activeSwitch.appendChild(activeInput);
+        activeSwitch.appendChild(el('span'));
+
+        const removeBtn = el('button', { class: 'd-btn sm danger', html: `${ic('trash', 14)} حذف القاعدة` });
+        removeBtn.addEventListener('click', () => {
+          setPath('autoReply.rules', rules.filter((_, i) => i !== index));
+          renderSection('autoReply');
+        });
+
+        const head = el('div', { class: 'ar-rule-head' });
+        head.appendChild(el('span', { class: 'ar-num', text: String(index + 1) }));
+        head.appendChild(el('b', { text: (rule.triggers || []).slice(0, 3).join(' · ') || 'قاعدة جديدة' }));
+        head.appendChild(el('span', { class: 'ar-spacer' }));
+        head.appendChild(el('span', { class: 'ar-flag', html: `${ic('bell', 13)} مفعّلة`, style: rule.enabled === false ? 'display:none' : '' }));
+        head.appendChild(removeBtn);
+
+        const preview = el('div', { class: 'ar-preview' });
+        const paintPreview = () => {
+          const first = pickLocalReply(rule.reply || '');
+          preview.innerHTML = first
+            ? `${ic('bubbles', 14)} <span>اللي بينرسل: ${esc(applyLocalVars(first, state.guild))}</span>`
+            : `${ic('info', 14)} <span>اكتب نص الرد فوق</span>`;
+        };
+        replyArea.addEventListener('input', paintPreview);
+        paintPreview();
+
+        const card = el('div', { class: 'ar-rule' });
+        card.appendChild(head);
+        card.appendChild(triggersInput);
+        card.appendChild(
+          el('div', { class: 'ar-grid' }, [
+            dField('نوع المطابقة', 'كيف نطابق رسالة العضو', [modeSelect]),
+            dField('القناة', 'افتراضي: كل رومات السيرفر', [channelSelect]),
+            dField('كولداون (ثانية)', 'منع تكرار الرد على نفس العضو', [cooldownInput]),
+            dField('حذف الرد بعد (ثانية)', '٠ = يبقى', [delInput]),
+            dField('تنبيه العضو', 'يجعل الرد منشن للعضو', [pingSwitch]),
+            dField('القاعدة مفعّلة', 'إيقاف قاعدة واحدة بدون حذفها', [activeSwitch]),
+          ]),
+        );
+        card.appendChild(dField('نص الرد', 'المتغيّرات: {user} منشن · {name} الاسم · {server} السيرفر · {channel} القناة — وفصل بين أكثر من رد بـ |', [replyArea], { wide: true }));
+        card.appendChild(preview);
+        rows.appendChild(card);
+      });
+
+      /* إضافة قاعدة جديدة */
+      const newTriggers = el('input', { class: 'd-input', placeholder: 'الكلمات المفتاحية: مرحبا، هلا' });
+      const newReply = el('input', { class: 'd-input', placeholder: 'الرد: أهلًا {user}' });
+      const addBtn = el('button', { class: 'd-btn primary', html: `${ic('plus', 15)} إضافة رد تلقائي` });
+      addBtn.addEventListener('click', () => {
+        const triggers = newTriggers.value.split(/[,،|]/).map((t) => t.trim()).filter(Boolean);
+        const reply = newReply.value.trim();
+        if (!triggers.length) return toast('اكتب كلمة مفتاحية واحدة على الأقل.', true);
+        if (!reply) return toast('اكتب نص الرد.', true);
+        const list = [
+          ...rules,
+          {
+            id: `r${Date.now().toString(36)}`,
+            triggers,
+            match: 'contains',
+            reply,
+            channels: [],
+            cooldownSeconds: cfg.cooldownSeconds ?? 15,
+            deleteAfterSeconds: cfg.deleteAfterSeconds ?? 0,
+            pingUser: false,
+            enabled: true,
+          },
+        ];
+        setPath('autoReply.rules', list);
+        renderSection('autoReply');
+        toast('أضفنا القاعدة — لا تنسَ الحفظ.');
+      });
+      const adder = el('div', { class: 'd-field-control' });
+      [newTriggers, newReply, addBtn].forEach((n) => adder.appendChild(n));
+
+      return [
+        dCard('حالة النظام', 'الردود التلقائية تعمل في كل رومات السيرفر', 'bubbles', [
+          dField('الردود التلقائية', 'المفتاح الرئيسي — يوقف النظام كامل بضغطة', [dSwitch('autoReply.enabled')]),
+          dField('تعمل في كل الرومات', 'مفعّلة = أي روم بالسيرفر · معطّلة = حسب القناة المحدّدة في كل قاعدة', [dSwitch('autoReply.anywhereInServer')]),
+          dField('تجاهل البوتات', 'ما يرد على رسائل البوتات', [dSwitch('autoReply.ignoreBots')]),
+          dField('الكولداون الافتراضي (ثانية)', 'بين رد ورد لنفس العضو (كل قاعدة تقدر تتجاوزه)', [dNumber('autoReply.cooldownSeconds', { min: 0, max: 3600 })]),
+          dField('حذف الرد بعد (ثانية)', 'تنظيف تلقائي لردود البوت (٠ = تبقى)', [dNumber('autoReply.deleteAfterSeconds', { min: 0, max: 3600 })]),
+        ]),
+        dCard(
+          `القواعد (${rules.length})`,
+          'كل قاعدة: كلمات مفتاحية + الرد. تُنفَّذ القاعدة الأولى المطابقة فقط',
+          'messageEdit',
+          rules.length ? [rows] : [el('div', { class: 'd-empty', text: 'ما في ردود تلقائية بعد — أضف أول قاعدة من تحت.' })],
+        ),
+        dCard('إضافة رد تلقائي', 'اكتب الكلمات ثم الرد، وبعدها كمل التعديل داخل البطاقة', 'plus', [
+          dField('قاعدة جديدة', 'الكلمات المفتاحية والرد', [adder], { wide: true }),
+          el('p', {
+            class: 'd-hint',
+            text: 'مثال: الكلمات «مرحبا، هلا، السلام عليكم» ← الرد «أهلًا وسهلًا {user} في سيرفر {server}». وتقدر تكتب أكثر من رد وتفصل بينهم بـ | ليختار البوت واحدًا عشوائيًا.',
+          }),
+        ]),
+      ];
+    },
+  },
+
   autoreact: {
     group: 'الأعضاء',
     label: 'التفاعلات التلقائية',
@@ -1804,6 +1969,20 @@ function buildHeader() {
   actions.appendChild(refresh);
   head.appendChild(actions);
   return head;
+}
+
+/* معاينة محلية لنص الرد (نفس منطق البوت مبسّط للعرض فقط) */
+function pickLocalReply(reply) {
+  const variants = String(reply || '').split('|').map((p) => p.trim()).filter(Boolean);
+  return variants.length ? variants[0] : '';
+}
+
+function applyLocalVars(text, guild) {
+  return String(text || '')
+    .split('{user}').join('@العضو')
+    .split('{name}').join('اسم العضو')
+    .split('{server}').join(guild?.name || 'السيرفر')
+    .split('{channel}').join('#الروم');
 }
 
 function renderSection(id) {

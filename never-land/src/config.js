@@ -231,6 +231,20 @@ const config = {
       deleteLineWithMessage: true, // حذف الخط عند حذف الرسالة التي بعده
     },
     /** تفاعلات تلقائية (AutoReaction) — إيموجيات تُضاف تلقائيًا لرسائل القنوات */
+    /**
+     * الردود التلقائية (AutoReply)
+     * العضو يكتب كلمة مفتاحية → البوت يرد عليه بالرسالة المحدّدة.
+     * تعمل في كل قنوات السيرفر افتراضيًا.
+     */
+    autoReply: {
+      enabled: true,
+      anywhereInServer: true, // الرد شغّال في كل الرومات (إلا لو القاعدة حدّدت قنوات)
+      ignoreBots: true, // ما يرد على البوتات
+      cooldownSeconds: 15, // بين رد ورد لنفس العضو على نفس القاعدة (0 = بلا)
+      deleteAfterSeconds: 0, // حذف رد البوت بعد كذا ثانية (0 = يبقى)
+      /** القواعد: [{ id, triggers: [], match, reply, channels: [], cooldownSeconds, pingUser, enabled }] */
+      rules: [],
+    },
     autoreact: {
       enabled: false,
       channels: [],        // قنوات يتم التفاعل على كل رسالة فيها

@@ -65,6 +65,14 @@ async function startBot() {
   loadCommands(client);
   loadEvents(client);
 
+  // زرع الردود التلقائية الافتراضية مرة واحدة (ترحيب جاهز يتعدّل من الموقع)
+  try {
+    const seeded = require('./systems/autoreply').seedStarterRules();
+    if (seeded) console.log(`[تهيئة] تم تجهيز ردود تلقائية افتراضية في ${seeded} سيرفر.`);
+  } catch (err) {
+  console.error('[تنبيه] تعذّر تجهيز الردود التلقائية:', err.message);
+  }
+
   // تسجيل أوامر السلاش (بعد ربط الحساب)
   client.once(Events.ClientReady, async () => {
     try {

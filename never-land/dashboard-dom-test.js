@@ -82,6 +82,7 @@ async function run() {
   assert.ok(!text.includes('جارٍ تحميل الإعدادات'), `اللوحة عالقة على شاشة التحميل (النص: ${text.slice(0, 80)})`);
 
   /* ٢) بلا أخطاء JavaScript */
+  const window0 = dom.window;
   assert.deepStrictEqual(errors, [], `أخطاء JavaScript في الصفحة: ${errors.join(' | ')}`);
 
   /* ٣) القائمة الجانبية كاملة بأيقونات مرسومة */
@@ -104,11 +105,32 @@ async function run() {
   /* ٥) ما في عنصر قائمة نصّه مكسور لسطرين (تنسيق سليم) */
   assert.ok(doc.querySelectorAll('.d-nav-label').length === navItems.length, 'عناصر القائمة بلا فئة d-nav-label');
 
+  /* ٦) كل قسم يُفتح ويُرسم فعلًا بلا أخطاء (حتى الأقسام اللي ما تظهر لغير المالك تُختبر من كودها) */
+  const visited = [];
+  const errorsAfter = [];
+  const collect = (e) => errorsAfter.push(String(e?.message || e));
+  vc.on('jsdomError', collect);
+  for (const item of navItems) {
+    const label = item.querySelector('.d-nav-label')?.textContent?.trim();
+    item.dispatchEvent(new window0.MouseEvent('click', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 60));
+    const content = doc.getElementById('d-content');
+    const painted = content && content.children.length > 0;
+    const title = content?.querySelector('.d-page-title')?.textContent?.trim() || '';
+    assert.ok(painted, `القسم «${label}» ما رسم أي محتوى عند فتحه`);
+    assert.ok(title && !title.includes('undefined'), `عنوان القسم «${label}» غير سليم (${title})`);
+    visited.push(label);
+  }
+  assert.strictEqual(visited.length, navItems.length, 'ما مرّينا على كل الأقسام');
+  const realErrors = errorsAfter.filter((e) => !/scrollTo|Not implemented/i.test(e));
+  assert.deepStrictEqual(realErrors, [], `أخطاء عند فتح الأقسام: ${realErrors.slice(0, 3).join(' | ')}`);
+  vc.removeListener('jsdomError', collect);
+
   dom.window.close();
   server.close();
   fs.rmSync(tmpDir, { recursive: true, force: true });
 
-  return { skipped: false, navCount: navItems.length, labels };
+  return { skipped: false, navCount: navItems.length, labels, visited };
 }
 
 module.exports = { run };
@@ -117,7 +139,7 @@ if (require.main === module) {
   run()
     .then((res) => {
       if (res.skipped) return;
-      console.log(`[تم] اللوحة تُقلع فعلًا · ${res.navCount} قسمًا في القائمة · «تفاعل» بأيقونة الكأس`);
+      console.log(`[تم] اللوحة تُقلع فعلًا · ${res.navCount} قسمًا · كل قسم يُفتح ويُرسم بلا أخطاء · «تفاعل» بأيقونة الكأس`);
     })
     .catch((err) => {
       console.error('❌', err.message);

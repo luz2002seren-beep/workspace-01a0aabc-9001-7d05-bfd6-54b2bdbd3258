@@ -29,6 +29,7 @@ const { base } = require('../lib/embeds');
 const { progressBar, humanize } = require('../lib/utils');
 const { t } = require('../lib/i18n');
 const periods = require('../lib/periods');
+const arabicText = require('../lib/arabicText');
 
 /** توليد خبرة عشوائية داخل المجال المحدّد */
 const randomXp = (min, max) => {
@@ -83,38 +84,11 @@ const msgHistory = new Map();
 /** من هو ممنوع من الخبرة الآن: `${guildId}:${userId}` → وقت الانتهاء */
 const spamMutes = new Map();
 
-/** تنظيف للمقارنة: بلا تشكيل · بلا رموز · توحيد الألف والياء والتاء */
-function normalizeForCompare(raw) {
-  return String(raw || '')
-    .replace(/<a?:\w+:\d+>/g, '')
-    .replace(/https?:\/\/\S+/g, '')
-    .replace(/[\u064B-\u065F\u0670]/g, '')
-    .replace(/[أإآٱ]/g, 'ا')
-    .replace(/[ىئ]/g, 'ي')
-    .replace(/ة/g, 'ه')
-    .replace(/[^\p{L}\p{N}]+/gu, '')
-    .toLowerCase();
-}
+/** تنظيف للمقارنة — من المكتبة المشتركة (نفس منطق الردود التلقائية) */
+const normalizeForCompare = arabicText.normalizeArabic;
 
-/** معامل تشابه (Dice على الثنائيات) — ١ = متطابق تمامًا */
-function similarity(a, b) {
-  if (!a || !b) return 0;
-  if (a === b) return 1;
-  if (a.length < 4 || b.length < 4) return a === b ? 1 : 0;
-  const bigrams = (s) => {
-    const map = new Map();
-    for (let i = 0; i < s.length - 1; i++) {
-      const g = s.slice(i, i + 2);
-      map.set(g, (map.get(g) || 0) + 1);
-    }
-    return map;
-  };
-  const A = bigrams(a);
-  const B = bigrams(b);
-  let inter = 0;
-  for (const [g, count] of A) if (B.has(g)) inter += Math.min(count, B.get(g));
-  return (2 * inter) / (a.length - 1 + b.length - 1);
-}
+/** معامل تشابه (Dice على الثنائيات) — من المكتبة المشتركة */
+const similarity = arabicText.similarity;
 
 /** هل هذا العضو ممنوع من الخبرة الآن؟ */
 function spamStatus(guildId, userId) {

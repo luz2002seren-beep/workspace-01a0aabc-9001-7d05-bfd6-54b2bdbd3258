@@ -640,6 +640,33 @@ img.guild-icon { background: var(--panel); border: 1px solid var(--border-soft);
    (كان الشريط يأخذ خانة من الشبكة فينزل المحتوى تحت الشاشة) */
 .d-shell > .d-readonly-note { grid-column: 1 / -1; }
 
+/* ============================ الردود التلقائية ============================ */
+.ar-rule {
+  border: 1px solid var(--border-soft); border-radius: 14px; padding: 14px;
+  margin-bottom: 12px; background: var(--panel-3); display: flex; flex-direction: column; gap: 10px;
+}
+.ar-rule-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ar-rule-head b { font-size: .95rem; }
+.ar-num {
+  width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center;
+  background: rgba(88, 101, 242, .18); border: 1px solid rgba(88, 101, 242, .45); color: #b9c2ff;
+  font-size: .78rem; font-weight: 700; flex: 0 0 auto;
+}
+.ar-spacer { flex: 1 1 auto; }
+.ar-flag {
+  display: inline-flex; align-items: center; gap: 5px; font-size: .74rem; color: #8ee0a8;
+  background: rgba(59, 165, 93, .14); border: 1px solid rgba(59, 165, 93, .4); border-radius: 999px; padding: 3px 9px;
+}
+.ar-grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); }
+.ar-grid .d-field { border-bottom: 0; padding: 6px 0; }
+.ar-preview {
+  display: flex; align-items: flex-start; gap: 8px; font-size: .83rem; color: var(--muted);
+  background: rgba(88, 101, 242, .07); border: 1px solid rgba(88, 101, 242, .25); border-radius: 11px; padding: 10px 12px;
+  line-height: 1.8; word-break: break-word;
+}
+.ar-preview svg { flex: 0 0 auto; margin-top: 3px; color: var(--primary); }
+.d-hint { margin: 8px 0 0; font-size: .82rem; color: var(--muted); line-height: 1.9; }
+
 /* ============================ أعضاء الموقع (لوحة المالك) ============================ */
 .sm-who { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .sm-who > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }

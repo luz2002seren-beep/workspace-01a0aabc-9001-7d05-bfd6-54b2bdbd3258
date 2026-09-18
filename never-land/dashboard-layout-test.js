@@ -191,9 +191,9 @@ async function run({ quiet = false } = {}) {
       /* ٤) العنوان نظيف */
       assert.ok(info.title && !info.title.includes('undefined'), `[${who}] عنوان القسم فيه «undefined»: ${info.title}`);
       /* ٥) الأقسام ظاهرة + قسم المالك لا يظهر لغير المالك */
-      assert.ok(info.navCount >= 14, `[${who}] عدد أقسام القائمة ${info.navCount}`);
-      if (who === 'owner') assert.ok(info.navCount >= 15, '[المالك] قسم «أعضاء الموقع» غير ظاهر');
-      else assert.ok(info.navCount <= 14, `[${who}] يرى أقسام المالك! (${info.navCount})`);
+      assert.ok(info.navCount >= 15, `[${who}] عدد أقسام القائمة ${info.navCount}`);
+      if (who === 'owner') assert.ok(info.navCount >= 16, '[المالك] قسم «أعضاء الموقع» غير ظاهر');
+      else assert.ok(info.navCount <= 15, `[${who}] يرى أقسام المالك! (${info.navCount})`);
       /* ٦) شريط القراءة فقط لا يكسر الشبكة */
       if (who !== 'owner') {
         const banner = await page.evaluate(() => {

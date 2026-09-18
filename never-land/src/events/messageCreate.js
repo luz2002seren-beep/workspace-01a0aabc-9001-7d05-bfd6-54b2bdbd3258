@@ -7,7 +7,8 @@
  *   1) الحماية التلقائية (Automod) — إن تعاملت مع الرسالة نتوقف
  *   2) الخط الفاصل التلقائي (AutoLine)
  *   3) التفاعلات التلقائية (AutoReaction)
- *   4) نظام الخبرة (Leveling)
+ *   4) الردود التلقائية (AutoReply) — رد على كلمة مفتاحية في أي روم
+ *   5) نظام الخبرة (Leveling)
  * -------------------------------------------------------------
  */
 
@@ -15,6 +16,7 @@ const { Events } = require('discord.js');
 const automod = require('../systems/automod');
 const autoline = require('../systems/autoline');
 const autoreact = require('../systems/autoreact');
+const autoreply = require('../systems/autoreply');
 const leveling = require('../systems/leveling');
 
 module.exports = {
@@ -33,7 +35,10 @@ module.exports = {
     // 3) التفاعلات التلقائية
     await autoreact.handleMessage(client, message);
 
-    // 4) الخبرة
+    // 4) الردود التلقائية
+    await autoreply.handleMessage(client, message);
+
+    // 5) الخبرة
     await leveling.handleMessage(client, message);
   },
 };
