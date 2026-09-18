@@ -1309,7 +1309,7 @@ console.log('[نجاح] كل الاختبارات نجحت!');
     }
 
     // ٦) فحص الواجهة الفعلي (متصفح وهمي): القسم يظهر للمالك فقط مع أزرار التحكم
-    const out20b = execFileSync('node', [path20.join(root20, 'ui-site-members.tmp.js')], { cwd: root20, encoding: 'utf8' });
+    const out20b = execFileSync('node', [path20.join(root20, 'ui-site-members-test.js')], { cwd: root20, encoding: 'utf8' });
     for (const needle of ['قسم «أعضاء الموقع» ظاهر؟ نعم', 'قسم «أعضاء الموقع» ظاهر؟ لا', 'حساب المالك محمي بلا أزرار؟ نعم', 'لا شيء']) {
       assert.ok(out20b.includes(needle), `فحص الواجهة ينقصه: ${needle}`);
     }
