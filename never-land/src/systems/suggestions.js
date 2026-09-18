@@ -277,12 +277,12 @@ function similar(text, { staff = false, limit = 5 } = {}) {
   return { word: words.join(' '), matches };
 }
 
-/** اختصارات الأمر: هي نفسها اللي ضبطها المالك من الموقع (قسم اختصارات الأوامر) — ما في كلمات مزوّدة من عندنا */
+/** اختصارات الأمر في البطاقة: هي نفسها الاختصارات المزبّطة من الموقع (قسم اختصارات الأوامر) */
 function cardAliases(name, guildId = '') {
   try {
     const text = require('./textCommands');
     const cfg = text.configFor ? text.configFor(guildId || '') : null;
-    return [...new Set(cfg?.aliases?.[name] || [])].slice(0, 12);
+    return [...new Set(cfg?.aliases?.[name] || [])].slice(0, 14);
   } catch {
     return [];
   }
@@ -297,9 +297,9 @@ function asSlash(line) {
 
 /**
  * بطاقة الأمر — نفس شكل بوتات الأوامر المعروفة:
- *   العنوان: Command: ban
- *   وبعدها:  #الاختصارات (اللي مزبوطة من الموقع) · #الاستخدام · #أمثلة للأمر
- * بلا وصف وبلا فوتر — يبقى وقت الرسالة فقط. (وسطر «كتبت bann — أقرب أمر» عند الغلط فقط)
+ *   العنوان:  Command: ban
+ *   الوصف:    شو يعمل الأمر (وسطر «كتبت bann — أقرب أمر» عند الغلط)
+ *   وبعدها:   #الاختصارات · #الاستخدام · #أمثلة للأمر
  */
 function card(name, { guildId = '', word = '', note = '' } = {}) {
   const embeds = require('../lib/embeds');
@@ -313,21 +313,21 @@ function card(name, { guildId = '', word = '', note = '' } = {}) {
   if (usage.length) fields.push({ name: '#الاستخدام', value: usage.map((u) => `\`${u}\``).join('\n') });
   if (examples.length) fields.push({ name: '#أمثلة للأمر', value: examples.map((e) => `\`${e}\``).join('\n') });
 
-  const lines = [];
+  /* الوصف: اسم الأمر بالعربي فقط — وبس لو كتبها غلط نزيد سطر يوضّح الصح */
+  const lines = [meta.label || ''];
   if (word && String(word).trim().toLowerCase() !== name) {
     lines.push(`كتبت **${word}** — أقرب أمر: **${name}**`);
   }
   if (note) lines.push(note);
 
-  const description = lines.filter(Boolean).join('\n\n').slice(0, 4000);
-
-  return embeds.base({
+  const embed = embeds.base({
     color: 0x5865f2,
     title: `Command: ${name}`,
-    ...(description ? { description } : {}),
+    description: lines.filter(Boolean).join('\n\n').slice(0, 4000),
     fields,
-    footer: false,
   });
+  embed.setFooter(null); // بلا أي تذييل — يبقى وقت الرسالة فقط
+  return embed;
 }
 
 /**
@@ -335,7 +335,7 @@ function card(name, { guildId = '', word = '', note = '' } = {}) {
  * الأمر الأقرب بالتفصيل (اختصاراته · كيف يُكتب · أمثلة جاهزة)،
  * والأوامر المشابهة الباقية بسطر واحد. بلا أي رابط موقع وبلا أزرار.
  */
-async function reply(message, result, { staff = false } = {}) {
+async function reply(message, result) {
   if (!result?.matches?.length) return null;
   const top = result.matches[0];
   const isTypo = Boolean(top.why) && top.why !== 'عربي';

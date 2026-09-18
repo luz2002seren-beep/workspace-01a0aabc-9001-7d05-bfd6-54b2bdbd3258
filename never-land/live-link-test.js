@@ -92,18 +92,25 @@ async function run() {
   assert.deepStrictEqual(staffView.matches.slice(0, 3).map((m) => m.name), ['ban', 'kick', 'timeout'], 'ترتيب الأوامر المشابهة لكلمة «طير» غير صحيح');
 
   /* بطاقة الأمر: نفس شكل بوتات الأوامر (Command: ban + #الاختصارات · #الاستخدام · #أمثلة للأمر) */
-  textCommands.setAliases(GUILD, 'ban', ['b', 'حظر', 'طير']);
   const card = suggestions.card('ban', { guildId: GUILD });
   const cardData = card.data || card;
-  console.log('   بطاقة الأمر:', cardData.title, '| الحقول:', (cardData.fields || []).map((f) => f.name).join(' · '));
+  console.log('   بطاقة الأمر:', cardData.title, '| الوصف:', cardData.description, '| الحقول:', (cardData.fields || []).map((f) => f.name).join(' · '));
   assert.strictEqual(cardData.title, 'Command: ban', 'عنوان البطاقة ما صار Command: ban');
+  assert.strictEqual(cardData.description, 'حظر عضو', 'الوصف لازم يكون اسم الأمر بالعربي فقط');
   assert.deepStrictEqual((cardData.fields || []).map((f) => f.name), ['#الاختصارات', '#الاستخدام', '#أمثلة للأمر'], 'حقول البطاقة ناقصة');
-  assert.strictEqual(cardData.fields[0].value, '#b، #حظر، #طير', 'الاختصارات ما هي نفسها المزبوطة من الموقع');
-  assert.ok(!cardData.description, 'البطاقة فيها وصف — المطلوب بلا وصف');
-  assert.ok(!cardData.footer, 'البطاقة فيها فوتر — المطلوب وقت الرسالة فقط');
   assert.ok(cardData.fields[1].value.includes('/ban '), 'سطر الاستخدام ما يبدأ بـ /ban');
   assert.ok(cardData.fields[2].value.split('\n').every((l) => l.startsWith('`/ban')), 'الأمثلة ما صارت بكتابة /ban');
   assert.ok(!/https?:/.test(JSON.stringify(cardData)), 'البطاقة فيها رابط موقع');
+  assert.ok(!cardData.footer, 'البطاقة فيها تذييل — المطلوب وقت الرسالة فقط');
+  assert.ok(!/أوامر مشابهة/.test(JSON.stringify(cardData)), 'لسا في سطر «أوامر مشابهة» في البطاقة');
+
+  /* الاختصارات المعروضة = المزبّطة من الموقع، لا كلمات جاهزة */
+  assert.strictEqual(cardData.fields[0].value, '#b', 'الاختصارات الافتراضية غير مطابقة للموقع');
+  assert.ok(!cardData.fields[0].value.includes('طير'), 'اختصار عربي جاهز ظهر بالبطاقة');
+  assert.ok(textCommands.setAliases(GUILD, 'ban', ['b', 'banned']).ok, 'ما قدرنا نضيف اختصارًا من الموقع');
+  const cardAfter = suggestions.card('ban', { guildId: GUILD }).data;
+  console.log('   بعد إضافة اختصار من الموقع:', cardAfter.fields[0].value);
+  assert.strictEqual(cardAfter.fields[0].value, '#b، #banned', 'اختصار الموقع ما ظهر في البطاقة');
   assert.ok(!memberView || memberView.matches.every((m) => m.audience === 'member'), 'أوامر الإدارة انكشفت لعضو عادي');
 
   const cases = [
@@ -225,10 +232,8 @@ async function run() {
   assert.strictEqual(calls.length, 0, 'الأمر نُفّذ بدون منشن (على الرد)');
   assert.ok(/منشن العضو/.test(replies.at(-1) || ''), 'ما ظهر تنبيه المنشن');
   const warnData = warnCards.at(-1)?.embeds?.[0]?.data || {};
-  console.log('   البطاقة اللي طلعت بدل التنبيه:', warnData.title, '| الوصف:', (warnData.description || '').slice(0, 60));
+  console.log('   البطاقة اللي طلعت بدل التنبيه:', warnData.title);
   assert.strictEqual(warnData.title, 'Command: ban', 'تنبيه المنشن ما صار بطاقة أمر');
-  assert.ok(!warnData.footer, 'بطاقة التنبيه فيها فوتر');
-  assert.ok(!/أوامر مشابهة/.test(warnData.description || ''), 'لسا في سطر «أوامر مشابهة»');
   assert.ok(!/https?:/.test(JSON.stringify(warnData)), 'بطاقة التنبيه فيها رابط موقع');
   assert.ok(!warnCards.at(-1)?.components?.length, 'بطاقة التنبيه فيها أزرار');
 
