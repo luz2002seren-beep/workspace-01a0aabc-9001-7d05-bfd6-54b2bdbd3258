@@ -78,13 +78,23 @@ const esc = (s) =>
 
 async function api(path, options = {}) {
   const res = await fetch(`/api${path}`, {
-    headers: { 'X-Requested-With': 'neverland-dashboard', ...(options.headers || {}) },
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'same-origin',
     ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      /* رأس الموقع: طبقة ثانية لمنع الطلبات من مواقع خارجية (CSRF) */
+      'X-Requested-With': 'neverland-dashboard',
+      ...(options.headers || {}),
+    },
+    credentials: 'same-origin',
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || `خطأ ${res.status}`);
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    const err = new Error(data.message || `خطأ ${res.status}`);
+    err.status = res.status;
+    err.code = data.error;
+    throw err;
+  }
   return res.json();
 }
 
@@ -1015,7 +1025,17 @@ const SECTIONS = {
           box.appendChild(pager);
         } catch (err) {
           box.innerHTML = '';
-          box.appendChild(el('div', { class: 'd-empty', text: err.message }));
+          if (err.status === 403 && (err.code === 'login_required' || /سجّل الدخول/.test(err.message))) {
+            const card = el('div', { class: 'd-locked' });
+            card.appendChild(el('div', { class: 'ico', html: ic('lock', 22) }));
+            card.appendChild(el('b', { text: 'سجل النشاط يظهر بعد تسجيل الدخول' }));
+            card.appendChild(el('span', { text: 'السجل يحتوي أسماء الأعضاء وإجراءاتهم — لذلك يُعرض لحساب ديسكورد مسجّل فقط.' }));
+            card.appendChild(el('a', { class: 'd-btn primary', href: '/auth/login', html: `${ic('login', 15)} تسجيل الدخول` }));
+            box.appendChild(card);
+            filters.style.display = 'none';
+          } else {
+            box.appendChild(el('div', { class: 'd-empty', text: err.message }));
+          }
         }
       };
 

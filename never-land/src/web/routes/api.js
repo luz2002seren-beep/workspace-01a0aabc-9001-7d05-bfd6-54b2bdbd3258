@@ -244,6 +244,12 @@ router.post('/guilds/:guildId/settings', async (req, res) => {
 /* ------------------------------- سجل النشاط (للقراءة) ------------------------------- */
 router.get('/guilds/:guildId/audit', async (req, res) => {
   const { guildId } = req.params;
+
+  /* الخصوصية: سجل النشاط (من عمل شو) للمسجّلين فقط — ما يُعرض للزوار */
+  if (!config.web.demoData && !req.session?.user) {
+    return res.status(403).json({ error: 'login_required', message: 'سجّل الدخول بحساب ديسكورد لعرض سجل النشاط.' });
+  }
+
   if (!(await canAccess(req, guildId))) return res.status(403).json({ error: 'forbidden' });
 
   const limit = Math.min(200, Math.max(5, Number(req.query.limit) || 50));

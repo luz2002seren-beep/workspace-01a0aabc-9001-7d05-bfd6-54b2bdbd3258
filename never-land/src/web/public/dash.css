@@ -667,6 +667,15 @@ tr.au-warn td { background: rgba(240, 199, 94, .05); }
 .d-pager .grow { flex: 1 1 auto; }
 .d-pager .d-btn { white-space: nowrap; }
 
+/* بطاقة «يحتاج تسجيل دخول» — تظهر للزائر في سجل النشاط */
+.d-locked {
+  display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;
+  padding: 30px 20px; border-radius: 15px; background: var(--panel); border: 1px dashed var(--border-soft);
+}
+.d-locked .ico { color: var(--primary); display: inline-flex; }
+.d-locked b { font-size: 1rem; }
+.d-locked span { color: var(--muted); font-size: .84rem; line-height: 1.9; max-width: 460px; }
+
 /* ============================ حماية الموقع (لوحة المالك) ============================ */
 .sec-title { display: flex; align-items: center; gap: 8px; margin: 18px 0 10px; font-size: .98rem; }
 .sec-title svg { color: var(--primary); }

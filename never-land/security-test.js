@@ -201,6 +201,13 @@ async function run() {
     assert.ok(Array.isArray(auditJson.items) && auditJson.items.length > 0, 'السجل فاضي من الـAPI');
     assert.ok(auditJson.items[0].label, 'اسم الحدث المقروء ناقص');
     assert.ok(auditJson.stats && typeof auditJson.stats.total === 'number', 'إحصاءات السجل ناقصة');
+
+    /* الخصوصية: الزائر بلا حساب ما يشوف السجل (أسماء الأعضاء وإجراءاتهم) */
+    const guestAudit = await req('GET', `/api/guilds/${mockGuild}/audit`);
+    assert.strictEqual(guestAudit.status, 403, 'الزائر قدر يقرأ سجل النشاط!');
+    assert.strictEqual((await guestAudit.json()).error, 'login_required', 'رسالة منع الزائر غير واضحة');
+    /* وبصمة الجهاز ما تُعرض لمشرف السيرفر — للمالك فقط */
+    assert.ok(!('ipHash' in auditJson.items[0]), 'بصمة الجهاز انعرضت لمشرف السيرفر');
     console.log('٦) سجل النشاط: من عمل شو ومتى + بصمة مجزّأة + عرض من الـAPI ✅');
 
     /* ───────── ٧) النسخة الاحتياطية: للمالك فقط ───────── */
