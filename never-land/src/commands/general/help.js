@@ -12,6 +12,7 @@ const embeds = require('../../lib/embeds');
 const { t } = require('../../lib/i18n');
 const config = require('../../config');
 const catalog = require('../../data/commandCatalog');
+const { isStaff } = require('../../lib/permissions');
 
 const CATEGORY_META = {
   general: { label: 'عام', emoji: '🤖', desc: 'أوامر عامة ومعلومات' },
@@ -20,18 +21,42 @@ const CATEGORY_META = {
   utility: { label: 'أدوات', emoji: '🛠️', desc: 'تذكيرات، تصويت، وغيرها' },
 };
 
-/** الأقسام التي تحتوي أوامر فعلية فقط (يُبنى تلقائيًا من مجلدات الأوامر) */
-function commandsOf(client, categoryId) {
+/**
+ * هل هذا العضو يشوف أوامر الإدارة؟
+ * صاحب السيرفر · مسؤول · مَن يملك إدارة السيرفر أو إسكات الأعضاء.
+ */
+function viewerIsStaff(member) {
+  if (!member) return false;
+  try {
+    return isStaff(member);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * الأوامر الظاهرة لهذا العضو:
+ *   الإدارة ← كل الأوامر (٢٩) · العضو العادي ← أوامر الأعضاء فقط (١٠).
+ * أوامر الإدارة مخفية عن الأعضاء حتى ما يشوفوها ولا يستعملوها.
+ */
+function visibleCommands(client, member) {
+  const staff = viewerIsStaff(member);
   const out = [];
   for (const command of client.commands.values()) {
-    if (command.category === categoryId) out.push(command);
+    if (staff) { out.push(command); continue; }
+    if (catalog.audienceOf(command.data.name) === 'member') out.push(command);
   }
   return out;
 }
 
-function getCategories(client) {
+/** الأقسام التي تحتوي أوامر فعلية فقط (يُبنى تلقائيًا من مجلدات الأوامر) */
+function commandsOf(client, categoryId, member = null) {
+  return visibleCommands(client, member).filter((command) => command.category === categoryId);
+}
+
+function getCategories(client, member = null) {
   const counts = new Map();
-  for (const command of client.commands.values()) {
+  for (const command of visibleCommands(client, member)) {
     if (!CATEGORY_META[command.category]) continue;
     counts.set(command.category, (counts.get(command.category) || 0) + 1);
   }
@@ -43,10 +68,10 @@ function getCategories(client) {
 const CATEGORIES = Object.entries(CATEGORY_META).map(([id, meta]) => ({ id, ...meta }));
 
 /** بناء embed قسم معيّن */
-function buildCategoryEmbed(client, categoryId, lang) {
-  const list = getCategories(client);
+function buildCategoryEmbed(client, categoryId, lang, member = null) {
+  const list = getCategories(client, member);
   const category = list.find((c) => c.id === categoryId) || list[0];
-  const commands = commandsOf(client, categoryId);
+  const commands = commandsOf(client, categoryId, member);
   const lines = commands.map((cmd) => {
     const opts = cmd.data.options?.length ? ` \`${cmd.data.options.map((o) => o.name).join(' ')}\`` : '';
     return `**/${cmd.data.name}**${opts}\n> ${cmd.data.description}`;
@@ -102,8 +127,8 @@ function guideButton(guildId) {
 }
 
 /** أزرار التنقل */
-function buildComponents(client, activeId, guildId = null) {
-  const list = getCategories(client);
+function buildComponents(client, activeId, guildId = null, member = null) {
+  const list = getCategories(client, member);
   const menu = new ActionRowBuilder().addComponents(
     new StringSelectMenuBuilder()
       .setCustomId('help:menu')
@@ -136,16 +161,17 @@ module.exports = {
       o.setName('الأمر').setDescription('اسم أمر معيّن لعرض تفاصيله').setRequired(false).setAutocomplete(true)),
 
   /** يُستخدم في الأزرار والقائمة */
-  renderCategory(client, categoryId, lang = 'ar', guildId = null) {
+  renderCategory(client, categoryId, lang = 'ar', guildId = null, member = null) {
     return {
-      embeds: [buildCategoryEmbed(client, categoryId, lang)],
-      components: buildComponents(client, categoryId, guildId),
+      embeds: [buildCategoryEmbed(client, categoryId, lang, member)],
+      components: buildComponents(client, categoryId, guildId, member),
     };
   },
 
   async autocomplete(client, interaction) {
     const focused = interaction.options.getFocused().toLowerCase();
-    const matches = client.commands
+    /* العضو العادي ما يشوف أوامر الإدارة ولا في الاقتراحات */
+    const matches = visibleCommands(client, interaction.member)
       .filter((cmd) => cmd.data.name.includes(focused))
       .map((cmd) => ({ name: `/${cmd.data.name} — ${cmd.data.description.slice(0, 60)}`, value: cmd.data.name }))
       .slice(0, 25);
@@ -157,8 +183,12 @@ module.exports = {
 
     if (specific) {
       const command = client.commands.get(specific);
-      if (!command) {
-        return interaction.reply({ content: '❌ ما لقيت هذا الأمر.', flags: MessageFlags.Ephemeral });
+      const visible = command ? visibleCommands(client, interaction.member).includes(command) : false;
+      if (!command || !visible) {
+        return interaction.reply({
+          content: '❌ ما لقيت هذا الأمر. أوامر الإدارة ما تظهر للأعضاء — إذا محتاج شي منها راجع الإدارة.',
+          flags: MessageFlags.Ephemeral,
+        });
       }
       const usage = command.data.options?.map((o) => `\`${o.name}\` ${o.required ? '(إلزامي)' : '(اختياري)'} — ${o.description}`).join('\n') || 'لا توجد خيارات.';
       const linkRow = webButtons();
@@ -201,8 +231,10 @@ module.exports = {
     }
 
     // اللوحة الرئيسية
-    const total = client.commands.size;
-    const categories = getCategories(client);
+    const staff = viewerIsStaff(interaction.member);
+    const visible = visibleCommands(client, interaction.member);
+    const total = visible.length;
+    const categories = getCategories(client, interaction.member);
     const embed = embeds.base({
       color: 0x5865f2,
       title: t(lang, 'help.title'),
@@ -210,6 +242,10 @@ module.exports = {
         `أهلاً بك! عندي **${total}** أمر موزّعة على **${categories.length}** أقسام.`,
         '',
         ...categories.map((c) => `${c.emoji} **${c.label}** — ${c.desc} (\`${c.count}\`)`),
+        '',
+        staff
+          ? '🛡️ **أوامر الإدارة** (حظر، طرد، إعدادات...) ظاهرة لك لأنك من الإدارة — الأعضاء العاديين ما يشوفوها.'
+          : '🙋 هذه **أوامر الأعضاء** فقط، وكلها تشتغل لك بلا أي صلاحية — اكتب اسمها الإنجليزي مباشرة في الشات.',
         '',
         '**الميزات الرئيسية:**',
         '🛡️ حماية تلقائية (سبام، روابط، دعوات، كلمات ممنوعة)',
@@ -224,9 +260,11 @@ module.exports = {
       footer: t(lang, 'help.footer'),
     });
 
-    await interaction.reply({ embeds: [embed], components: buildComponents(client, categories[0].id) });
+    await interaction.reply({ embeds: [embed], components: buildComponents(client, categories[0].id, interaction.guildId, interaction.member) });
   },
 };
 
 module.exports.CATEGORIES = CATEGORIES;
 module.exports.getCategories = getCategories;
+module.exports.visibleCommands = visibleCommands;
+module.exports.viewerIsStaff = viewerIsStaff;

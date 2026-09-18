@@ -11,6 +11,9 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
+const { hideFromMembers } = require('../lib/permissions');
+const catalog = require('../data/commandCatalog');
+
 const commandsPath = path.join(__dirname, '..', 'commands');
 
 /** قراءة كل ملفات .js داخل مجلد وكل مجلداته الفرعية */
@@ -27,6 +30,7 @@ function walk(dir) {
 function loadCommands(client) {
   const files = walk(commandsPath);
   let loaded = 0;
+  let hidden = 0;
   const problems = [];
 
   for (const file of files) {
@@ -42,6 +46,16 @@ function loadCommands(client) {
 
       command.category = command.category || category;
       command.filePath = file;
+
+      /*
+       * أوامر الإدارة: تُخفى عن الأعضاء العاديين في ديسكورد نفسه.
+       * أوامر الأعضاء تبقى ظاهرة ومتاحة للجميع بلا أي شرط.
+       */
+      const meta = catalog.COMMANDS[command.data.name];
+      command.audience = meta?.audience
+        || (Array.isArray(command.permissions) && command.permissions.length ? 'staff' : 'member');
+      if (command.audience === 'staff' && hideFromMembers(command)) hidden += 1;
+
       client.commands.set(command.data.name, command);
       loaded += 1;
     } catch (err) {
@@ -49,7 +63,7 @@ function loadCommands(client) {
     }
   }
 
- console.log(`[الأوامر] تم تحميل ${loaded} أمر من ${files.length} ملف`);
+ console.log(`[الأوامر] تم تحميل ${loaded} أمر من ${files.length} ملف (منها ${hidden} أمر إدارة مخفي عن الأعضاء)`);
   if (problems.length) {
   console.warn('[تنبيه] ملفات أوامر بها مشاكل:');
     problems.forEach((p) => console.warn(`   • ${p}`));

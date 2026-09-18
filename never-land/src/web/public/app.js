@@ -1009,7 +1009,7 @@ const SECTIONS = {
     group: 'الأوامر',
     label: 'اختصارات الأوامر',
     title: 'اختصارات الأوامر',
-    desc: 'الأوامر تشتغل مباشرة بلا أي بريفيكست — وكل اختصار تعدّله من هنا.',
+    desc: 'كل أوامر البوت: أوامر الأعضاء يستعملها أي عضو · وأوامر الإدارة مخفية عنهم — وكل اختصار تعدّله من هنا.',
     render() {
       const wrap = el('div');
       const statusBox = el('div');
@@ -1059,8 +1059,9 @@ const SECTIONS = {
           cdWrap.appendChild(saveCd);
 
           const counts = el('div', { class: 'cmd-counts' });
-          counts.appendChild(el('span', { text: `${data.items.length} أمر` }));
-          counts.appendChild(el('span', { text: `${data.items.filter((i) => i.aliases.length).length} لها اختصار جاهز` }));
+          counts.appendChild(el('span', { text: `${data.counts?.allTotal || data.items.length} أمر في البوت` }));
+          counts.appendChild(el('span', { class: 'ok', text: `${data.counts?.member ?? 0} أوامر أعضاء` }));
+          counts.appendChild(el('span', { class: 'lock', text: `${data.counts?.staff ?? 0} أوامر إدارة` }));
 
           bar.appendChild(enabledWrap);
           bar.appendChild(counts);
@@ -1068,21 +1069,25 @@ const SECTIONS = {
           bar.appendChild(cdWrap);
           statusBox.appendChild(bar);
 
-          /* مجموعة لكل تصنيف */
+          /*
+           * مجموعتان واضحتان:
+           *   أوامر الأعضاء — يستعملها أي عضو بلا صلاحية، وظاهرة له في ديسكورد وفي الموقع.
+           *   أوامر الإدارة — محتاجة صلاحية، ومخفية عن الأعضاء (ما يشوفوها في ديسكورد ولا هنا).
+           */
           listBox.innerHTML = '';
-          const groups = {};
-          data.items.forEach((item) => {
-            const key = item.categoryLabel || 'أوامر';
-            (groups[key] = groups[key] || []).push(item);
-          });
+          const groups = [
+            { key: 'member', items: data.items.filter((i) => i.audience === 'member') },
+            { key: 'staff', items: data.items.filter((i) => i.audience === 'staff') },
+          ].filter((g) => g.items.length);
 
-          Object.entries(groups).forEach(([label, items]) => {
-            const card = el('div', { class: 'd-card cmd-card' });
+          groups.forEach(({ key, items }) => {
+            const meta = (data.audiences && data.audiences[key]) || {};
+            const card = el('div', { class: `d-card cmd-card aud-${key}` });
             const head = el('div', { class: 'd-card-head' });
-            head.appendChild(el('span', { class: 'ico', html: ic('terminal', 16) }));
+            head.appendChild(el('span', { class: 'ico', html: ic(key === 'member' ? 'userRound' : 'shield', 16) }));
             const headTxt = el('div');
-            headTxt.appendChild(el('b', { text: `${label} (${items.length})` }));
-            headTxt.appendChild(el('span', { text: 'اسم الأمر إنجليزي · الاختصارات تقدر تغيّرها' }));
+            headTxt.appendChild(el('b', { text: `${meta.label || key} (${items.length})` }));
+            headTxt.appendChild(el('span', { text: meta.desc || '' }));
             head.appendChild(headTxt);
             card.appendChild(head);
 
@@ -1091,6 +1096,10 @@ const SECTIONS = {
               const row = el('div', { class: 'cmd-row' });
               const nameCell = el('div', { class: 'cmd-name' });
               nameCell.appendChild(el('code', { text: item.name }));
+              nameCell.appendChild(el('span', {
+                class: `cmd-tag ${item.audience === 'member' ? 'ok' : 'lock'}`,
+                text: item.audienceBadge || (item.audience === 'member' ? 'للأعضاء' : 'للإدارة'),
+              }));
               if (!item.text) nameCell.appendChild(el('span', { class: 'cmd-tag warn', text: 'سلاش فقط' }));
               if (!item.real) nameCell.appendChild(el('span', { class: 'cmd-tag', text: 'غير مثبّت' }));
               row.appendChild(nameCell);
@@ -1170,9 +1179,19 @@ const SECTIONS = {
               body.appendChild(row);
             });
 
+            if (key === 'staff') {
+              card.appendChild(el('div', {
+                class: 'cmd-note',
+                html: `${ic('eye', 14)} <span>أوامر الإدارة <b>مخفية عن الأعضاء</b> في ديسكورد وفي الموقع — العضو العادي ما يشوفها ولا يقدر يستعملها، فما يخبّ شي في السيرفر.</span>`,
+              }));
+            }
             card.appendChild(body);
             listBox.appendChild(card);
           });
+
+          if (!data.items.length) {
+            listBox.appendChild(el('div', { class: 'd-empty', text: 'ما في أوامر ظاهرة لحسابك.' }));
+          }
         } catch (err) {
           listBox.innerHTML = '';
           listBox.appendChild(el('div', { class: 'd-empty', text: err.message }));
@@ -1189,7 +1208,7 @@ const SECTIONS = {
     group: 'الأوامر',
     label: 'مكتبة الأوامر',
     title: 'مكتبة الأوامر',
-    desc: 'شرح كل أمر: شو يعمل، كيف تكتبه، وأمثلة جاهزة تنسخها.',
+    desc: 'شرح كل أمر: شو يعمل، كيف تكتبه، وأمثلة جاهزة تنسخها — أوامر الأعضاء وأوامر الإدارة كل واحدة لوحدها.',
     render() {
       const wrap = el('div');
       const toolbar = el('div', { class: 'guide-bar' });
@@ -1199,11 +1218,13 @@ const SECTIONS = {
 
       let items = [];
       let activeCat = 'all';
+      let activeAudience = 'all';
       let query = '';
 
       const paint = () => {
         box.innerHTML = '';
         const filtered = items.filter((i) => (activeCat === 'all' || i.category === activeCat)
+          && (activeAudience === 'all' || i.audience === activeAudience)
           && (!query
             || i.name.toLowerCase().includes(query)
             || (i.label || '').includes(query)
@@ -1229,6 +1250,23 @@ const SECTIONS = {
           toolbar.appendChild(el('span', { class: 'guide-search', html: ic('search', 15) }));
           toolbar.appendChild(search);
 
+          /* شرائح الجمهور: أوامر الأعضاء أولًا، ثم كل الأوامر، ثم أوامر الإدارة */
+          const audChips = el('div', { class: 'guide-chips guide-aud' });
+          [
+            ['member', `أوامر الأعضاء (${items.filter((i) => i.audience === 'member').length})`],
+            ['all', `كل الأوامر (${items.length})`],
+            ['staff', `أوامر الإدارة (${items.filter((i) => i.audience === 'staff').length})`],
+          ].forEach(([key, label]) => {
+            const chip = el('button', { class: `chip${key === 'member' ? ' active' : ''}`, text: label });
+            chip.addEventListener('click', () => {
+              activeAudience = key;
+              audChips.querySelectorAll('.chip').forEach((c) => c.classList.toggle('active', c === chip));
+              paint();
+            });
+            audChips.appendChild(chip);
+          });
+          toolbar.appendChild(audChips);
+
           const chips = el('div', { class: 'guide-chips' });
           [['all', `الكل (${items.length})`], ...data.categories.map((c) => [c.key, `${c.label} (${items.filter((i) => i.category === c.key).length})`])]
             .forEach(([key, label]) => {
@@ -1241,7 +1279,10 @@ const SECTIONS = {
               chips.appendChild(chip);
             });
           toolbar.appendChild(chips);
-          toolbar.appendChild(el('span', { class: 'guide-count', text: `${items.length} أمر · ${items.filter((i) => i.text).length} يشتغل بلا بريفيكست` }));
+          toolbar.appendChild(el('span', {
+            class: 'guide-count',
+            text: `${items.filter((i) => i.audience === 'member').length} أمر للأعضاء · ${items.filter((i) => i.audience === 'staff').length} أمر للإدارة`,
+          }));
 
           paint();
         } catch (err) {
@@ -2225,6 +2266,12 @@ function guideCard(item) {
   const head = el('div', { class: 'guide-head' });
   head.appendChild(el('code', { class: 'guide-name', text: item.name }));
   head.appendChild(el('b', { text: item.label || '' }));
+  if (item.audienceBadge) {
+    head.appendChild(el('span', {
+      class: `cmd-tag ${item.audience === 'member' ? 'ok' : 'lock'}`,
+      text: item.audienceBadge,
+    }));
+  }
   if (!item.text) head.appendChild(el('span', { class: 'cmd-tag warn', text: 'سلاش فقط' }));
   card.appendChild(head);
   card.appendChild(el('p', { class: 'guide-what', text: item.what }));

@@ -414,11 +414,31 @@ async function handleMessage(client, message) {
   args._subName = sub;
 
   /* الصلاحيات: نفس شرط السلاش */
-  const { PermissionFlagsBits } = require('discord.js');
   const isDev = require('../config').bot.developerIds.includes(message.author.id);
   if (command.permissions?.length) {
     if (!message.member?.permissions?.has?.(command.permissions) && !isDev) {
-      await message.reply({ content: t('ar', 'common.noPermission') || 'ما عندك صلاحية لهذا الأمر.', allowedMentions: { repliedUser: false } }).catch(() => {});
+      /*
+       * أوامر الإدارة مو للأعضاء: نرفض بهدوء بلا ما نكشف كيف تُستعمل،
+       * ونسجّلها في سجل النشاط حتى تعرف الإدارة مين حاول يستعملها.
+       */
+      const isAdminCommand = catalog.audienceOf(command.data.name) === 'staff';
+      await message.reply({
+        content: isAdminCommand
+          ? 'هذا الأمر للإدارة فقط.'
+          : (t('ar', 'common.noPermission') || 'ما عندك صلاحية لهذا الأمر.'),
+        allowedMentions: { repliedUser: false },
+      }).catch(() => {});
+
+      try {
+        require('../lib/audit').guild(null, guildId, {
+          action: 'command.denied',
+          target: command.data.name,
+          detail: `${message.author.tag} حاول يستعمل أمر إدارة «${command.data.name}» بدون صلاحية`,
+          actor: { id: message.author.id, name: message.author.tag },
+          severity: 'warn',
+        });
+      } catch { /* السجل ما يوقف شي */ }
+
       return true;
     }
   }
@@ -559,7 +579,7 @@ function replyToMessage(message, payload) {
 const TYPE_NAME = { 3: 'string', 4: 'int', 5: 'bool', 6: 'user', 7: 'channel', 8: 'role', 9: 'mention', 10: 'number', 11: 'attachment' };
 
 /** أدوات اللوحة: عرض/تعديل الاختصارات + كشف التعارض */
-function adminSnapshot(guildId, commandNames = []) {
+function adminSnapshot(guildId, commandNames = [], { staffViewer = true } = {}) {
   const config = configFor(guildId);
   const used = new Map();
   for (const [name, list] of Object.entries(config.aliases)) {
@@ -570,15 +590,27 @@ function adminSnapshot(guildId, commandNames = []) {
   const reserved = new Set(Object.keys(catalog.COMMANDS).map((n) => n.toLowerCase()));
   for (const alias of used.keys()) reserved.add(alias);
 
-  const items = Object.entries(catalog.COMMANDS).map(([name, meta]) => {
+  /*
+   * غير الإداري ما يشوف أوامر الإدارة إطلاقًا في اللوحة — لا في الاختصارات ولا في المكتبة،
+   * حتى ما يخبّ شي في السيرفر. الإدارة تشوف كل الأوامر مع جمهور كل أمر.
+   */
+  const entries = Object.entries(catalog.COMMANDS)
+    .filter(([name, meta]) => staffViewer || catalog.audienceOf(name, meta) === 'member');
+
+  const items = entries.map(([name, meta]) => {
     const aliases = config.aliases[name] || [];
     const conflict = aliases.filter((a) => used.get(a) && used.get(a) !== name);
     const suggested = suggestAlias(name, reserved);
     reserved.add(suggested);
+    const audience = catalog.audienceOf(name, meta);
     return {
       name,
       label: meta.label,
       what: meta.what,
+      audience,
+      audienceLabel: catalog.AUDIENCES[audience]?.label || audience,
+      audienceBadge: catalog.AUDIENCES[audience]?.badge || audience,
+      audienceDesc: catalog.AUDIENCES[audience]?.desc || '',
       category: meta.category || null,
       real: commandNames.includes(name),
       text: meta.text !== false,
@@ -593,7 +625,27 @@ function adminSnapshot(guildId, commandNames = []) {
     };
   });
 
-  return { enabled: config.enabled, cooldownSeconds: config.cooldownSeconds, disabled: config.disabled, items };
+  const allNames = Object.keys(catalog.COMMANDS);
+  const memberNames = catalog.namesOf('member');
+  const staffNames = catalog.namesOf('staff');
+
+  return {
+    enabled: config.enabled,
+    cooldownSeconds: config.cooldownSeconds,
+    disabled: config.disabled,
+    items,
+    audiences: catalog.AUDIENCES,
+    counts: {
+      total: items.length,
+      member: items.filter((i) => i.audience === 'member').length,
+      staff: items.filter((i) => i.audience === 'staff').length,
+      /* الموجود في البوت كله — حتى لو ما ظهر لغير الإداري */
+      allTotal: allNames.length,
+      allMember: memberNames.length,
+      allStaff: staffNames.length,
+      hiddenFromViewer: staffViewer ? 0 : staffNames.length,
+    },
+  };
 }
 
 /** تعديل اختصار (أو قائمة اختصارات) لأمر — يعيد الرسالة المناسبة */

@@ -1746,6 +1746,57 @@ console.log('[نجاح] كل الاختبارات نجحت!');
   console.log('  [تم] الترحيب: صورة 1100×500 بالأفتار + رسالة عادية بلا إطار · كل الأوضاع · معاينة مباشرة في اللوحة');
   }
 
+ console.log('[اختبار] 43: أوامر الأعضاء لأي عضو · أوامر الإدارة مخفية عن الأعضاء (ديسكورد + الموقع)');
+  {
+    const fs43 = require('node:fs');
+    const path43 = require('node:path');
+    const root43 = path43.join(__dirname, '..');
+    const read43 = (rel) => fs43.readFileSync(path43.join(root43, rel), 'utf8');
+    const catalog43 = require(path43.join(root43, 'src/data/commandCatalog'));
+
+    // ١) الكتالوج: جمهور لكل أمر
+    assert.ok(Array.isArray(catalog43.namesOf('member')), 'الكتالوج ينقصه تصنيف الجمهور');
+    assert.strictEqual(catalog43.namesOf('member').length, 10, 'عدد أوامر الأعضاء غير صحيح');
+    assert.strictEqual(catalog43.namesOf('staff').length, 19, 'عدد أوامر الإدارة غير صحيح');
+    assert.ok(catalog43.AUDIENCES.member.badge && catalog43.AUDIENCES.staff.badge, 'وسوم الجمهور ناقصة');
+
+    // ٢) ديسكورد: أوامر الإدارة تُخفى عن الأعضاء عند تحميل الأوامر
+    const perm43 = read43('src/lib/permissions.js');
+    assert.ok(perm43.includes('hideFromMembers') && perm43.includes('setDefaultMemberPermissions'), 'دالة إخفاء أوامر الإدارة ناقصة');
+    const loader43 = read43('src/handlers/commands.js');
+    assert.ok(loader43.includes('hideFromMembers') && loader43.includes('audience'), 'محمّل الأوامر ما يطبّق الجمهور');
+    const help43 = read43('src/commands/general/help.js');
+    for (const needle of ['visibleCommands', 'audienceOf', 'viewerIsStaff']) {
+      assert.ok(help43.includes(needle), `أمر /help ينقصه ${needle}`);
+    }
+
+    // ٣) الشات بلا بريفيكست: رفض واضح بلا كشف + سجل
+    const text43 = read43('src/systems/textCommands.js');
+    assert.ok(text43.includes('للإدارة فقط') && text43.includes('command.denied'), 'رفض أوامر الإدارة في الشات ناقص');
+    assert.ok(read43('src/lib/audit.js').includes('command.denied'), 'وسم السجل لأوامر الإدارة المرفوضة ناقص');
+
+    // ٤) اللوحة: مجموعتان + حجب في الـAPI
+    const app43 = read43('src/web/public/app.js');
+    for (const needle of ['أوامر الأعضاء', 'أوامر الإدارة', 'audienceBadge', 'cmd-note']) {
+      assert.ok(app43.includes(needle), `لوحة الأوامر ينقصها ${needle}`);
+    }
+    const api43 = read43('src/web/routes/api.js');
+    assert.ok(api43.includes('staffViewer: canEdit(req)'), 'حجب أوامر الإدارة عن غير الإداري ناقص');
+    for (const cssNeedle of ['.cmd-tag.ok', '.cmd-tag.lock', '.cmd-note']) {
+      assert.ok(read43('src/web/public/dash.css').includes(cssNeedle), `أنماط الجمهور ناقصة: ${cssNeedle}`);
+    }
+
+    // ٥) الاختبار العملي (٥ مجموعات)
+    const { execFileSync } = require('node:child_process');
+    const out43 = execFileSync('node', [path43.join(root43, 'command-audience-test.js')], { cwd: root43, encoding: 'utf8' });
+    for (const needle of ['١) الكتالوج', '٢) ديسكورد', '٣) /help', '٤) الشات', '٥) اللوحة']) {
+      assert.ok(out43.includes(needle), `اختبار الجمهور ينقصه: ${needle}`);
+    }
+    assert.ok(out43.includes('🎉'), 'اختبار الجمهور ما نجح');
+
+  console.log('  [تم] أوامر الأعضاء (10) تشتغل لأي عضو · أوامر الإدارة (19) مخفية عن الأعضاء في ديسكورد وفي الموقع');
+  }
+
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');
 
   process.exit(0);

@@ -8,11 +8,18 @@ const { Collection } = require('discord.js');
 const config = require('./src/config');
 const help = require('./src/commands/general/help');
 
-/** عميل وهمي فيه أوامر بأقسام مختلفة */
+const catalog = require('./src/data/commandCatalog');
+
+/** عميل وهمي فيه أوامر بأقسام مختلفة (الجمهور يُقرأ من الكتالوج الحقيقي) */
 function fakeClient() {
   const commands = new Collection();
   const add = (name, category, description = 'وصف تجريبي') => {
-    commands.set(name, { data: { name, description, options: [] }, category, cooldown: 3 });
+    commands.set(name, {
+      data: { name, description, options: [] },
+      category,
+      cooldown: 3,
+      audience: catalog.audienceOf(name),
+    });
   };
   add('ban', 'moderation');
   add('kick', 'moderation');
@@ -23,11 +30,22 @@ function fakeClient() {
   return { commands };
 }
 
+/** عضو من الإدارة (يملك إدارة السيرفر) */
+const staffMember = () => ({
+  id: '1',
+  guild: { ownerId: '9' },
+  permissions: { has: (p) => p === 'ManageGuild' || p === 32n },
+});
+
+/** عضو عادي بلا أي صلاحية */
+const plainMember = () => ({ id: '2', guild: { ownerId: '9' }, permissions: { has: () => false } });
+
 /** تفاعل وهمي يلتقط ما تم إرساله */
 function fakeInteraction() {
   const captured = { replies: [] };
   return {
     captured,
+    member: staffMember(),
     options: { getString: () => null, getFocused: () => '' },
     reply: async (payload) => {
       captured.replies.push(payload);
@@ -85,7 +103,37 @@ function linkButtons(rows) {
   assert.ok(desc3.includes('DASHBOARD_URL'), 'ما ظهر تنبيه بضبط الرابط');
   config.web.url = good;
 
-  console.log('\n🎉 أمر /help يحمل زرًا فعّالًا يفتح الموقع واللوحة');
+  // ٦) العضو العادي: أوامر الإدارة مخفية عنه تمامًا
+  const plain = fakeInteraction();
+  plain.member = plainMember();
+  await help.run(client, plain, 'ar');
+  const visible = help.visibleCommands(client, plain.member).map((c) => c.data.name).sort();
+  console.log('٦) العضو العادي يشوف:', visible.join(' · '));
+  assert.deepStrictEqual(visible, ['help', 'ping', 'remind'], 'قائمة أوامر العضو غير صحيحة (لازم بلا ban/kick/tickets)');
+
+  const plainBan = fakeInteraction();
+  plainBan.member = plainMember();
+  plainBan.options.getString = () => 'ban';
+  await help.run(client, plainBan, 'ar');
+  const plainReply = plainBan.captured.replies[0];
+  console.log('٧) العضو العادي يطلب /help ban →', plainReply.content?.slice(0, 40));
+  assert.ok(!plainReply.embeds?.length, 'العضو العادي شاف تفاصيل أمر إدارة!');
+  assert.ok(/ما لقيت/.test(plainReply.content || ''), 'ما ظهر رد الرفض');
+
+  // ٨) الإدارة تشوف كل شي: عدد الأوامر كامل + تفاصيل أمر الإدارة
+  const staffList = help.visibleCommands(client, staffMember()).map((c) => c.data.name);
+  console.log('٨) الإدارة تشوف:', staffList.length, 'أمر (ban موجود؟', staffList.includes('ban'), ')');
+  assert.strictEqual(staffList.length, client.commands.size, 'الإدارة لازم تشوف كل الأوامر');
+
+  // ٩) الكتالوج الحقيقي: ١٠ أوامر أعضاء + ١٩ أمر إدارة
+  const memberNames = catalog.namesOf('member');
+  const staffNames = catalog.namesOf('staff');
+  console.log('٩) الكتالوج: أوامر الأعضاء', memberNames.length, '· أوامر الإدارة', staffNames.length);
+  assert.strictEqual(memberNames.length, 10, 'عدد أوامر الأعضاء تغيّر');
+  assert.strictEqual(staffNames.length, 19, 'عدد أوامر الإدارة تغيّر');
+  assert.strictEqual(memberNames.length + staffNames.length, Object.keys(catalog.COMMANDS).length, 'أمر بلا تصنيف');
+
+  console.log('\n🎉 أمر /help يحمل زرًا فعّالًا يفتح الموقع واللوحة · وأوامر الإدارة مخفية عن الأعضاء');
 })().catch((e) => {
   console.error('❌', e.message);
   process.exit(1);

@@ -314,29 +314,47 @@ router.get('/commands', (req, res) => {
   } catch {
     loaded = [];
   }
-  const items = Object.entries(catalog.COMMANDS).map(([name, meta]) => ({
-    name,
-    label: meta.label,
-    what: meta.what,
-    usage: meta.usage,
-    examples: meta.examples,
-    subs: meta.subs || null,
-    perm: meta.perm,
-    category: meta.category,
-    categoryLabel: catalog.CATEGORIES[meta.category] || meta.category,
-    text: meta.text !== false,
-    installed: loaded.includes(name),
-  }));
+  /* أوامر الإدارة ما تُرسل لغير الإداريين — تنحجب من المصدر نفسه */
+  const staffViewer = canEdit(req);
+  const entries = Object.entries(catalog.COMMANDS)
+    .filter(([name, meta]) => staffViewer || catalog.audienceOf(name, meta) === 'member');
+
+  const items = entries.map(([name, meta]) => {
+    const audience = catalog.audienceOf(name, meta);
+    return {
+      name,
+      label: meta.label,
+      what: meta.what,
+      usage: meta.usage,
+      examples: meta.examples,
+      subs: meta.subs || null,
+      perm: meta.perm,
+      audience,
+      audienceLabel: catalog.AUDIENCES[audience]?.label || audience,
+      audienceBadge: catalog.AUDIENCES[audience]?.badge || audience,
+      audienceDesc: catalog.AUDIENCES[audience]?.desc || '',
+      category: meta.category,
+      categoryLabel: catalog.CATEGORIES[meta.category] || meta.category,
+      text: meta.text !== false,
+      installed: loaded.includes(name),
+    };
+  });
 
   return res.json({
     categories: Object.entries(catalog.CATEGORIES).map(([key, label]) => ({ key, label })),
+    audiences: catalog.AUDIENCES,
     prefix: { enabled: true, note: 'الأوامر الإنجليزية تشتغل مباشرة بلا أي رمز قبلها' },
     items,
     counts: {
       total: items.length,
       text: items.filter((i) => i.text).length,
       installed: items.filter((i) => i.installed).length,
+      member: items.filter((i) => i.audience === 'member').length,
+      staff: items.filter((i) => i.audience === 'staff').length,
+      allTotal: Object.keys(catalog.COMMANDS).length,
+      hiddenFromViewer: staffViewer ? 0 : catalog.namesOf('staff').length,
     },
+    viewer: { canEdit: staffViewer },
   });
 });
 
@@ -353,10 +371,16 @@ router.get('/guilds/:guildId/commands', async (req, res) => {
     loaded = [];
   }
 
-  const snapshot = textCommands.adminSnapshot(guildId, loaded);
+  /*
+   * أوامر الإدارة تُحجب عن أي مشاهد ما عنده صلاحية تعديل في هذا السيرفر،
+   * فما يشوفها ولا يقدر يخبّها — ولو حاول يعدّل، الـPOST يردّ برفض.
+   */
+  const snapshot = textCommands.adminSnapshot(guildId, loaded, { staffViewer: canEdit(req) });
   return res.json({
     ...snapshot,
-    note: 'الأوامر الإنجليزية تشتغل بلا بريفيكست · عدّل الاختصارات كما تحب وتُطبَّق فورًا.',
+    note: canEdit(req)
+      ? 'الأوامر الإنجليزية تشتغل بلا بريفيكست · عدّل الاختصارات كما تحب وتُطبَّق فورًا.'
+      : 'تشوف أوامر الأعضاء فقط — أوامر الإدارة تحتاج صلاحية إدارية.',
   });
 });
 

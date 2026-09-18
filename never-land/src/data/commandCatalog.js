@@ -13,6 +13,7 @@
  *   examples أمثلة جاهزة تنسخ وتلصق
  *   aliases  اختصارات جاهزة (يقدر صاحب السيرفر يعدّلها من الموقع)
  *   perm     الصلاحية المطلوبة (null = للجميع)
+ *   audience 'member' = أمر عضو عادي (ظاهر ومتاح للجميع) · 'staff' = أمر إدارة (مخفي عن الأعضاء)
  *   text     true = يشتغل مباشرة في الشات بلا بريفيكست
  *   subs     الأوامر الفرعية وشرحها
  *
@@ -38,6 +39,7 @@ const COMMANDS = {
     examples: ['help', 'help ban', 'help timeout'],
     aliases: ['h'],
     perm: null,
+    audience: 'member',
     text: true,
   },
   ping: {
@@ -48,6 +50,7 @@ const COMMANDS = {
     examples: ['ping'],
     aliases: [],
     perm: null,
+    audience: 'member',
     text: true,
   },
   botinfo: {
@@ -58,6 +61,7 @@ const COMMANDS = {
     examples: ['botinfo'],
     aliases: ['bi'],
     perm: null,
+    audience: 'member',
     text: true,
   },
   serverinfo: {
@@ -68,6 +72,7 @@ const COMMANDS = {
     examples: ['serverinfo'],
     aliases: ['si'],
     perm: null,
+    audience: 'member',
     text: true,
   },
   userinfo: {
@@ -78,6 +83,7 @@ const COMMANDS = {
     examples: ['userinfo', 'userinfo @العضو'],
     aliases: ['ui', 'whois'],
     perm: null,
+    audience: 'member',
     text: true,
   },
   avatar: {
@@ -88,6 +94,7 @@ const COMMANDS = {
     examples: ['avatar', 'avatar @العضو', 'avatar @العضو server'],
     aliases: ['av'],
     perm: null,
+    audience: 'member',
     text: true,
   },
   top: {
@@ -98,6 +105,7 @@ const COMMANDS = {
     examples: ['top', 'top week text', 'top day voice', 'top all text 2'],
     aliases: ['leaderboard', 'lb'],
     perm: null,
+    audience: 'member',
     text: true,
   },
 
@@ -110,6 +118,7 @@ const COMMANDS = {
     examples: ['ban @العضو سبام', 'ban @العضو إزعاج متكرر 7d', 'ban @العضو روابط 2h 1'],
     aliases: ['b'],
     perm: 'حظر الأعضاء',
+    audience: 'staff',
     text: true,
   },
   unban: {
@@ -120,6 +129,7 @@ const COMMANDS = {
     examples: ['unban 123456789012345678', 'unban 123456789012345678 اعتذر'],
     aliases: ['ub'],
     perm: 'حظر الأعضاء',
+    audience: 'staff',
     text: true,
   },
   kick: {
@@ -130,6 +140,7 @@ const COMMANDS = {
     examples: ['kick @العضو مخالفة القوانين', 'kick @العضو'],
     aliases: ['k'],
     perm: 'طرد الأعضاء',
+    audience: 'staff',
     text: true,
   },
   timeout: {
@@ -140,6 +151,7 @@ const COMMANDS = {
     examples: ['timeout add @العضو 10m إزعاج', 'timeout remove @العضو', 'timeout list'],
     aliases: ['mute', 'to'],
     perm: 'إسكات الأعضاء',
+    audience: 'staff',
     text: true,
     subs: {
       add: 'إسكات عضو مدة محدّدة مثل 10m أو 2h أو 7d.',
@@ -155,6 +167,7 @@ const COMMANDS = {
     examples: ['warn add @العضو مخالفة', 'warn add @العضو إزعاج نعم', 'warn list @العضو', 'warn remove 12', 'warn clear @العضو'],
     aliases: ['w'],
     perm: 'إدارة الرسائل',
+    audience: 'staff',
     text: true,
     subs: {
       add: 'إضافة تحذير جديد (اكتب «نعم» في الآخر ليرسل تنبيه بالخاص).',
@@ -171,6 +184,7 @@ const COMMANDS = {
     examples: ['purge messages 50', 'purge user @العضو 30', 'purge contains سبام 100', 'purge links 25'],
     aliases: ['clear', 'c'],
     perm: 'إدارة الرسائل',
+    audience: 'staff',
     text: true,
     subs: {
       messages: 'حذف عدد محدّد من الرسائل، أو من عضو معيّن.',
@@ -188,6 +202,7 @@ const COMMANDS = {
     examples: ['lock channel سبب: تخريب', 'lock unlock', 'lock all هدوء مؤقت', 'lock unlockall'],
     aliases: ['قفل'],
     perm: 'إدارة القنوات',
+    audience: 'staff',
     text: true,
     subs: {
       channel: 'قفل الروم الحالي أو روم محدّد.',
@@ -204,6 +219,7 @@ const COMMANDS = {
     examples: ['slowmode 10s', 'slowmode 1m', 'slowmode 0'],
     aliases: ['sm'],
     perm: 'إدارة القنوات',
+    audience: 'staff',
     text: true,
   },
   member: {
@@ -214,6 +230,7 @@ const COMMANDS = {
     examples: ['member nickname @العضو نجم السيرفر', 'member role @العضو @رتبة', 'member history @العضو', 'member reset @العضو'],
     aliases: [],
     perm: 'إدارة الأعضاء',
+    audience: 'staff',
     text: true,
     subs: {
       nickname: 'تغيير الاسم داخل السيرفر (اتركه فارغًا لإرجاع الاسم الأصلي).',
@@ -232,6 +249,7 @@ const COMMANDS = {
     examples: ['settings status', 'settings language ar', 'settings dashboard'],
     aliases: ['config'],
     perm: 'إدارة السيرفر',
+    audience: 'staff',
     text: true,
     subs: {
       status: 'عرض حالة كل الأنظمة بسرعة.',
@@ -248,6 +266,7 @@ const COMMANDS = {
     examples: ['welcome channel #الترحيب', 'welcome cardtext أهلاً بك {displayName} في {server}', 'welcome plain نعم', 'welcome image card', 'welcome test @العضو'],
     aliases: ['greet'],
     perm: 'إدارة السيرفر',
+    audience: 'staff',
     text: true,
     subs: {
       channel: 'تحديد روم الترحيب.',
@@ -272,6 +291,7 @@ const COMMANDS = {
     examples: ['autorole add @عضو', 'autorole add @بوت نعم', 'autorole list', 'autorole enable'],
     aliases: ['ar'],
     perm: 'إدارة السيرفر',
+    audience: 'staff',
     text: true,
     subs: {
       add: 'إضافة رتبة للداخلين الجدد.',
@@ -289,6 +309,7 @@ const COMMANDS = {
     examples: ['leveling rank', 'leveling leaderboard week', 'leveling enable #المستويات', 'leveling reward add 5 @نشيط', 'leveling rewards'],
     aliases: ['levels', 'rank'],
     perm: null,
+    audience: 'member',
     text: true,
     subs: {
       rank: 'عرض مستوى وخبرة عضو (أو نفسك).',
@@ -310,6 +331,7 @@ const COMMANDS = {
     examples: ['autoreply add سلام|هلا أهلًا وسهلًا', 'autoreply add تعليمات اكتب «مساعدة»', 'autoreply list', 'autoreply test سلام'],
     aliases: ['ar-reply'],
     perm: 'إدارة السيرفر',
+    audience: 'staff',
     text: true,
     subs: {
       add: 'إضافة قاعدة رد جديدة (افصل الكلمات بـ |).',
@@ -329,6 +351,7 @@ const COMMANDS = {
     examples: ['autoline add #التقديمات', 'autoline style glow', 'autoline type gif', 'autoline status'],
     aliases: [],
     perm: 'إدارة السيرفر',
+    audience: 'staff',
     text: true,
     subs: {
       add: 'إضافة روم يشتغل فيه الخط الفاصل.',
@@ -351,6 +374,7 @@ const COMMANDS = {
     examples: ['autoreact enable', 'autoreact channel #عام', 'autoreact emoji add 🔥', 'autoreact word add ترحيب 👋'],
     aliases: [],
     perm: 'إدارة السيرفر',
+    audience: 'staff',
     text: true,
     subs: {
       enable: 'تشغيل النظام.',
@@ -370,6 +394,7 @@ const COMMANDS = {
     examples: ['automod enable', 'automod toggle سبام', 'automod punishment إسكات', 'automod word add كلمة_ممنوعة', 'automod status'],
     aliases: [],
     perm: 'إدارة السيرفر',
+    audience: 'staff',
     text: true,
     subs: {
       enable: 'تشغيل الحماية التلقائية.',
@@ -391,6 +416,7 @@ const COMMANDS = {
     examples: ['logs channel #سجلات', 'logs enable', 'logs events', 'logs status'],
     aliases: [],
     perm: 'إدارة السيرفر',
+    audience: 'staff',
     text: true,
     subs: {
       channel: 'تحديد روم السجلات.',
@@ -412,6 +438,7 @@ const COMMANDS = {
     examples: ['tickets setup #تذاكر @الدعم', 'tickets panel #الدعم', 'tickets enable', 'tickets stats'],
     aliases: ['ticket'],
     perm: 'إدارة السيرفر',
+    audience: 'staff',
     text: true,
     subs: {
       setup: 'تجهيز نظام التذاكر (قسم التذاكر ورتب الدعم).',
@@ -434,6 +461,7 @@ const COMMANDS = {
     examples: ['setup'],
     aliases: [],
     perm: 'إدارة السيرفر',
+    audience: 'staff',
     text: false, // يحتاج نوافذ وأزرار داخل ديسكورد
   },
 
@@ -446,6 +474,7 @@ const COMMANDS = {
     examples: ['poll أفضل وقت للفعالية | المغرب | العشاء | بعد العشاء'],
     aliases: ['vote'],
     perm: null,
+    audience: 'member',
     text: true,
   },
   remind: {
@@ -456,9 +485,50 @@ const COMMANDS = {
     examples: ['remind 10m شرب ماء', 'remind 2h اجتماع الإدارة'],
     aliases: ['reminder'],
     perm: null,
+    audience: 'member',
     text: true,
   },
 };
+
+/**
+ * جمهور كل أمر:
+ *   member = أمر عضو عادي — يستعمله أي عضو في السيرفر، ويظهر له في المساعدة والموقع.
+ *   staff  = أمر إدارة بصلاحيات — مخفي عن الأعضاء تمامًا (في ديسكورد وفي الموقع)
+ *            حتى ما يخبّوا شي في السيرفر.
+ */
+const AUDIENCES = {
+  member: {
+    key: 'member',
+    label: 'أوامر الأعضاء',
+    badge: 'للأعضاء',
+    desc: 'يستعملها أي عضو في السيرفر بلا أي صلاحية — ظاهرة له في كل مكان.',
+  },
+  staff: {
+    key: 'staff',
+    label: 'أوامر الإدارة',
+    badge: 'للإدارة',
+    desc: 'تحتاج صلاحية إدارية — مخفية عن الأعضاء العاديين في ديسكورد وفي الموقع.',
+  },
+};
+
+/** جمهور أمر واحد (من الحقل نفسه أو من الصلاحية المطلوبة) */
+function audienceOf(name, meta) {
+  const entry = meta || COMMANDS[name] || {};
+  if (entry.audience === 'member' || entry.audience === 'staff') return entry.audience;
+  return entry.perm ? 'staff' : 'member';
+}
+
+/** هل هذا أمر عضو عادي؟ */
+function isMemberCommand(name) {
+  return audienceOf(name) === 'member';
+}
+
+/** كل أسماء أوامر جمهور معيّن */
+function namesOf(audience) {
+  return Object.entries(COMMANDS)
+    .filter(([name, meta]) => audienceOf(name, meta) === audience)
+    .map(([name]) => name);
+}
 
 /** الأوامر التي تشتغل بلا بريفيكست */
 function textCommands() {
@@ -467,4 +537,4 @@ function textCommands() {
     .map(([name]) => name);
 }
 
-module.exports = { CATEGORIES, COMMANDS, textCommands };
+module.exports = { CATEGORIES, AUDIENCES, COMMANDS, textCommands, audienceOf, isMemberCommand, namesOf };

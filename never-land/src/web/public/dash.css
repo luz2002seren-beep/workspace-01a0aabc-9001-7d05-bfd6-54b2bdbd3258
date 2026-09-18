@@ -888,3 +888,19 @@ tr.au-warn td { background: rgba(240, 199, 94, .05); }
 .sm-locked { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: .78rem; }
 .d-table tr.sm-banned td { background: rgba(237, 66, 69, .05); }
 .d-readonly-note.viewonly { border-color: rgba(240, 199, 94, .4); background: rgba(240, 199, 94, .07); }
+
+/* ============ جمهور الأوامر: أوامر الأعضاء مقابل أوامر الإدارة ============ */
+.cmd-tag.ok{background:rgba(74,222,128,.13);border-color:rgba(74,222,128,.42);color:#8ff0b3}
+.cmd-tag.lock{background:rgba(88,101,242,.16);border-color:rgba(88,101,242,.45);color:#c3caff}
+.cmd-counts .ok{color:#8ff0b3}
+.cmd-counts .lock{color:#c3caff}
+.cmd-card.aud-member{border-color:rgba(74,222,128,.28)}
+.cmd-card.aud-staff{border-color:rgba(88,101,242,.3)}
+.cmd-note{
+  direction:rtl;margin:12px 14px 4px;padding:11px 12px;border-radius:11px;font-size:.83rem;line-height:1.85;
+  background:rgba(88,101,242,.09);border:1px solid rgba(88,101,242,.3);color:#cbd3ff;display:flex;gap:8px;align-items:flex-start;
+}
+.cmd-note svg{flex:0 0 auto;margin-top:3px;color:#8b95ff}
+.guide-chips.guide-aud{margin-inline-start:auto}
+.guide-aud .chip.active{background:rgba(88,101,242,.24);border-color:rgba(88,101,242,.6);color:#dfe3ff}
+@media (max-width:700px){.guide-chips.guide-aud{margin-inline-start:0}}
