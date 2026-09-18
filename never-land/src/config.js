@@ -89,6 +89,16 @@ const config = {
     requiredRoleId: (process.env.REQUIRED_ROLE_ID || '1549364852433354792').trim(),
     /** مدة كاش فحص الرول بالثواني */
     roleCacheSeconds: int(process.env.ROLE_CACHE_SECONDS, 300),
+    /**
+     * مالك الموقع: معرّف حساب ديسكورد الوحيد الذي يرى لوحة «أعضاء الموقع»
+     * (قائمة الداخلين + الحظر + المشاهدة فقط). لا يراه ولا يستخدمه غيره.
+     */
+    ownerUserId: (process.env.OWNER_USER_ID || '1345866950776979547').trim(),
+    /** حسابات إضافية مسموح لها بإدارة الموقع (اختياري، مفصولة بفواصل) */
+    siteAdmins: (process.env.SITE_ADMINS || '')
+      .split(',')
+      .map((x) => x.trim())
+      .filter(Boolean),
     /** المنفذ: DASHBOARD_PORT أو PORT (تُضبط تلقائيًا في Railway/Render/Heroku) */
     port: int(process.env.DASHBOARD_PORT || process.env.PORT, 3000),
     /**

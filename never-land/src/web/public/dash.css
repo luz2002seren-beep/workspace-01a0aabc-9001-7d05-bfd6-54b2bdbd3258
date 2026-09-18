@@ -634,3 +634,21 @@ img.guild-icon { background: var(--panel); border: 1px solid var(--border-soft);
 .d-nav-item.active .ico, .d-nav-item:hover .ico { color: var(--primary); }
 .d-nav-item { transition: background .15s ease, color .15s ease, border-color .15s ease; }
 .d-nav-item.active { border-color: rgba(88, 101, 242, .45); }
+
+/* ============================ أعضاء الموقع (لوحة المالك) ============================ */
+.sm-who { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.sm-who > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sm-av {
+  flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center; font-weight: 700; font-size: .82rem;
+  background: linear-gradient(135deg, #5b6cff, #3f49b8); color: #fff;
+}
+.sm-id { color: var(--muted); font-size: .72rem; direction: ltr; }
+.sm-badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: .76rem; font-weight: 600; }
+.sm-active { background: rgba(59, 165, 93, .18); color: #6fdc96; border: 1px solid rgba(59, 165, 93, .4); }
+.sm-viewonly { background: rgba(240, 199, 94, .16); color: #f0c75e; border: 1px solid rgba(240, 199, 94, .4); }
+.sm-banned { background: rgba(237, 66, 69, .16); color: #ff8b8e; border: 1px solid rgba(237, 66, 69, .45); }
+.sm-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.sm-locked { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: .78rem; }
+.d-table tr.sm-banned td { background: rgba(237, 66, 69, .05); }
+.d-readonly-note.viewonly { border-color: rgba(240, 199, 94, .4); background: rgba(240, 199, 94, .07); }

@@ -20,6 +20,43 @@ const config = require('../config');
 const db = require('../database');
 
 let server = null;
+/** مرجع مخزن الجلسات (يُستخدم لقطع جلسات عضو عند الحظر/الطرد) */
+let sessionStore = null;
+
+/**
+ * قطع كل جلسات عضو معيّن (يُنادى عند الحظر أو «قطع الجلسات»).
+ * @returns {Promise<number>} عدد الجلسات المقطوعة
+ */
+async function destroyUserSessions(userId) {
+  if (!sessionStore || !userId) return 0;
+  const wanted = String(userId);
+  const sids = await new Promise((resolve) => sessionStore.all((err, list) => resolve(err ? [] : list || [])));
+  let killed = 0;
+  for (const sid of sids) {
+    const sess = await new Promise((resolve) => sessionStore.get(sid, (err, value) => resolve(err ? null : value)));
+    if (sess?.user?.id === wanted) {
+      await new Promise((resolve) => sessionStore.destroy(sid, () => resolve()));
+      killed += 1;
+    }
+  }
+  return killed;
+}
+
+/**
+ * عدد الجلسات النشطة لعضو معيّن (للعرض في لوحة المالك).
+ * @returns {Promise<number>}
+ */
+async function countUserSessions(userId) {
+  if (!sessionStore || !userId) return 0;
+  const wanted = String(userId);
+  const sids = await new Promise((resolve) => sessionStore.all((err, list) => resolve(err ? [] : list || [])));
+  let found = 0;
+  for (const sid of sids) {
+    const sess = await new Promise((resolve) => sessionStore.get(sid, (err, value) => resolve(err ? null : value)));
+    if (sess?.user?.id === wanted) found += 1;
+  }
+  return found;
+}
 
 function createApp() {
   const app = express();
@@ -32,6 +69,7 @@ function createApp() {
   const { FileSessionStore } = require('./sessionStore');
   const sessionFile = path.join(path.dirname(config.database.path), 'sessions.json');
   const store = new FileSessionStore(sessionFile, 7 * 24 * 60 * 60 * 1000);
+  sessionStore = store;
   setInterval(() => store.cleanup(), 3600 * 1000).unref?.();
 
   app.use(
@@ -97,8 +135,22 @@ function createApp() {
     require('./demo').cleanup?.();
   }
 
+  // سجل أعضاء الموقع: نحدّث آخر ظهور لكل من هو مسجّل دخول (بلا أي تأثير على السرعة)
+  app.use((req, res, next) => {
+    try {
+      const sessionUser = req.session?.user;
+      if (sessionUser?.id && !req.path.startsWith('/api/admin')) {
+        require('./siteUsers').touch(sessionUser.id, { ip: req.ip, user: sessionUser });
+      }
+    } catch {
+      /* تجاهل */
+    }
+    next();
+  });
+
   // المسارات
   app.use('/auth', require('./routes/auth'));
+  app.use('/api/admin', require('./routes/admin'));
   app.use('/api', require('./routes/api'));
   app.use('/', require('./routes/pages'));
 
@@ -161,4 +213,11 @@ function stopServer() {
   }
 }
 
-module.exports = { createApp, startServer, stopServer, sessionToken: () => crypto.randomBytes(24).toString('hex') };
+module.exports = {
+  createApp,
+  startServer,
+  stopServer,
+  destroyUserSessions,
+  countUserSessions,
+  sessionToken: () => crypto.randomBytes(24).toString('hex'),
+};

@@ -12,6 +12,7 @@
 
 const express = require('express');
 const config = require('../../config');
+const siteUsers = require('../siteUsers');
 
 const router = express.Router();
 
@@ -81,6 +82,26 @@ router.get('/callback', async (req, res) => {
       .filter((g) => (Number(g.permissions) & 0x20) === 0x20 || (Number(g.permissions) & 0x8) === 0x8)
       .map((g) => ({ id: g.id, name: g.name, icon: g.icon, owner: g.owner }));
 
+    /* الحظر: لا نفتح جلسة أصلًا لمن حظره المالك */
+    if (!siteUsers.isOwner(user.id) && siteUsers.isBanned(user.id)) {
+      const entry = siteUsers.get(user.id) || {};
+      req.session.destroy(() => {});
+      return res.status(403).send(
+        `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
+         <meta name="viewport" content="width=device-width, initial-scale=1"><title>محظور من الموقع</title>
+         <style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+           font-family:system-ui,"Segoe UI",Tahoma,sans-serif;background:#0b0e17;color:#e6e9f5;text-align:center;padding:24px}
+           .box{max-width:520px;background:#12172a;border:1px solid #232a44;border-radius:16px;padding:26px}
+           h1{margin:0 0 10px;font-size:1.3rem}p{color:#8d97b4;line-height:1.9;margin:0}
+           code{direction:ltr;background:#1b2138;padding:2px 7px;border-radius:6px}</style></head>
+         <body><div class="box"><h1>هذا الحساب محظور من الموقع</h1>
+           <p>تم منع حسابك من دخول الموقع${entry.note ? ` — السبب: ${String(entry.note).replace(/[<>]/g, '')}` : ''}.<br>
+           لو تعتقد أن هذا خطأ، تواصل مع إدارة السيرفر.</p>
+           <p style="margin-top:12px"><code>${String(user.id)}</code></p>
+         </div></body></html>`,
+      );
+    }
+
     req.session.user = {
       id: user.id,
       username: user.username,
@@ -90,6 +111,12 @@ router.get('/callback', async (req, res) => {
     req.session.guilds = manageable;
     req.session.accessToken = token.access_token;
     req.session.roleCheck = null; // فحص جديد للرول بعد كل دخول
+
+    /* تسجيل العضو في سجل الموقع (يظهر عند المالك في لوحة «أعضاء الموقع») */
+    siteUsers.recordLogin(
+      { id: user.id, username: user.username, avatar: user.avatar, globalName: user.global_name },
+      { guilds: manageable.length, ip: req.ip, userAgent: req.get('user-agent') },
+    );
 
     const back = req.session.returnTo && req.session.returnTo.startsWith('/') ? req.session.returnTo : '/dashboard';
     delete req.session.returnTo;

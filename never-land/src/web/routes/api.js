@@ -21,6 +21,7 @@ const access = require('../access');
 const config = require('../../config');
 const db = require('../../database');
 const leveling = require('../../systems/leveling');
+const siteUsers = require('../siteUsers');
 const periods = require('../../lib/periods');
 const { mergeSettings } = require('../../database/defaults');
 const sync = require('../../sync');
@@ -56,9 +57,11 @@ async function canAccess(req, guildId) {
   return webGuilds.canAccessGuild(req, guildId);
 }
 
-/** هل يملك المشاهد صلاحية التعديل؟ */
+/** هل يملك المشاهد صلاحية التعديل؟ (الحظر/المشاهدة فقط يمنعان) */
 function canEdit(req) {
   if (config.web.demoData) return true;
+  const userId = req.session?.user?.id;
+  if (userId && !siteUsers.isOwner(userId) && !siteUsers.mayEdit(userId)) return false;
   return Boolean(req.roleOk);
 }
 
@@ -76,6 +79,17 @@ router.use(async (req, res, next) => {
   const isWrite = !['GET', 'HEAD', 'OPTIONS'].includes(req.method);
 
   if (req.session.user) {
+    // المحظور: ممنوع من كل الواجهة البرمجية
+    if (!siteUsers.isOwner(req.session.user.id) && siteUsers.isBanned(req.session.user.id)) {
+      return res.status(403).json({ error: 'banned', message: 'حسابك محظور من الموقع.' });
+    }
+    // المشاهدة فقط: القراءة مسموحة والكتابة ممنوعة
+    if (!siteUsers.isOwner(req.session.user.id) && siteUsers.isViewOnly(req.session.user.id)) {
+      req.roleOk = !isWrite;
+      req.viewOnly = true;
+      req.roleResult = { ok: !isWrite, reason: 'view_only', checked: true };
+      return next();
+    }
     const result = await access.checkAccess(req.session, req.session.user.id);
     req.roleResult = result;
     if (!result.ok) {
@@ -106,6 +120,8 @@ router.get('/me', async (req, res) => {
     loginRequired: config.web.loginRequired,
     requiredRoleId: config.web.requiredRoleId || null,
     roleOk: config.web.demoData ? true : Boolean(req.roleOk),
+    isOwner: Boolean(req.session?.user && siteUsers.isOwner(req.session.user.id)),
+    viewOnly: Boolean(req.session?.user && siteUsers.isViewOnly(req.session.user.id)),
     sync: sync.getStatus(),
   });
 });
@@ -173,6 +189,8 @@ router.get('/guilds/:guildId', async (req, res) => {
     },
     viewer: {
       canEdit: canEdit(req),
+      isOwner: Boolean(req.session?.user && siteUsers.isOwner(req.session.user.id)),
+      viewOnly: Boolean(req.session?.user && siteUsers.isViewOnly(req.session.user.id)),
       loggedIn: Boolean(req.session.user) || config.web.demoData,
       demo: config.web.demoData,
       publicAccess: config.web.publicAccess,

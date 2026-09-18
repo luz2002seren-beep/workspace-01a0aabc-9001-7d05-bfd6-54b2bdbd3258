@@ -51,6 +51,9 @@ const state = {
   daily: [],
   section: 'overview',
   dirty: false,
+  /** هل هذا الحساب مالك الموقع؟ (يرى قسم «أعضاء الموقع») */
+  isOwner: false,
+  viewOnly: false,
 };
 
 /* ============================ أدوات عامة ============================ */
@@ -331,6 +334,7 @@ const SECTION_ICONS = {
   logs: 'scroll',
   data: 'folder',
   top: 'trophy',
+  siteMembers: 'key',
 };
 
 /** أنماط خط الفاصل (احتياطي — يأتي الكامل من الـAPI) */
@@ -664,6 +668,24 @@ const SECTIONS = {
       wrap.appendChild(note);
       wrap.appendChild(box);
       loadTopBoard(note, box);
+      return wrap;
+    },
+  },
+
+  /* ------------------------------ أعضاء الموقع (للمالك فقط) ------------------------------ */
+  siteMembers: {
+    group: 'إدارة الموقع',
+    ownerOnly: true,
+    label: 'أعضاء الموقع',
+    title: 'أعضاء الموقع',
+    desc: 'كل من سجّل دخول بحساب Discord: تتحكم به — تعطيه مشاهدة فقط أو تحظره من الموقع كامل.',
+    render() {
+      const wrap = el('div');
+      const note = el('div', { class: 'd-top-note' });
+      const box = el('div');
+      wrap.appendChild(note);
+      wrap.appendChild(box);
+      loadSiteMembers(note, box);
       return wrap;
     },
   },
@@ -1496,8 +1518,160 @@ async function loadTopBoard(note, box) {
   }
 }
 
+/* ============================ أعضاء الموقع (للمالك) ============================ */
+const SITE_STATUS_LABEL = { active: 'نشِط', viewonly: 'مشاهدة فقط', banned: 'محظور' };
+
+function sinceArabic(ts) {
+  if (!ts) return '—';
+  const diff = Date.now() - Number(ts);
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'الآن';
+  if (mins < 60) return `قبل ${mins} دقيقة`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `قبل ${hours} ساعة`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `قبل ${days} يوم`;
+  return new Date(Number(ts)).toLocaleDateString('ar-EG');
+}
+
+async function loadSiteMembers(note, box) {
+  try {
+    const data = await api('/admin/members');
+    const stats = data.stats || {};
+
+    const cards = el('div', { class: 'd-stats' });
+    [
+      ['users', (stats.total || 0).toLocaleString('ar-EG'), 'إجمالي الحسابات'],
+      ['activity', (stats.onlineToday || 0).toLocaleString('ar-EG'), 'نشِط آخر ٢٤ ساعة'],
+      ['eye', (stats.byStatus?.viewonly || 0).toLocaleString('ar-EG'), 'مشاهدة فقط'],
+      ['ban', (stats.byStatus?.banned || 0).toLocaleString('ar-EG'), 'محظور'],
+      ['refresh', (stats.totalVisits || 0).toLocaleString('ar-EG'), 'إجمالي الزيارات'],
+    ].forEach(([iconName, value, label]) => {
+      const card = el('div', { class: 'd-stat' });
+      card.appendChild(el('b', { text: String(value) }));
+      card.appendChild(el('span', { html: `${ic(iconName, 15)} ${label}` }));
+      cards.appendChild(card);
+    });
+    note.innerHTML = '';
+    note.appendChild(
+      el('div', {
+        class: 'd-readonly-note',
+        html: `${ic('shield', 15)} <span>هذه الصفحة تظهر لك فقط (مالك الموقع). كل من يسجّل دخول بحساب Discord يظهر هنا تلقائيًا.</span>`,
+      }),
+    );
+    note.appendChild(cards);
+
+    if (!data.members.length) {
+      box.innerHTML = '';
+      box.appendChild(el('div', { class: 'd-empty', text: 'ما سجّل أحد دخول بعد.' }));
+      return;
+    }
+
+    const table = el('table', { class: 'd-table' });
+    table.appendChild(el('thead', {}, '<tr><th>العضو</th><th>الحالة</th><th>آخر ظهور</th><th>الزيارات</th><th>سيرفراته</th><th>التحكم</th></tr>'));
+    const body = el('tbody');
+
+    data.members.forEach((m) => {
+      const tr = el('tr', { class: m.status === 'banned' ? 'sm-banned' : '' });
+
+      /* العضو */
+      const who = el('td');
+      const line = el('div', { class: 'sm-who' });
+      line.appendChild(el('span', { class: 'sm-av', text: (m.globalName || m.username || '؟').trim().charAt(0).toUpperCase() }));
+      const names = el('div');
+      names.appendChild(el('b', { text: m.globalName || m.username || m.id }));
+      names.appendChild(el('span', { class: 'sm-id', text: `${m.isOwner ? 'مالك الموقع · ' : ''}${m.id}` }));
+      line.appendChild(names);
+      who.appendChild(line);
+      tr.appendChild(who);
+
+      /* الحالة */
+      tr.appendChild(el('td', { html: `<span class="sm-badge sm-${esc(m.status)}">${esc(SITE_STATUS_LABEL[m.status] || m.status)}</span>` }));
+
+      /* آخر ظهور */
+      tr.appendChild(el('td', { text: sinceArabic(m.lastSeen) }));
+
+      /* الزيارات */
+      tr.appendChild(el('td', { html: `<code>${Number(m.visits || 0).toLocaleString('ar-EG')}</code>` }));
+
+      /* سيرفراته */
+      tr.appendChild(el('td', { html: `<code>${Number(m.guilds || 0)}</code>` }));
+
+      /* التحكم */
+      const actions = el('td');
+      const group = el('div', { class: 'sm-actions' });
+      if (m.isOwner) {
+        group.appendChild(el('span', { class: 'sm-locked', html: `${ic('lock', 14)} حسابك` }));
+      } else if (!data.canManage) {
+        group.appendChild(el('span', { class: 'sm-locked', html: `${ic('info', 14)} وضع العرض` }));
+      } else {
+        const setStatus = async (status, btn) => {
+          btn.disabled = true;
+          try {
+            const reason = status === 'banned' ? (window.prompt('سبب الحظر (اختياري):', '') || '') : '';
+            const res = await api(`/admin/members/${m.id}/status`, { method: 'POST', body: { status, reason } });
+            toast(res.message || 'تم التحديث');
+            renderSection('siteMembers');
+          } catch (err) {
+            toast(err.message, true);
+          } finally {
+            btn.disabled = false;
+          }
+        };
+
+        if (m.status !== 'active') {
+          const b = el('button', { class: 'd-btn sm', html: `${ic('check', 14)} نشِط` });
+          b.addEventListener('click', () => setStatus('active', b));
+          group.appendChild(b);
+        }
+        if (m.status !== 'viewonly') {
+          const b = el('button', { class: 'd-btn sm', html: `${ic('eye', 14)} مشاهدة فقط` });
+          b.addEventListener('click', () => setStatus('viewonly', b));
+          group.appendChild(b);
+        }
+        if (m.status !== 'banned') {
+          const b = el('button', { class: 'd-btn sm danger', html: `${ic('ban', 14)} حظر` });
+          b.addEventListener('click', () => setStatus('banned', b));
+          group.appendChild(b);
+        }
+        const kick = el('button', { class: 'd-btn sm ghost', html: `${ic('logout', 14)} قطع الجلسة` });
+        kick.addEventListener('click', async () => {
+          kick.disabled = true;
+          try {
+            const res = await api(`/admin/members/${m.id}/kick`, { method: 'POST' });
+            toast(res.message || 'تم');
+          } catch (err) {
+            toast(err.message, true);
+          } finally {
+            kick.disabled = false;
+          }
+        });
+        group.appendChild(kick);
+      }
+      actions.appendChild(group);
+      tr.appendChild(actions);
+
+      body.appendChild(tr);
+    });
+
+    table.appendChild(body);
+    box.innerHTML = '';
+    const card = el('div', { class: 'd-card' });
+    const wrapEl = el('div', { class: 'd-table-wrap' });
+    wrapEl.appendChild(table);
+    card.appendChild(wrapEl);
+    box.appendChild(card);
+  } catch (err) {
+    note.innerHTML = '';
+    box.innerHTML = '';
+    box.appendChild(
+      el('div', { class: 'd-empty', html: `${ic('ban', 15)} تعذّر التحميل: ${esc(err.message)}` }),
+    );
+  }
+}
+
 /* ============================ الهيكل العام ============================ */
-const GROUP_ORDER = ['عام', 'الأعضاء', 'الحماية', 'التذاكر', 'السجلات', 'البيانات'];
+const GROUP_ORDER = ['عام', 'الأعضاء', 'الحماية', 'التذاكر', 'السجلات', 'البيانات', 'إدارة الموقع'];
 
 function buildSidebar() {
   const side = el('aside', { class: 'd-side' });
@@ -1518,7 +1692,11 @@ function buildSidebar() {
   const items = [];
 
   GROUP_ORDER.forEach((group) => {
-    const entries = Object.entries(SECTIONS).filter(([, s]) => s.group === group);
+    const entries = Object.entries(SECTIONS).filter(([, s]) => {
+      if (s.group !== group) return false;
+      if (s.ownerOnly && !state.isOwner) return false; // أقسام المالك لا تظهر لغيره
+      return true;
+    });
     if (!entries.length) return;
     const groupWrap = el('div', { class: 'd-group' });
     groupWrap.appendChild(el('div', { class: 'd-group-title', text: group }));
@@ -1775,6 +1953,9 @@ async function boot() {
     const data = await api(`/guilds/${state.guildId}`);
     state.viewer = data.viewer || null;
     state.canEdit = data.viewer ? Boolean(data.viewer.canEdit) : root.dataset.edit !== '0';
+    /* حالة المالك/المشاهدة فقط: تأتي مع بيانات السيرفر، وإن غابت نقرأها من الصفحة */
+    state.isOwner = Boolean(data.viewer?.isOwner) || root.dataset.owner === '1';
+    state.viewOnly = Boolean(data.viewer?.viewOnly) || root.dataset.viewonly === '1';
     if (data.viewer?.roleReason && data.viewer.roleReason !== 'ok') {
       state.viewer.reason = data.viewer.message || '';
     }
@@ -1788,7 +1969,14 @@ async function boot() {
 
     root.innerHTML = '';
     const shell = el('div', { class: `d-shell${state.canEdit ? '' : ' readonly'}` });
-    if (!state.canEdit) {
+    if (!state.canEdit && state.viewOnly) {
+      shell.appendChild(
+        el('div', {
+          class: 'd-readonly-note viewonly',
+          html: `${ic('eye', 17)} <b>مشاهدة فقط</b> — حسابك مسموح له يفتح الموقع ويتصفّح كل الإعدادات، لكن التعديل والحفظ معطّلان من إدارة الموقع.`,
+        }),
+      );
+    } else if (!state.canEdit) {
       shell.appendChild(
         el('div', {
           class: 'd-readonly-note',

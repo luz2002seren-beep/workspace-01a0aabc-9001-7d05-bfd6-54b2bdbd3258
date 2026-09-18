@@ -14,6 +14,7 @@ const express = require('express');
 const config = require('../../config');
 const webGuilds = require('../guilds');
 const { guildIconUrl, initials } = require('../../lib/discordIcon');
+const siteUsers = require('../siteUsers');
 const db = require('../../database');
 
 const router = express.Router();
@@ -203,8 +204,37 @@ async function requireAuth(req, res, next) {
     return res.redirect('/auth/login');
   }
 
-  /* 2) تأكيد الرول المطلوب */
+  /* 2) حالة العضو في سجل الموقع (حظر / مشاهدة فقط) — يفرضها المالك */
   req.user = req.session.user;
+  req.isSiteOwner = siteUsers.isOwner(req.session.user.id);
+
+  if (!req.isSiteOwner && siteUsers.isBanned(req.session.user.id)) {
+    /* محظور: نعرض صفحة الحظر ونُبقي الجلسة حتى تبقى هويته معروفة —
+       لو حذفنا الجلسة لصار زائرًا مجهولًا وشاهد الصفحات العامة. */
+    const entry = siteUsers.get(req.session.user.id) || {};
+    return res
+      .status(403)
+      .send(layout({ title: 'محظور من الموقع', body: bannedBody(req.user, entry), user: null }));
+  }
+
+  /* 3) مالك الموقع: دخول كامل دائمًا (ما يتأثّر بأي شرط رول) */
+  if (req.isSiteOwner) {
+    req.canEdit = true;
+    req.roleResult = { ok: true, reason: 'site_owner', checked: true };
+    req.roleOk = true;
+    return next();
+  }
+
+  /* 4) مشاهدة فقط: يفتح كل الصفحات لكن بلا أي تعديل */
+  if (!req.isSiteOwner && siteUsers.isViewOnly(req.session.user.id)) {
+    req.canEdit = false;
+    req.viewOnly = true;
+    req.roleResult = { ok: true, reason: 'view_only', checked: true };
+    req.roleOk = true;
+    return next();
+  }
+
+  /* 4) تأكيد الرول المطلوب */
   const result = await access.checkAccess(req.session, req.session.user.id);
   req.roleResult = result;
   if (!result.ok) {
@@ -213,6 +243,23 @@ async function requireAuth(req, res, next) {
 
   req.canEdit = true;
   return next();
+}
+
+/** صفحة «محظور من الموقع» */
+function bannedBody(user, entry = {}) {
+  const who = user ? escapeHtml(user.globalName || user.username || '') : '';
+  return `
+  <section class="site-hero" style="text-align:center;max-width:700px;margin-inline:auto">
+    <span class="pill">${icon('ban', { size: 15 })} محظور من الموقع</span>
+    <h1>حسابك ممنوع من دخول الموقع</h1>
+    <p class="muted">
+      ${who ? `${who} — ` : ''}تم حظر حسابك من الموقع${entry.note ? ` للسبب التالي: <b>${escapeHtml(entry.note)}</b>` : ''}.<br>
+      لو تعتقد أن هذا خطأ، تواصل مع إدارة السيرفر.
+    </p>
+    <div class="site-cta">
+      <a class="btn btn-ghost" href="/auth/logout">${icon('logout', { size: 16 })} خروج</a>
+    </div>
+  </section>`;
 }
 
 /** صفحة «الوصول مقيّد» بقالب الموقع */
@@ -609,7 +656,7 @@ router.get('/dashboard/:guildId', requireAuth, async (req, res) => {
   }
 
   const body = `
-  <div id="app" data-guild="${escapeHtml(guildId)}" data-edit="${req.canEdit ? '1' : '0'}">
+  <div id="app" data-guild="${escapeHtml(guildId)}" data-edit="${req.canEdit ? '1' : '0'}" data-owner="${req.isSiteOwner ? '1' : '0'}" data-viewonly="${req.viewOnly ? '1' : '0'}">
     <div class="loading">جارٍ تحميل الإعدادات...</div>
   </div>
   <script src="${asset('icons.js')}"></script>
@@ -620,7 +667,7 @@ router.get('/dashboard/:guildId', requireAuth, async (req, res) => {
       title: 'إعدادات السيرفر',
       body,
       user: req.user,
-      bodyClass: `dashboard${req.canEdit ? '' : ' dashboard-readonly'}`,
+      bodyClass: `dashboard${req.canEdit ? '' : ' dashboard-readonly'}${req.isSiteOwner ? ' dashboard-owner' : ''}`,
     }),
   );
 });

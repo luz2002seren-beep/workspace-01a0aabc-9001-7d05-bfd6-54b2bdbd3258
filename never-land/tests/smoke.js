@@ -1244,6 +1244,81 @@ console.log('[نجاح] كل الاختبارات نجحت!');
     }
   }
 
+ console.log('[اختبار] 36: لوحة «أعضاء الموقع» — حظر · مشاهدة فقط · المالك فقط');
+  {
+    const fs20 = require('node:fs');
+    const path20 = require('node:path');
+    const root20 = path20.join(__dirname, '..');
+
+    // ١) الاختبار العملي الكامل (٦ مجموعات: سجل، حظر، مشاهدة فقط، مالك فقط، حمايات، عودة)
+    const { execFileSync } = require('node:child_process');
+    const out20 = execFileSync('node', [path20.join(root20, 'site-members-test.js')], { cwd: root20, encoding: 'utf8' });
+    for (const needle of ['سجل الأعضاء', 'المالك فقط', 'المشاهدة فقط', 'الحظر', 'الحمايات', 'قطع الجلسة']) {
+      assert.ok(out20.includes(needle), `حالة «${needle}» غير مُختبرة في لوحة الأعضاء`);
+    }
+    assert.ok(out20.includes('🎉'), 'اختبار لوحة أعضاء الموقع لم ينجح');
+
+    // ٢) سجل الأعضاء: وحدة مستقلة + تخزين دائم + حالات واضحة
+    const siteSrc = fs20.readFileSync(path20.join(root20, 'src', 'web', 'siteUsers.js'), 'utf8');
+    for (const fn of ['recordLogin', 'setStatus', 'isBanned', 'isViewOnly', 'mayEdit', 'list', 'stats', 'forget']) {
+      assert.ok(siteSrc.includes(`${fn}(`) || siteSrc.includes(`${fn} =`), `دالة ${fn} ناقصة من سجل الأعضاء`);
+    }
+    for (const st of ["active:", "viewonly:", "banned:"]) {
+      assert.ok(siteSrc.includes(st), `الحالة ${st} ناقصة`);
+    }
+    assert.ok(siteSrc.includes('KV_KEY'), 'التخزين الدائم (kv) غير مستخدم');
+
+    // ٣) المالك فقط: حماية على المسار كله + معرّف المالك في الإعدادات
+    const adminSrc = fs20.readFileSync(path20.join(root20, 'src', 'web', 'routes', 'admin.js'), 'utf8');
+    assert.ok(adminSrc.includes('router.use(ownerOnly)'), 'حماية المالك غير مفعّلة على المسارات');
+    assert.ok(adminSrc.includes("error: 'owner_only'"), 'رسالة منع غير المالك ناقصة');
+    assert.ok(adminSrc.includes('owner_protected'), 'حماية حساب المالك من الحظر ناقصة');
+    for (const route of ["'/members'", "'/members/:id/status'", "'/members/:id/kick'"]) {
+      assert.ok(adminSrc.includes(route), `نقطة ${route} ناقصة`);
+    }
+    const cfgSrc = fs20.readFileSync(path20.join(root20, 'src', 'config.js'), 'utf8');
+    assert.ok(cfgSrc.includes('ownerUserId') && cfgSrc.includes('1345866950776979547'), 'معرّف مالك الموقع غير مضبوط');
+    assert.ok(cfgSrc.includes('siteAdmins'), 'حقل المشرفين الإضافيين ناقص');
+
+    // ٤) الفرض الفعلي في الصفحات والواجهة البرمجية
+    const pagesSrc20 = fs20.readFileSync(path20.join(root20, 'src', 'web', 'routes', 'pages.js'), 'utf8');
+    assert.ok(pagesSrc20.includes('isBanned') && pagesSrc20.includes('isViewOnly'), 'فرض الحالات ناقص من الصفحات');
+    assert.ok(pagesSrc20.includes('bannedBody'), 'صفحة الحظر ناقصة');
+    assert.ok(pagesSrc20.includes('data-owner'), 'اللوحة لا تعرف أن الزائر هو المالك');
+    const apiSrc20 = fs20.readFileSync(path20.join(root20, 'src', 'web', 'routes', 'api.js'), 'utf8');
+    assert.ok(apiSrc20.includes("error: 'banned'"), 'منع المحظور ناقص من الواجهة البرمجية');
+    assert.ok(apiSrc20.includes('mayEdit'), 'منع التعديل للمشاهدة فقط ناقص');
+    const serverSrc20 = fs20.readFileSync(path20.join(root20, 'src', 'web', 'server.js'), 'utf8');
+    for (const fn of ['destroyUserSessions', 'countUserSessions']) {
+      assert.ok(serverSrc20.includes(`function ${fn}`), `${fn} ناقصة من الخادم`);
+    }
+    assert.ok(serverSrc20.includes("'/api/admin'"), 'مسار الإدارة غير مربوط بالخادم');
+    const authSrc20 = fs20.readFileSync(path20.join(root20, 'src', 'web', 'routes', 'auth.js'), 'utf8');
+    assert.ok(authSrc20.includes('recordLogin'), 'تسجيل الدخول لا يُسجّل العضو');
+    assert.ok(authSrc20.includes('isBanned'), 'منع المحظور عند الدخول ناقص');
+
+    // ٥) لوحة التحكم: قسم يظهر للمالك فقط وأزرار التحكم
+    const appSrc20 = fs20.readFileSync(path20.join(root20, 'src', 'web', 'public', 'app.js'), 'utf8');
+    for (const needle of ['siteMembers:', "group: 'إدارة الموقع'", 'ownerOnly: true', 'loadSiteMembers', 'SITE_STATUS_LABEL', '/admin/members']) {
+      assert.ok(appSrc20.includes(needle), `عنصر لوحة الأعضاء «${needle}» ناقص`);
+    }
+    assert.ok(appSrc20.includes('if (s.ownerOnly && !state.isOwner) return false'), 'الأقسام الخاصة لا تُخفى عن غير المالك');
+    const dash20 = fs20.readFileSync(path20.join(root20, 'src', 'web', 'public', 'dash.css'), 'utf8');
+    for (const needle of ['.sm-badge', '.sm-banned', '.sm-viewonly', '.sm-actions', '.d-readonly-note.viewonly']) {
+      assert.ok(dash20.includes(needle), `نمط ${needle} ناقص`);
+    }
+
+    // ٦) فحص الواجهة الفعلي (متصفح وهمي): القسم يظهر للمالك فقط مع أزرار التحكم
+    const out20b = execFileSync('node', [path20.join(root20, 'ui-site-members.tmp.js')], { cwd: root20, encoding: 'utf8' });
+    for (const needle of ['قسم «أعضاء الموقع» ظاهر؟ نعم', 'قسم «أعضاء الموقع» ظاهر؟ لا', 'حساب المالك محمي بلا أزرار؟ نعم', 'لا شيء']) {
+      assert.ok(out20b.includes(needle), `فحص الواجهة ينقصه: ${needle}`);
+    }
+    assert.ok(/صفوف الأعضاء: 2/.test(out20b), 'جدول الأعضاء لا يعرض الصفوف');
+    assert.ok(/مشاهدة فقط/.test(out20b) && /قطع الجلسة/.test(out20b), 'أزرار التحكم ناقصة من الواجهة');
+
+  console.log('  [تم] سجل الأعضاء + حظر + مشاهدة فقط + المالك فقط (٦ مجموعات عمل + حماية كاملة)');
+  }
+
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');
 
   process.exit(0);
