@@ -1803,7 +1803,8 @@ function renderSection(id) {
   document.querySelectorAll('.d-nav-item').forEach((i) => i.classList.toggle('active', i.dataset.id === id));
   const content = document.getElementById('d-content');
   content.innerHTML = '';
-  content.appendChild(el('h2', { class: 'd-page-title', html: `${section.icon} ${section.title}` }));
+  const iconName = SECTION_ICONS[id] || 'circle';
+  content.appendChild(el('h2', { class: 'd-page-title', html: `${ic(iconName, 22)} <span>${esc(section.title)}</span>` }));
   content.appendChild(el('p', { class: 'd-page-desc', html: section.desc }));
 
   // كل قسم يقدر يرجّع عنصرًا واحدًا أو مصفوفة عناصر أو Fragment

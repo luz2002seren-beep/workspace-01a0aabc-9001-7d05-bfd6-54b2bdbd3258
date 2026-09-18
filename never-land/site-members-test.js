@@ -220,6 +220,35 @@ async function run() {
   assert.strictEqual(siteUsers.get(THIRD_ID), null, 'الحساب ما انحذف');
   console.log('٦) الرجوع طبيعيًا · قطع الجلسة · حذف الحساب من السجل ✅');
 
+  /* ───────── ٧) صفحة اللوحة نفسها: تنسيقها مربوط دائمًا ───────── */
+  const demoGuild = require('./src/web/demo').DEMO_GUILD_ID;
+  /* في الاختبار ما في سيرفرات حقيقية في القاعدة — نسمح بالوصول للسيرفر التجريبي */
+  const webGuilds = require('./src/web/guilds');
+  const prevAccess = webGuilds.canAccessGuild;
+  webGuilds.canAccessGuild = async () => true;
+
+  const ownerDash = await owner.get(`/dashboard/${demoGuild}`);
+  assert.strictEqual(ownerDash.status, 200, 'المالك ما قدر يفتح صفحة اللوحة');
+  assert.ok(ownerDash.text.includes('dash.css?v='), 'تنسيق اللوحة غير مربوط لصفحة المالك (تظهر مشلولة بلا تنسيق)');
+  assert.ok(ownerDash.text.includes('class="dashboard dashboard-owner"') || ownerDash.text.includes('dashboard-owner'), 'صفحة المالك بلا صنف dashboard-owner');
+  assert.ok(ownerDash.text.includes('data-owner="1"'), 'صفحة المالك ما تعرّف نفسها كمالك');
+
+  /* مشاهدة فقط: نفس الاسم مع لاحقة — لازم يبقى التنسيق مربوطًا */
+  await owner.post(`/api/admin/members/${OTHER_ID}/status`, { status: 'viewonly' });
+  const viewDash = await other.get(`/dashboard/${demoGuild}`);
+  assert.strictEqual(viewDash.status, 200, 'المشاهدة فقط ما قدر يفتح صفحة اللوحة');
+  assert.ok(viewDash.text.includes('dash.css?v='), 'تنسيق اللوحة غير مربوط لصفحة «مشاهدة فقط»');
+  assert.ok(viewDash.text.includes('dashboard-readonly'), 'صفحة المشاهدة فقط بلا صنف القراءة فقط');
+
+  /* زائر بلا حساب: نفس الشي */
+  const guestDash = await client(live.base, null).get(`/dashboard/${demoGuild}`);
+  assert.strictEqual(guestDash.status, 200, 'الزائر ما قدر يفتح صفحة اللوحة العامة');
+  assert.ok(guestDash.text.includes('dash.css?v='), 'تنسيق اللوحة غير مربوط لصفحة الزائر');
+
+  await owner.post(`/api/admin/members/${OTHER_ID}/status`, { status: 'active' });
+  webGuilds.canAccessGuild = prevAccess;
+  console.log('٧) صفحة اللوحة: تنسيق dash.css مربوط للمالك والمشاهدة فقط والزائر ✅');
+
   /* تنظيف */
   live.server.close();
   server.close();

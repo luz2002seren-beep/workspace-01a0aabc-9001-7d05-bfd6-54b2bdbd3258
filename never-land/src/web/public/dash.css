@@ -142,7 +142,8 @@ body.dashboard .container { padding: 0; width: 100%; }
 
 .d-content { padding: 22px 26px 120px; max-width: 1080px; width: 100%; }
 
-.d-page-title { margin: 0 0 4px; font-size: 1.5rem; color: var(--text); }
+.d-page-title { margin: 0 0 4px; font-size: 1.5rem; color: var(--text); display: flex; align-items: center; gap: 10px; }
+.d-page-title svg { flex: 0 0 auto; color: var(--primary); }
 .d-page-desc { margin: 0 0 20px; color: var(--muted); font-size: .92rem; line-height: 1.7; }
 
 /* ============================ الأزرار ============================ */
@@ -634,6 +635,10 @@ img.guild-icon { background: var(--panel); border: 1px solid var(--border-soft);
 .d-nav-item.active .ico, .d-nav-item:hover .ico { color: var(--primary); }
 .d-nav-item { transition: background .15s ease, color .15s ease, border-color .15s ease; }
 .d-nav-item.active { border-color: rgba(88, 101, 242, .45); }
+
+/* ملاحظة القراءة فقط: تأخذ صفًا كاملًا فوق القائمة والمحتوى — بدونها تنكسر شبكة اللوحة
+   (كان الشريط يأخذ خانة من الشبكة فينزل المحتوى تحت الشاشة) */
+.d-shell > .d-readonly-note { grid-column: 1 / -1; }
 
 /* ============================ أعضاء الموقع (لوحة المالك) ============================ */
 .sm-who { display: flex; align-items: center; gap: 10px; min-width: 0; }

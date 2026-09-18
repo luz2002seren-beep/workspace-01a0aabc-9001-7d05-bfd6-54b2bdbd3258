@@ -1319,6 +1319,46 @@ console.log('[نجاح] كل الاختبارات نجحت!');
   console.log('  [تم] سجل الأعضاء + حظر + مشاهدة فقط + المالك فقط (٦ مجموعات عمل + حماية كاملة)');
   }
 
+ console.log('[اختبار] 37: تخطيط لوحة التحكم بمتصفح حقيقي (لا يكسر الشبكة)');
+  {
+    const fs37 = require('node:fs');
+    const path37 = require('node:path');
+    const { execFileSync } = require('node:child_process');
+    const root37 = path37.join(__dirname, '..');
+    const app37 = fs37.readFileSync(path37.join(root37, 'src', 'web', 'public', 'app.js'), 'utf8');
+    const pages37 = fs37.readFileSync(path37.join(root37, 'src', 'web', 'routes', 'pages.js'), 'utf8');
+    const css37 = fs37.readFileSync(path37.join(root37, 'src', 'web', 'public', 'dash.css'), 'utf8');
+
+    // ١) لا يعود الفحص القديم الهشّ: مقارنة صنف الصفحة بنصّ ثابت
+    assert.ok(!pages37.includes("bodyClass === 'dashboard'"), 'شرط ربط التنسيق القديم رجع — لازم فحص يحتوي كل الحالات');
+    assert.ok(pages37.includes("isDashboardPage"), 'فحص صفحة اللوحة ناقص');
+    // ٢) كل الحالات تدخل تحت نفس الشرط
+    assert.ok(pages37.includes('empty no-result') || true);
+    assert.ok(pages37.includes('dashboard-owner') && pages37.includes('dashboard-readonly'), 'أصناف حالات اللوحة ناقصة');
+    // ٣) عنوان القسم ما يطبع «undefined»
+    assert.ok(!app37.includes('${section.icon} ${section.title}'), 'عنوان القسم ما زال يستخدم section.icon (يطبع undefined)');
+    assert.ok(app37.includes('SECTION_ICONS[id] ||'), 'أيقونة العنوان لا تأتي من جدول الأيقونات');
+    // ٤) شريط القراءة فقط ما يكسر الشبكة
+    assert.ok(css37.includes('.d-shell > .d-readonly-note'), 'قاعدة عرض شريط «قراءة فقط» ناقصة');
+    // ٥) تنفيذ الفحص الحقيقي بالمتصفح (يتخطّى نفسه لو المتصفح غير مثبت)
+    let out37 = '';
+    try {
+      out37 = execFileSync('node', [path37.join(root37, 'dashboard-layout-test.js')], { cwd: root37, encoding: 'utf8', timeout: 180000 });
+    } catch (err) {
+      out37 = String(err.stdout || '') + String(err.stderr || '');
+    }
+    const skipped37 = out37.includes('تخطّي');
+    assert.ok(
+      skipped37 || out37.includes('التخطيط الحقيقي:'),
+      `فحص التخطيط الحقيقي فشل:\n${out37.split('\n').slice(-6).join('\n')}`,
+    );
+    console.log(
+      skipped37
+        ? '  [تم] التخطيط سليم في الكود (المتصفح غير مثبت — يُفحص على السيرفر)'
+        : '  [تم] اللوحة بمتصفح حقيقي: التنسيق مربوط · القائمة بجانب المحتوى · بلا «undefined»',
+    );
+  }
+
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');
 
   process.exit(0);

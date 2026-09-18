@@ -47,6 +47,8 @@ const asset = (name) => `/${name}?v=${assetStamp}`;
 /** تخطيط الصفحة العام */
 function layout({ title, body, user = null, extraHead = '', bodyClass = '' }) {
   const SITE_NAME = config.web.siteName;
+  /* صفحة اللوحة تُعرف بأي صنف يحتوي كلمة dashboard (dashboard · dashboard-readonly · dashboard-owner) */
+  const isDashboardPage = String(bodyClass).split(/\s+/).includes('dashboard');
   const siteUrl = config.web.url;
   const userBox = user
     ? `<div class="user-box">
@@ -82,7 +84,7 @@ function layout({ title, body, user = null, extraHead = '', bodyClass = '' }) {
 <link rel="apple-touch-icon" href="/icon.svg">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="stylesheet" href="${asset('style.css')}">
-${bodyClass === 'dashboard' ? `<link rel="stylesheet" href="${asset('dash.css')}">` : ''}
+${isDashboardPage ? `<link rel="stylesheet" href="${asset('dash.css')}">` : ''}
 <script>
   /* السمة: المفضّل المحفوظ ← وإلا إعداد الجهاز نفسه (ليلي/نهاري/تلقائي) */
   (function () {
