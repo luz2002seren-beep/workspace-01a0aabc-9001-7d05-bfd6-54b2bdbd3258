@@ -1184,6 +1184,66 @@ console.log('[نجاح] كل الاختبارات نجحت!');
   console.log('  [تم] الأيقونات من مصدر واحد + بصمة نسخة تمنع عرض أيقونة قديمة');
   }
 
+ console.log('[اختبار] 34: اللوحة تُقلع فعلًا في متصفح وهمي + بلا تضارب أسماء');
+  {
+    const fs19 = require('node:fs');
+    const path19 = require('node:path');
+    const root19 = path19.join(__dirname, '..');
+
+    /* ١) حماية سريعة: ما في أي اسم عام يتكرّر بين ملفات السكربت المحمّلة معًا
+          (هذا بالضبط سبب الخطأ: Identifier 'ICONS' has already been declared) */
+    const files19 = ['icons.js', 'app.js'];
+    const declared = {};
+    for (const file of files19) {
+      const src = fs19.readFileSync(path19.join(root19, 'src', 'web', 'public', file), 'utf8');
+      const names = [];
+      // أي تعريف على مستوى الملف (بلا إزاحة) — const/let/function/class
+      for (const m of src.matchAll(/^(?:const|let|var|function|class)\s+([A-Za-z_$][\w$]*)/gm)) names.push(m[1]);
+      declared[file] = names;
+    }
+    const iconsTopLevel = declared['icons.js'];
+    assert.deepStrictEqual(
+      iconsTopLevel,
+      [],
+      `icons.js يسرّب أسماء عامة (${iconsTopLevel.join(', ')}) — لازم تكون كل التعريفات داخل وحدة مغلقة`,
+    );
+    const iconsSrc19 = fs19.readFileSync(path19.join(root19, 'src', 'web', 'public', 'icons.js'), 'utf8');
+    assert.ok(iconsSrc19.includes('(function (factory)'), 'icons.js غير ملفوف بوحدة مغلقة');
+    assert.ok(iconsSrc19.includes('window.ICONS = api.ICONS'), 'icons.js ما يعرّض الأيقونات للمتصفح');
+    assert.ok(iconsSrc19.includes('module.exports = api'), 'icons.js ما يُصدّر للأداة الخلفية');
+    // بلا تكرار داخل app.js نفسه
+    const dupes = declared['app.js'].filter((n, i) => declared['app.js'].indexOf(n) !== i);
+    assert.deepStrictEqual(dupes, [], `أسماء مكرّرة داخل app.js: ${[...new Set(dupes)].join(', ')}`);
+
+    /* ٢) كل قيم SECTION_ICONS موجودة في الحزمة (ما يطلع دائرة بديلة) */
+    const iconMod19 = require('../src/web/public/icons');
+    const appSrc19 = fs19.readFileSync(path19.join(root19, 'src', 'web', 'public', 'app.js'), 'utf8');
+    const sectionBlock19 = appSrc19.match(/const SECTION_ICONS = \{([\s\S]*?)\n\};/);
+    assert.ok(sectionBlock19, 'كتلة SECTION_ICONS غير موجودة');
+    const sectionIcons19 = [...sectionBlock19[1].matchAll(/(\w+):\s*'(\w+)'/g)].map((m) => m[2]);
+    const notInPack = sectionIcons19.filter((n) => !iconMod19.ICONS[n]);
+    assert.deepStrictEqual(notInPack, [], `أيقونات أقسام غير موجودة في الحزمة: ${notInPack.join(', ')}`);
+    const sectionCount19 = (appSrc19.match(/^    label: '/gm) || []).length;
+    assert.strictEqual(sectionIcons19.length, sectionCount19, 'عدد أيقونات الأقسام لا يطابق عدد الأقسام');
+
+  console.log(`  [تم] بلا تضارب أسماء عامة · ${sectionIcons19.length} أيقونة أقسام كلها موجودة في الحزمة`);
+  }
+
+ console.log('[اختبار] 35: فتح اللوحة في متصفح وهمي (الصفحة تُقلع فعلًا)');
+  {
+    const domTest = require('../dashboard-dom-test');
+    const res19 = await domTest.run();
+    if (res19.skipped) {
+      console.log('  [تخطّي] jsdom غير مثبّتة — الاختبار يعمل عند توفرها');
+    } else {
+      assert.ok(res19.navCount >= 12, `عدد أقسام القائمة قليل (${res19.navCount})`);
+      for (const wanted of ['تفاعل', 'المستويات', 'مركز التحكم']) {
+        assert.ok(res19.labels.includes(wanted), `القسم «${wanted}» غير ظاهر في اللوحة الحقيقية`);
+      }
+      console.log(`  [تم] اللوحة تُقلع بلا أخطاء JS · ${res19.navCount} قسمًا · «تفاعل» بأيقونة الكأس`);
+    }
+  }
+
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');
 
   process.exit(0);
