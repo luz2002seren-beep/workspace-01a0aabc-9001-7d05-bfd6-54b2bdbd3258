@@ -78,6 +78,7 @@ const esc = (s) =>
 
 async function api(path, options = {}) {
   const res = await fetch(`/api${path}`, {
+    headers: { 'X-Requested-With': 'neverland-dashboard', ...(options.headers || {}) },
     headers: { 'Content-Type': 'application/json' },
     credentials: 'same-origin',
     ...options,
@@ -335,6 +336,8 @@ const SECTION_ICONS = {
   data: 'folder',
   top: 'trophy',
   autoReply: 'bubbles',
+  audit: 'scroll',
+  security: 'shield',
   siteMembers: 'key',
 };
 
@@ -683,6 +686,24 @@ const SECTIONS = {
     },
   },
 
+  /* ------------------------------ حماية الموقع (للمالك فقط) ------------------------------ */
+  security: {
+    group: 'إدارة الموقع',
+    ownerOnly: true,
+    label: 'حماية الموقع',
+    title: 'حماية الموقع',
+    desc: 'كل الدفاعات المفعّلة على الموقع + نسخة احتياطية من كل البيانات بضغطة.',
+    render() {
+      const wrap = el('div');
+      const note = el('div');
+      const box = el('div');
+      wrap.appendChild(note);
+      wrap.appendChild(box);
+      loadSecurity(note, box);
+      return wrap;
+    },
+  },
+
   /* ------------------------------ أعضاء الموقع (للمالك فقط) ------------------------------ */
   siteMembers: {
     group: 'إدارة الموقع',
@@ -889,6 +910,150 @@ const SECTIONS = {
   },
 
   /* ------------------------------ التفاعلات التلقائية ------------------------------ */
+  /* ------------------------------ سجل النشاط ------------------------------ */
+  audit: {
+    group: 'البيانات',
+    label: 'سجل النشاط',
+    title: 'سجل النشاط',
+    desc: 'كل حدث مهم في السيرفر: من غيّر شو ومتى — مع الحفظ الدائم في قاعدة البيانات.',
+    render() {
+      const wrap = el('div');
+      const filters = el('div', { class: 'd-top-chips' });
+      const box = el('div');
+      const head = el('div', { class: 'd-audit-head' });
+      wrap.appendChild(head);
+      wrap.appendChild(filters);
+      wrap.appendChild(box);
+
+      const state2 = { severity: null, offset: 0, limit: 50, action: null };
+
+      const ACTION_OPTIONS = [
+        ['', 'كل الأحداث'],
+        ['settings', 'تغيير الإعدادات'],
+        ['login', 'تسجيل الدخول'],
+        ['member', 'إدارة الأعضاء'],
+        ['action', 'إجراءات تجريبية'],
+        ['sync', 'المزامنة'],
+        ['security', 'حماية'],
+      ];
+
+      const load = async () => {
+        box.innerHTML = '';
+        box.appendChild(el('div', { class: 'd-empty', text: 'جارٍ تحميل السجل…' }));
+        try {
+          const q = new URLSearchParams({ limit: String(state2.limit), offset: String(state2.offset) });
+          if (state2.severity) q.set('severity', state2.severity);
+          if (state2.action) q.set('action', state2.action);
+          const data = await api(`/guilds/${state.guildId}/audit?${q.toString()}`);
+
+          head.innerHTML = '';
+          const st = data.stats || {};
+          [
+            ['scroll', st.total || 0, 'كل الأحداث'],
+            ['calendarDay', st.today || 0, 'آخر ٢٤ ساعة'],
+            ['warning', st.warn || 0, 'تنبيهات'],
+            ['ban', st.danger || 0, 'أحداث خطيرة'],
+          ].forEach(([icon, value, label]) => {
+            const chip = el('div', { class: 'd-audit-stat' });
+            chip.appendChild(el('span', { class: 'ico', html: ic(icon, 15) }));
+            chip.appendChild(el('b', { text: Number(value).toLocaleString('ar-EG') }));
+            chip.appendChild(el('span', { text: label }));
+            head.appendChild(chip);
+          });
+
+          box.innerHTML = '';
+          if (!data.items.length) {
+            box.appendChild(el('div', { class: 'd-empty', text: 'ما في أحداث مسجّلة بعد.' }));
+            return;
+          }
+
+          const table = el('table', { class: 'd-table' });
+          table.appendChild(el('thead', {}, '<tr><th>الحدث</th><th>من</th><th>التفاصيل</th><th>الوقت</th></tr>'));
+          const body = el('tbody');
+          data.items.forEach((row) => {
+            const tr = el('tr', { class: row.severity === 'danger' ? 'au-danger' : row.severity === 'warn' ? 'au-warn' : '' });
+            tr.appendChild(
+              el('td', {
+                html: `<span class="au-badge ${row.severity}">${ic(row.severity === 'danger' ? 'ban' : row.severity === 'warn' ? 'warning' : 'check', 13)} ${esc(row.label)}</span>`,
+              }),
+            );
+            tr.appendChild(
+              el('td', {
+                html: row.actorId
+                  ? `<span class="au-actor">${ic('userRound', 14)} ${esc(row.actorName || row.actorId)}</span>`
+                  : '<span class="au-actor muted">النظام</span>',
+              }),
+            );
+            tr.appendChild(el('td', { html: `<span class="au-detail">${esc(row.detail || row.target || '—')}</span>` }));
+            tr.appendChild(el('td', { html: `<span class="au-time">${esc(sinceArabic(row.at))}</span>` }));
+            body.appendChild(tr);
+          });
+          table.appendChild(body);
+          const wrapTable = el('div', { class: 'd-table-wrap' });
+          wrapTable.appendChild(table);
+          box.appendChild(wrapTable);
+
+          /* ترقيم الصفحات */
+          const pager = el('div', { class: 'd-pager' });
+          const pages = Math.ceil(data.total / state2.limit) || 1;
+          const current = Math.floor(state2.offset / state2.limit) + 1;
+          const prev = el('button', { class: 'd-btn sm ghost', html: `${ic('chevronRight', 14)} الأحدث`, disabled: current <= 1 ? 'disabled' : null });
+          prev.addEventListener('click', () => {
+            state2.offset = Math.max(0, state2.offset - state2.limit);
+            load();
+          });
+          const next = el('button', { class: 'd-btn sm ghost', html: `الأقدم ${ic('chevronLeft', 14)}`, disabled: current >= pages ? 'disabled' : null });
+          next.addEventListener('click', () => {
+            if ((state2.offset + state2.limit) >= data.total) return;
+            state2.offset += state2.limit;
+            load();
+          });
+          pager.appendChild(el('span', { class: 'muted', text: `صفحة ${current} من ${pages} · ${Number(data.total).toLocaleString('ar-EG')} حدث` }));
+          pager.appendChild(el('span', { class: 'grow' }));
+          pager.appendChild(prev);
+          pager.appendChild(next);
+          box.appendChild(pager);
+        } catch (err) {
+          box.innerHTML = '';
+          box.appendChild(el('div', { class: 'd-empty', text: err.message }));
+        }
+      };
+
+      /* أزرار الفلاتر */
+      const sevChips = [
+        ['', 'الكل'],
+        ['info', 'عادي'],
+        ['warn', 'تنبيه'],
+        ['danger', 'خطير'],
+      ];
+      sevChips.forEach(([value, label]) => {
+        const chip = el('button', { class: `chip${state2.severity === (value || null) ? ' active' : ''}`, text: label });
+        chip.addEventListener('click', () => {
+          state2.severity = value || null;
+          state2.offset = 0;
+          filters.querySelectorAll('.chip').forEach((c) => c.classList.toggle('active', c === chip));
+          load();
+        });
+        filters.appendChild(chip);
+      });
+      const actionSelect = el('select', { class: 'd-select' });
+      ACTION_OPTIONS.forEach(([value, label]) => actionSelect.appendChild(el('option', { value, text: label })));
+      actionSelect.addEventListener('change', () => {
+        state2.action = actionSelect.value || null;
+        state2.offset = 0;
+        load();
+      });
+      filters.appendChild(actionSelect);
+
+      const clearView = el('button', { class: 'd-btn sm ghost', html: `${ic('refresh', 14)} تحديث` });
+      clearView.addEventListener('click', () => load());
+      filters.appendChild(clearView);
+
+      load();
+      return wrap;
+    },
+  },
+
   /* ------------------------------ الردود التلقائية ------------------------------ */
   autoReply: {
     group: 'الأعضاء',
@@ -1691,6 +1856,74 @@ async function loadTopBoard(note, box) {
     box.appendChild(card);
   } catch (err) {
     box.innerHTML = `<div class="d-empty">تعذّر التحميل: ${esc(err.message)}</div>`;
+  }
+}
+
+/* ============================ حماية الموقع (للمالك) ============================ */
+
+async function loadSecurity(note, box) {
+  try {
+    const data = await api('/admin/security');
+    note.innerHTML = '';
+
+    const cards = el('div', { class: 'd-stats' });
+    [
+      ['shield', (data.counts?.audit || 0).toLocaleString('ar-EG'), 'حدث في السجل'],
+      ['ban', data.banned || 0, 'حساب محظور'],
+      ['eye', data.viewOnly || 0, 'مشاهدة فقط'],
+      ['warning', (data.auditBySeverity?.danger || 0) + (data.auditBySeverity?.warn || 0), 'تنبيهات وخطير'],
+    ].forEach(([icon, value, label]) => {
+      const card = el('div', { class: 'd-stat' });
+      card.appendChild(el('b', { text: String(value) }));
+      card.appendChild(el('span', { html: `${ic(icon, 15)} ${label}` }));
+      cards.appendChild(card);
+    });
+    note.appendChild(cards);
+
+    box.innerHTML = '';
+    const list = el('div', { class: 'sec-list' });
+    (data.checks || []).forEach((check) => {
+      const row = el('div', { class: `sec-row${check.ok ? '' : ' off'}` });
+      row.appendChild(el('span', { class: 'sec-ico', html: ic(check.ok ? 'badgeCheck' : 'close', 17) }));
+      const txt = el('div');
+      txt.appendChild(el('b', { text: check.label }));
+      txt.appendChild(el('span', { text: check.detail }));
+      row.appendChild(txt);
+      list.appendChild(row);
+    });
+    box.appendChild(el('h3', { class: 'sec-title', html: `${ic('shield', 17)} الحمايات المفعّلة (${(data.checks || []).length})` }));
+    box.appendChild(list);
+
+    /* نسخة احتياطية */
+    const backup = el('div', { class: 'sec-backup' });
+    backup.appendChild(el('div', { class: 'sec-backup-txt', html: `${ic('save', 17)} <div><b>نسخة احتياطية كاملة</b><span>كل السيرفرات وإعداداتها · المستويات والخبرة · العقوبات · التذاكر · سجل الأعضاء · سجل النشاط — ملف JSON واحد.</span></div>` }));
+    const dl = el('a', { class: 'd-btn primary', href: '/api/admin/backup', html: `${ic('upload', 15)} تنزيل النسخة` });
+    backup.appendChild(dl);
+    box.appendChild(backup);
+
+    /* سجل الموقع (آخر الأحداث الحسّاسة) */
+    const site = await api('/admin/audit?limit=12&scope=site');
+    if (site.items?.length) {
+      const table = el('table', { class: 'd-table' });
+      table.appendChild(el('thead', {}, '<tr><th>الحدث</th><th>من</th><th>التفاصيل</th><th>الوقت</th></tr>'));
+      const body = el('tbody');
+      site.items.forEach((row) => {
+        const tr = el('tr', { class: row.severity === 'danger' ? 'au-danger' : row.severity === 'warn' ? 'au-warn' : '' });
+        tr.appendChild(el('td', { html: `<span class="au-badge ${row.severity}">${esc(row.label)}</span>` }));
+        tr.appendChild(el('td', { html: `<span class="au-actor">${esc(row.actorName || row.actorId || 'النظام')}</span>` }));
+        tr.appendChild(el('td', { html: `<span class="au-detail">${esc(row.detail || row.target || '—')}</span>` }));
+        tr.appendChild(el('td', { html: `<span class="au-time">${esc(sinceArabic(row.at))}</span>` }));
+        body.appendChild(tr);
+      });
+      table.appendChild(body);
+      box.appendChild(el('h3', { class: 'sec-title', html: `${ic('scroll', 17)} آخر أحداث الموقع` }));
+      const wrapTable = el('div', { class: 'd-table-wrap' });
+      wrapTable.appendChild(table);
+      box.appendChild(wrapTable);
+    }
+  } catch (err) {
+    box.innerHTML = '';
+    box.appendChild(el('div', { class: 'd-empty', text: err.message }));
   }
 }
 

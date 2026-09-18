@@ -45,7 +45,15 @@ const assetStamp = (() => {
 const asset = (name) => `/${name}?v=${assetStamp}`;
 
 /** تخطيط الصفحة العام */
-function layout({ title, body, user = null, extraHead = '', bodyClass = '' }) {
+/**
+ * القالب العام — يأخذ nonce من الطلب (res.locals) ليشتغل السكربت الداخلي
+ * مع سياسة أمان المحتوى الصارمة (CSP بلا unsafe-inline).
+ * @param {object} options
+ * @param {string} [options.nonce] يُمرَّر عادة من req.res.locals.cspNonce
+ */
+function layout({ title, body, user = null, extraHead = '', bodyClass = '', nonce = '', req = null }) {
+  const resolvedNonce = nonce || req?.res?.locals?.cspNonce || '';
+  const n = resolvedNonce ? ` nonce="${resolvedNonce}"` : '';
   const SITE_NAME = config.web.siteName;
   /* صفحة اللوحة تُعرف بأي صنف يحتوي كلمة dashboard (dashboard · dashboard-readonly · dashboard-owner) */
   const isDashboardPage = String(bodyClass).split(/\s+/).includes('dashboard');
@@ -85,7 +93,7 @@ function layout({ title, body, user = null, extraHead = '', bodyClass = '' }) {
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="stylesheet" href="${asset('style.css')}">
 ${isDashboardPage ? `<link rel="stylesheet" href="${asset('dash.css')}">` : ''}
-<script>
+<script${n}>
   /* السمة: المفضّل المحفوظ ← وإلا إعداد الجهاز نفسه (ليلي/نهاري/تلقائي) */
   (function () {
     var root = document.documentElement;
@@ -138,7 +146,7 @@ ${body}
     <a href="/api/status">${icon('activity', { size: 15 })} حالة الخدمة</a>
   </nav>
 </footer>
-<script>
+<script${n}>
   (function () {
     var btn = document.getElementById('themeToggle');
     if (!btn) return;
@@ -216,7 +224,7 @@ async function requireAuth(req, res, next) {
     const entry = siteUsers.get(req.session.user.id) || {};
     return res
       .status(403)
-      .send(layout({ title: 'محظور من الموقع', body: bannedBody(req.user, entry), user: null }));
+      .send(layout({ title: 'محظور من الموقع', body: bannedBody(req.user, entry), user: null, req }));
   }
 
   /* 3) مالك الموقع: دخول كامل دائمًا (ما يتأثّر بأي شرط رول) */
@@ -240,7 +248,7 @@ async function requireAuth(req, res, next) {
   const result = await access.checkAccess(req.session, req.session.user.id);
   req.roleResult = result;
   if (!result.ok) {
-    return res.status(403).send(layout({ title: 'الوصول مقيّد', body: denialBody(req, result), user: req.user }));
+    return res.status(403).send(layout({ title: 'الوصول مقيّد', body: denialBody(req, result), user: req.user, req }));
   }
 
   req.canEdit = true;
@@ -493,7 +501,7 @@ router.get('/', requireAuth, (req, res) => {
     <a class="btn btn-ghost btn-lg" href="/api/status" target="_blank" rel="noopener">${icon('activity', { size: 18 })} حالة الخدمة</a>
   </div>`;
 
-  res.send(layout({ title: 'بوت إدارة سيرفرات ديسكورد', body, user: req.user }));
+  res.send(layout({ title: 'بوت إدارة سيرفرات ديسكورد', body, user: req.user, req }));
 });
 
 /* ---------------------------------- قائمة السيرفرات ---------------------------------- */
@@ -545,6 +553,9 @@ router.get('/dashboard', requireAuth, async (req, res) => {
          <a class="btn btn-primary" href="/auth/login">${icon('login', { size: 17 })} إعادة تسجيل الدخول</a>
        </div>`;
 
+  /* nonce لسكربت الصفحة الداخلي (مطلوب مع سياسة أمان المحتوى) */
+  const n = res.locals.cspNonce ? ` nonce="${res.locals.cspNonce}"` : '';
+
   const body = `
   <div class="page-head">
     <div>
@@ -582,7 +593,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 
   ${
     guilds.length
-      ? `<script>
+      ? `<script${n}>
            (function () {
              // «مزامنة الآن»: يحدّث بيانات السيرفرات من ديسكورد ثم يعيد تحميل الصفحة
              var syncBtn = document.getElementById('syncNowBtn');
@@ -643,7 +654,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       : ''
   }`;
 
-  res.send(layout({ title: 'السيرفرات', body, user: req.user }));
+  res.send(layout({ title: 'السيرفرات', body, user: req.user, req }));
 });
 
 /* ---------------------------------- لوحة إعداد سيرفر ---------------------------------- */
@@ -669,6 +680,7 @@ router.get('/dashboard/:guildId', requireAuth, async (req, res) => {
       title: 'إعدادات السيرفر',
       body,
       user: req.user,
+      req,
       bodyClass: `dashboard${req.canEdit ? '' : ' dashboard-readonly'}${req.isSiteOwner ? ' dashboard-owner' : ''}`,
     }),
   );

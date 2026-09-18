@@ -41,6 +41,23 @@ function hydrateGuild(row, defaults) {
 
 /** إضافة أعمدة جديدة لقواعد البيانات القديمة (آمنة: تتجاهل ما هو موجود) */
 function migrate() {
+  /* جدول سجل النشاط (يُنشأ لو ما كان — آمن للتكرار) */
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS audit_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        guild_id TEXT, actor_id TEXT, actor_name TEXT, action TEXT NOT NULL,
+        target TEXT, detail TEXT, ip_hash TEXT, severity TEXT NOT NULL DEFAULT 'info',
+        created_at INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_audit_guild ON audit_log(guild_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_log(action);
+    `);
+  } catch (err) {
+    console.error('[تنبيه] تعذّر تجهيز جدول سجل النشاط:', err.message);
+  }
+
   const wanted = [
     ['levels', 'text_xp', 'INTEGER NOT NULL DEFAULT 0'],
     ['levels', 'voice_xp', 'INTEGER NOT NULL DEFAULT 0'],
@@ -420,6 +437,72 @@ module.exports = {
 
   deleteReminder(id) {
     db.prepare('DELETE FROM reminders WHERE id = ?').run(id);
+  },
+
+  /* ------------------------------ سجل النشاط (تدقيق) ------------------------------ */
+
+  addAudit(entry = {}) {
+    const row = {
+      guildId: entry.guildId ?? null,
+      actorId: entry.actorId ? String(entry.actorId) : null,
+      actorName: entry.actorName ? String(entry.actorName).slice(0, 80) : null,
+      action: String(entry.action || 'unknown').slice(0, 60),
+      target: entry.target ? String(entry.target).slice(0, 120) : null,
+      detail: entry.detail ? String(entry.detail).slice(0, 600) : null,
+      ipHash: entry.ipHash ? String(entry.ipHash).slice(0, 32) : null,
+      severity: ['info', 'warn', 'danger'].includes(entry.severity) ? entry.severity : 'info',
+      at: Number(entry.at) || now(),
+    };
+    const info = db
+      .prepare(
+        `INSERT INTO audit_log (guild_id, actor_id, actor_name, action, target, detail, ip_hash, severity, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(row.guildId, row.actorId, row.actorName, row.action, row.target, row.detail, row.ipHash, row.severity, row.at);
+    return { id: Number(info.lastInsertRowid), ...row };
+  },
+
+  listAudit({ guildId = undefined, action = null, severity = null, limit = 50, offset = 0 } = {}) {
+    const where = [];
+    const params = [];
+    if (guildId === null) {
+      where.push('guild_id IS NULL');
+    } else if (guildId !== undefined) {
+      where.push('guild_id = ?');
+      params.push(guildId);
+    }
+    if (action) {
+      where.push('action LIKE ?');
+      params.push(`${action}%`);
+    }
+    if (severity) {
+      where.push('severity = ?');
+      params.push(severity);
+    }
+    const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    const items = db
+      .prepare(`SELECT * FROM audit_log ${clause} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`)
+      .all(...params, Math.min(500, Math.max(1, limit)), Math.max(0, offset));
+    const total = db.prepare(`SELECT COUNT(*) AS c FROM audit_log ${clause}`).get(...params).c;
+    return { items, total };
+  },
+
+  countAudit({ guildId = undefined } = {}) {
+    if (guildId === undefined) return db.prepare('SELECT COUNT(*) AS c FROM audit_log').get().c;
+    if (guildId === null) return db.prepare('SELECT COUNT(*) AS c FROM audit_log WHERE guild_id IS NULL').get().c;
+    return db.prepare('SELECT COUNT(*) AS c FROM audit_log WHERE guild_id = ?').get(guildId).c;
+  },
+
+  /**
+   * تقليم السجل: يبقي أحدث «keep» حدث فقط.
+   * ملاحظة: حدّ أدنى ١٠٠ حدث حتى لا يمسح أي نداء خاطئ السجل كامل.
+   */
+  pruneAudit(keep = 5000) {
+    const limitRows = Math.max(100, Number(keep) || 5000);
+    const info = db
+      .prepare('DELETE FROM audit_log WHERE id NOT IN (SELECT id FROM audit_log ORDER BY id DESC LIMIT ?)')
+      .run(limitRows);
+    return info.changes;
   },
 
   /* ------------------------------ لوحة التحكم ------------------------------ */

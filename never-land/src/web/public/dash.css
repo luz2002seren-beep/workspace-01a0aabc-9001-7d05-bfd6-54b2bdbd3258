@@ -640,6 +640,59 @@ img.guild-icon { background: var(--panel); border: 1px solid var(--border-soft);
    (كان الشريط يأخذ خانة من الشبكة فينزل المحتوى تحت الشاشة) */
 .d-shell > .d-readonly-note { grid-column: 1 / -1; }
 
+/* ============================ سجل النشاط (تدقيق) ============================ */
+.d-audit-head { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+.d-audit-stat {
+  display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--border-soft);
+}
+.d-audit-stat .ico { color: var(--primary); display: inline-flex; }
+.d-audit-stat b { font-size: 1.05rem; }
+.d-audit-stat > span:last-child { color: var(--muted); font-size: .8rem; }
+.d-table-wrap { overflow-x: auto; border: 1px solid var(--border-soft); border-radius: 13px; background: var(--panel); }
+.au-badge {
+  display: inline-flex; align-items: center; gap: 5px; font-size: .76rem; font-weight: 600;
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  background: rgba(88, 101, 242, .14); border: 1px solid rgba(88, 101, 242, .4); color: #b9c2ff;
+}
+.au-badge.warn { background: rgba(240, 199, 94, .14); border-color: rgba(240, 199, 94, .4); color: #f0c75e; }
+.au-badge.danger { background: rgba(237, 66, 69, .14); border-color: rgba(237, 66, 69, .45); color: #ff9b9e; }
+.au-actor { display: inline-flex; align-items: center; gap: 6px; font-size: .82rem; }
+.au-actor svg { color: var(--muted); }
+.au-detail { color: var(--muted); font-size: .82rem; line-height: 1.8; direction: rtl; unicode-bidi: plaintext; }
+.au-time { color: var(--muted); font-size: .78rem; white-space: nowrap; }
+tr.au-danger td { background: rgba(237, 66, 69, .05); }
+tr.au-warn td { background: rgba(240, 199, 94, .05); }
+.d-pager { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: .82rem; }
+.d-pager .grow { flex: 1 1 auto; }
+.d-pager .d-btn { white-space: nowrap; }
+
+/* ============================ حماية الموقع (لوحة المالك) ============================ */
+.sec-title { display: flex; align-items: center; gap: 8px; margin: 18px 0 10px; font-size: .98rem; }
+.sec-title svg { color: var(--primary); }
+.sec-list { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); }
+.sec-row {
+  display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 13px;
+  background: var(--panel); border: 1px solid rgba(59, 165, 93, .32);
+}
+.sec-row > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.sec-row b { font-size: .88rem; }
+.sec-row span { color: var(--muted); font-size: .79rem; line-height: 1.75; }
+.sec-ico { color: #6fdc96; display: inline-flex; flex: 0 0 auto; margin-top: 2px; }
+.sec-row.off { border-color: var(--border-soft); }
+.sec-row.off .sec-ico { color: var(--muted); }
+.sec-backup {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 16px;
+  padding: 15px; border-radius: 14px;
+  background: linear-gradient(135deg, rgba(88, 101, 242, .14), rgba(88, 101, 242, .05));
+  border: 1px solid rgba(88, 101, 242, .4);
+}
+.sec-backup-txt { display: flex; align-items: flex-start; gap: 10px; flex: 1 1 260px; }
+.sec-backup-txt svg { color: var(--primary); flex: 0 0 auto; margin-top: 3px; }
+.sec-backup-txt div { display: flex; flex-direction: column; gap: 4px; }
+.sec-backup-txt b { font-size: .92rem; }
+.sec-backup-txt span { color: var(--muted); font-size: .8rem; line-height: 1.8; }
+
 /* ============================ الردود التلقائية ============================ */
 .ar-rule {
   border: 1px solid var(--border-soft); border-radius: 14px; padding: 14px;

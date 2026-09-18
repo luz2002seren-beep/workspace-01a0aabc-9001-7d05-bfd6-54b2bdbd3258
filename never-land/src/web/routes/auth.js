@@ -13,6 +13,7 @@
 const express = require('express');
 const config = require('../../config');
 const siteUsers = require('../siteUsers');
+const audit = require('../../lib/audit');
 
 const router = express.Router();
 
@@ -85,6 +86,13 @@ router.get('/callback', async (req, res) => {
     /* الحظر: لا نفتح جلسة أصلًا لمن حظره المالك */
     if (!siteUsers.isOwner(user.id) && siteUsers.isBanned(user.id)) {
       const entry = siteUsers.get(user.id) || {};
+      audit.record(req, {
+        action: 'site.banned',
+        target: user.id,
+        detail: `محاولة دخول بحساب محظور${entry.note ? ` — السبب: ${entry.note}` : ''}`,
+        severity: 'danger',
+        actor: { id: user.id, name: user.global_name || user.username },
+      });
       req.session.destroy(() => {});
       return res.status(403).send(
         `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
@@ -102,12 +110,20 @@ router.get('/callback', async (req, res) => {
       );
     }
 
-    req.session.user = {
-      id: user.id,
-      username: user.username,
-      avatar: user.avatar,
-      globalName: user.global_name || user.username,
+    /* حماية: نجدد معرّف الجلسة بعد الدخول (يمنع تثبيت الجلسة / session fixation) */
+    const sessionPayload = {
+      user: {
+        id: user.id,
+        username: user.username,
+        avatar: user.avatar,
+        globalName: user.global_name || user.username,
+      },
+      returnTo: req.session.returnTo,
     };
+    await new Promise((resolve) => req.session.regenerate(() => resolve()));
+
+    req.session.user = sessionPayload.user;
+    if (sessionPayload.returnTo) req.session.returnTo = sessionPayload.returnTo;
     req.session.guilds = manageable;
     req.session.accessToken = token.access_token;
     req.session.roleCheck = null; // فحص جديد للرول بعد كل دخول
@@ -118,9 +134,16 @@ router.get('/callback', async (req, res) => {
       { guilds: manageable.length, ip: req.ip, userAgent: req.get('user-agent') },
     );
 
+    audit.record(req, {
+      action: 'login',
+      target: user.id,
+      detail: `دخول بحساب ${user.global_name || user.username} · سيرفراته: ${manageable.length}`,
+    });
+
     const back = req.session.returnTo && req.session.returnTo.startsWith('/') ? req.session.returnTo : '/dashboard';
     delete req.session.returnTo;
-    return res.redirect(back);
+    /* نحفظ الجلسة قبل التحويل حتى تكون جاهزة فورًا */
+    return req.session.save(() => res.redirect(back));
   } catch (err) {
     console.error('خطأ OAuth:', err);
     return res.status(500).send('حدث خطأ أثناء تسجيل الدخول. جرّب مرة أخرى.');
@@ -129,6 +152,7 @@ router.get('/callback', async (req, res) => {
 
 /** خروج */
 router.get('/logout', (req, res) => {
+  audit.record(req, { action: 'logout', target: req.session?.user?.id || null });
   req.session.destroy(() => res.redirect('/'));
 });
 

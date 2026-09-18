@@ -49,7 +49,13 @@ function client(base, sid) {
     async request(method, urlPath, body) {
       const res = await fetch(base + urlPath, {
         method,
-        headers: { 'Content-Type': 'application/json', ...(jar ? { Cookie: jar } : {}) },
+        /* رأس الموقع + الأصل: نفس ما يرسله المتصفح من لوحة التحكم (طبقة منع CSRF) */
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'neverland-dashboard',
+          Origin: base,
+          ...(jar ? { Cookie: jar } : {}),
+        },
         body: body ? JSON.stringify(body) : undefined,
         redirect: 'manual',
       });

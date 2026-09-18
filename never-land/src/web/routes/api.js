@@ -21,6 +21,8 @@ const access = require('../access');
 const config = require('../../config');
 const db = require('../../database');
 const leveling = require('../../systems/leveling');
+const securityLib = require('../../lib/security');
+const audit = require('../../lib/audit');
 const siteUsers = require('../siteUsers');
 const periods = require('../../lib/periods');
 const { mergeSettings } = require('../../database/defaults');
@@ -208,14 +210,54 @@ router.post('/guilds/:guildId/settings', async (req, res) => {
   const { guildId } = req.params;
   if (!(await canAccess(req, guildId))) return res.status(403).json({ error: 'forbidden' });
 
-  const patch = req.body;
-  if (!patch || typeof patch !== 'object') return res.status(400).json({ error: 'bad_request', message: 'لا توجد بيانات للحفظ' });
+  const body = req.body;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return res.status(400).json({ error: 'bad_request', message: 'لا توجد بيانات للحفظ' });
+  }
+
+  /* حماية: شيل أي مفتاح خطير (__proto__/constructor) وقصر المفاتيح على المعروف فقط */
+  const { patch, rejected } = securityLib.sanitizeSettingsPatch(body, config.defaults);
+  if (rejected.length) {
+    audit.guild(req, guildId, {
+      action: 'settings.rejected',
+      target: 'settings',
+      detail: `مفاتيح غير معروفة انرفضت: ${rejected.slice(0, 5).join(' · ')}`,
+      severity: 'warn',
+    });
+  }
+  if (!Object.keys(patch).length) return res.status(400).json({ error: 'bad_request', message: 'لا توجد إعدادات صالحة للحفظ', rejected });
 
   const guild = db.getGuild(guildId);
   const merged = mergeSettings(guild.settings, patch);
   db.updateGuildSettings(guildId, merged);
 
+  /* سجل النشاط: من غيّر شو */
+  audit.guild(req, guildId, {
+    action: 'settings.save',
+    target: Object.keys(patch).join('، ').slice(0, 120),
+    detail: audit.describeChange(patch),
+  });
+
   return res.json({ ok: true, settings: db.getGuild(guildId).settings, savedAt: Date.now() });
+});
+
+/* ------------------------------- سجل النشاط (للقراءة) ------------------------------- */
+router.get('/guilds/:guildId/audit', async (req, res) => {
+  const { guildId } = req.params;
+  if (!(await canAccess(req, guildId))) return res.status(403).json({ error: 'forbidden' });
+
+  const limit = Math.min(200, Math.max(5, Number(req.query.limit) || 50));
+  const offset = Math.max(0, Number(req.query.offset) || 0);
+  const action = req.query.action ? String(req.query.action).slice(0, 40) : null;
+  const severity = ['info', 'warn', 'danger'].includes(String(req.query.severity)) ? String(req.query.severity) : null;
+
+  const result = audit.list({ guildId, action, severity, limit, offset });
+  return res.json({
+    ...result,
+    stats: audit.stats({ guildId }),
+    limit,
+    offset,
+  });
 });
 
 /* ------------------------------------ السجلات والتذاكر والمستويات ------------------------------------ */

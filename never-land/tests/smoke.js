@@ -1538,6 +1538,87 @@ console.log('[نجاح] كل الاختبارات نجحت!');
   console.log('  [تم] الردود التلقائية: كلمة ← رد · كل الرومات · متغيّرات · كولداون · أمر /autoreply · قسم كامل في الموقع');
   }
 
+ console.log('[اختبار] 40: حفظ البيانات (سجل النشاط) + حماية الموقع القوية');
+  {
+    const fs40 = require('node:fs');
+    const path40 = require('node:path');
+    const root40 = path40.join(__dirname, '..');
+    const read40 = (rel) => fs40.readFileSync(path40.join(root40, rel), 'utf8');
+
+    // ١) طبقة الحماية موجودة وكل ما فيها مطلوب
+    const sec40 = read40('src/lib/security.js');
+    for (const needle of ['makeNonce', 'securityHeaders', 'rateLimit', 'csrfGuard', 'clientIp', 'hashIp', 'stripDangerousKeys', 'sanitizeSettingsPatch', 'FORBIDDEN_KEYS', 'frame-ancestors', 'X-Frame-Options', 'nosniff', 'Permissions-Policy', 'isApiRequest']) {
+      assert.ok(sec40.includes(needle), `طبقة الحماية ينقصها ${needle}`);
+    }
+
+    // ٢) سجل النشاط: مخزّن في القاعدة + أسماء عربية للأحداث
+    const audit40 = read40('src/lib/audit.js');
+    for (const needle of ["require('../database')", 'ACTION_LABELS', 'describeChange', 'ip_hash', "severity: 'danger'"]) {
+      assert.ok(audit40.includes(needle), `سجل النشاط ينقصه ${needle}`);
+    }
+    const dbSqlite40 = read40('src/database/sqlite.js');
+    const dbJson40 = read40('src/database/json.js');
+    const schema40 = read40('src/database/schema.sql');
+    for (const [name, src] of [['sqlite', dbSqlite40], ['json', dbJson40]]) {
+      for (const fn of ['addAudit', 'listAudit', 'countAudit', 'pruneAudit']) {
+        assert.ok(src.includes(`${fn}(`), `مخزن ${name} ينقصه ${fn}`);
+      }
+    }
+    assert.ok(schema40.includes('CREATE TABLE IF NOT EXISTS audit_log'), 'جدول سجل النشاط غير موجود');
+    for (const col of ['guild_id', 'actor_id', 'actor_name', 'action', 'target', 'detail', 'ip_hash', 'severity', 'created_at']) {
+      assert.ok(schema40.includes(col), `جدول السجل ينقصه العمود ${col}`);
+    }
+
+    // ٣) الخادم: الحمايات موصولة فعلًا
+    const server40 = read40('src/web/server.js');
+    for (const needle of ['securityHeaders(', 'csrfGuard(', 'rateLimit(', 'pruneAudit', '(5000)', "disable('x-powered-by')", '256kb']) {
+      assert.ok(server40.includes(needle), `الخادم ما وصّل ${needle}`);
+    }
+    assert.ok(!/res\.status\(500\)\.json\(\{ error: 'server_error', message: err\.message/.test(server40), 'معالج الأخطاء يسرّب تفاصيل الخطأ');
+    assert.ok(/setInterval\([\s\S]{0,120}pruneAudit/.test(server40), 'تقليم السجل غير مجدول دوريًا');
+
+    // ٤) القالب: السكربت الداخلي بلا nonce = صفحة معطّلة مع CSP
+    const pages40 = read40('src/web/routes/pages.js');
+    assert.ok(pages40.includes("res?.locals?.cspNonce"), 'القالب ما يقرأ nonce من الطلب');
+    const bareScripts40 = [...pages40.matchAll(/<script>/g)].length;
+    assert.strictEqual(bareScripts40, 0, `يوجد ${bareScripts40} سكربت داخلي بلا nonce (لن يعمل مع CSP)`);
+
+    // ٥) الواجهة: رأس الطلب (طبقة CSRF ثانية) + قسمان جديدان
+    const app40 = read40('src/web/public/app.js');
+    assert.ok(app40.includes("'X-Requested-With': 'neverland-dashboard'"), 'الواجهة ما ترسل رأس الطلب (CSRF)');
+    for (const needle of ["audit: 'scroll'", "security: 'shield'", "label: 'سجل النشاط'", "label: 'حماية الموقع'", 'loadSecurity', '/audit?', '/admin/security', '/admin/backup']) {
+      assert.ok(app40.includes(needle), `الواجهة ينقصها ${needle}`);
+    }
+    const dash40 = read40('src/web/public/dash.css');
+    for (const needle of ['.au-badge', '.d-audit-stat', '.sec-row', '.sec-backup', '.d-table-wrap']) {
+      assert.ok(dash40.includes(needle), `أنماط السجل/الحماية ينقصها ${needle}`);
+    }
+
+    // ٦) المسارات: سجل السيرفر + سجل الموقع + النسخة الاحتياطية + حالة الحمايات
+    const api40 = read40('src/web/routes/api.js');
+    for (const needle of ["'/guilds/:guildId/audit'", 'sanitizeSettingsPatch', "action: 'settings.save'", "action: 'settings.rejected'"]) {
+      assert.ok(api40.includes(needle), `مسارات الـAPI ينقصها ${needle}`);
+    }
+    const admin40 = read40('src/web/routes/admin.js');
+    for (const needle of ["router.get('/audit'", "router.get('/backup'", "router.get('/security'", "action: 'member.kick'"]) {
+      assert.ok(admin40.includes(needle), `لوحة المالك ينقصها ${needle}`);
+    }
+    const auth40 = read40('src/web/routes/auth.js');
+    for (const needle of ['session.regenerate', "action: 'login'", "action: 'logout'", "action: 'site.banned'", 'session.save']) {
+      assert.ok(auth40.includes(needle), `مسار الدخول ينقصه ${needle}`);
+    }
+
+    // ٧) الاختبار العملي الكامل (١٠ مجموعات: رؤوس · CSRF · تلويث · قصر الإعدادات · صلاحيات · سجل · نسخة · حمايات · حدّ طلبات · تقليم)
+    const { execFileSync } = require('node:child_process');
+    const out40 = execFileSync('node', [path40.join(root40, 'security-test.js')], { cwd: root40, encoding: 'utf8' });
+    for (const needle of ['١) رؤوس الأمان', '٢) منع CSRF', '٣) تلويث النموذج', '٤) قصر الإعدادات', '٥) الصلاحيات', '٦) سجل النشاط', '٧) النسخة الاحتياطية', '٨) حالة الحمايات', '٩) حدّ الطلبات', '١٠) التقليم']) {
+      assert.ok(out40.includes(needle), `اختبار الحماية ينقصه: ${needle}`);
+    }
+    assert.ok(out40.includes('🎉'), 'اختبار الحماية ما نجح');
+
+    console.log('  [تم] سجل النشاط محفوظ دائمًا (من عمل شو ومتى) · حماية: CSP · CSRF · حدّ طلبات · بلا تلويث · نسخة احتياطية');
+  }
+
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');
 
   process.exit(0);

@@ -10,6 +10,9 @@
  *   POST   /api/admin/members/:id/status  تغيير الحالة: active | viewonly | banned
  *   POST   /api/admin/members/:id/kick    قطع جلساته (طرد فوري من الموقع)
  *   DELETE /api/admin/members/:id         حذف الحساب من السجل
+ *   GET    /api/admin/audit               سجل نشاط الموقع كامل (من عمل شو ومتى)
+ *   GET    /api/admin/backup              نسخة احتياطية كاملة (JSON)
+ *   GET    /api/admin/security            حالة الحمايات المفعّلة
  *
  * كل نقطة محميّة: أي حساب غير المالك (أو المشرفين المضافين) يحصل على 403.
  * -------------------------------------------------------------
@@ -19,6 +22,8 @@ const express = require('express');
 const config = require('../../config');
 const siteUsers = require('../siteUsers');
 const { destroyUserSessions, countUserSessions } = require('../server');
+const audit = require('../../lib/audit');
+const db = require('../../database');
 
 const router = express.Router();
 
@@ -104,6 +109,9 @@ router.post('/members/:id/status', async (req, res) => {
       owner_protected: 'ما يمكن تغيير حالة حساب المالك.',
       user_not_found: 'هذا الحساب غير موجود في السجل.',
     };
+    if (result.error === 'owner_protected') {
+      audit.record(req, { action: 'member.protected', target: id, detail: 'محاولة تغيير حالة حساب المالك — مرفوضة', severity: 'danger' });
+    }
     return res.status(400).json({ error: result.error, message: messages[result.error] || 'تعذّر التغيير.' });
   }
 
@@ -113,6 +121,14 @@ router.post('/members/:id/status', async (req, res) => {
    * زائرًا مجهولًا وشاهد الصفحات العامة.
    * أما «قطع الجلسة» فهو زر منفصل يطرده من الموقع (يحتاج يسجّل دخول جديد).
    */
+  const actionMap = { banned: 'member.ban', viewonly: 'member.viewonly', active: 'member.active' };
+  audit.record(req, {
+    action: actionMap[status] || 'member.status',
+    target: id,
+    detail: `${siteUsers.get(id)?.globalName || siteUsers.get(id)?.username || id}${reason ? ` — السبب: ${reason}` : ''}`,
+    severity: status === 'banned' ? 'danger' : 'warn',
+  });
+
   return res.json({
     ok: true,
     user: siteUsers.get(id),
@@ -131,6 +147,7 @@ router.post('/members/:id/kick', async (req, res) => {
   const { id } = req.params;
   const status = siteUsers.statusOf(id);
   const kicked = await destroyUserSessions(id);
+  audit.record(req, { action: 'member.kick', target: id, detail: `قطع ${kicked} جلسة`, severity: 'warn' });
   return res.json({
     ok: true,
     kicked,
@@ -141,9 +158,111 @@ router.post('/members/:id/kick', async (req, res) => {
 
 /** حذف الحساب من السجل */
 router.delete('/members/:id', (req, res) => {
+  const target = siteUsers.get(req.params.id);
   const result = siteUsers.forget(req.params.id);
   if (!result.ok) return res.status(400).json({ error: result.error, message: 'تعذّر حذف الحساب.' });
+  audit.record(req, {
+    action: 'member.forget',
+    target: req.params.id,
+    detail: `حذف ${target?.globalName || target?.username || req.params.id} من السجل`,
+    severity: 'warn',
+  });
   return res.json({ ok: true, message: 'تم حذف الحساب من سجل الموقع.' });
+});
+
+/* ------------------------------ سجل نشاط الموقع ------------------------------ */
+
+/** كل أحداث الموقع (تسجيل الدخول · الحظر · الإعدادات…) — للمالك فقط */
+router.get('/audit', (req, res) => {
+  const limit = Math.min(200, Math.max(5, Number(req.query.limit) || 50));
+  const offset = Math.max(0, Number(req.query.offset) || 0);
+  const action = req.query.action ? String(req.query.action).slice(0, 40) : null;
+  const severity = ['info', 'warn', 'danger'].includes(String(req.query.severity)) ? String(req.query.severity) : null;
+  const scope = String(req.query.scope || 'all'); // all | site | guild
+
+  const guildId = scope === 'site' ? null : scope === 'guild' ? String(req.query.guildId || '') : undefined;
+  const result = audit.list({ guildId, action, severity, limit, offset, withIp: true });
+
+  return res.json({
+    ...result,
+    stats: audit.stats(),
+    actions: Object.entries(audit.ACTION_LABELS).map(([key, label]) => ({ key, label })),
+    limit,
+    offset,
+  });
+});
+
+/* ------------------------------ نسخة احتياطية ------------------------------ */
+
+/**
+ * تنزيل كل بيانات الموقع كملف JSON واحد:
+ * السيرفرات وإعداداتها · المستويات والخبرة · العقوبات · التذاكر · سجل الأعضاء · سجل النشاط
+ * (للمالك فقط — لا يحتوي أي توكن أو مفتاح سري)
+ */
+router.get('/backup', (req, res) => {
+  const guilds = db.getAllGuilds().map((guild) => ({
+    id: guild.id,
+    settings: guild.settings,
+    stats: db.getStats(guild.id),
+    levels: db.getLeaderboard(guild.id, 5000, 0),
+    cases: db.listCases(guild.id, { limit: 5000, offset: 0 }).items,
+    tickets: db.listTickets(guild.id, { limit: 5000, offset: 0 }).items,
+  }));
+
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    site: config.web.siteName,
+    driver: config.database.driver,
+    guilds,
+    siteUsers: siteUsers.list(),
+    audit: audit.list({ limit: 500, withIp: true }).items,
+    counts: {
+      guilds: guilds.length,
+      siteUsers: siteUsers.count(),
+      audit: db.countAudit?.() ?? 0,
+    },
+  };
+
+  audit.record(req, { action: 'backup.export', detail: `نسخة احتياطية (${guilds.length} سيرفر)`, severity: 'warn' });
+
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="never-land-backup-${stamp}.json"`);
+  return res.send(JSON.stringify(payload, null, 2));
+});
+
+/* ------------------------------ حالة الحمايات ------------------------------ */
+
+/** قائمة الحمايات المفعّلة مع أرقام حقيقية — تُعرض للمالك في اللوحة */
+router.get('/security', (req, res) => {
+  const security = require('../../lib/security');
+  return res.json({
+    ok: true,
+    checks: [
+      { key: 'headers', label: 'رؤوس أمان على كل صفحة', ok: true, detail: 'CSP بلا unsafe-inline · منع التأطير · nosniff · HSTS' },
+      { key: 'csrf', label: 'منع الطلبات من مواقع ثانية', ok: true, detail: 'فحص Origin/Referer + رأس خاص + كوكي SameSite=Lax' },
+      { key: 'rate', label: 'حدّ الطلبات لكل جهاز', ok: true, detail: '٣٠٠/دقيقة عام · ٩٠/دقيقة للكتابة · ٣٠/دقيقة للدخول' },
+      { key: 'proto', label: 'حماية من تلويث النموذج', ok: true, detail: 'المفاتيح __proto__ و constructor مرفوضة قبل الحفظ' },
+      { key: 'whitelist', label: 'قصر الإعدادات على المعروف', ok: true, detail: 'أي مفتاح غير معروف يُرفض ويُسجّل' },
+      { key: 'session', label: 'تجديد الجلسة عند الدخول', ok: true, detail: 'يمنع تثبيت الجلسة (session fixation)' },
+      { key: 'errors', label: 'عدم تسريب تفاصيل الأخطاء', ok: true, detail: 'أخطاء الخادم ترجع رسالة عامة فقط' },
+      { key: 'audit', label: 'سجل نشاط كامل', ok: true, detail: `آخر ${db.countAudit?.() ?? 0} حدث محفوظ` },
+      { key: 'cookie', label: 'كوكي الجلسة محمي', ok: true, detail: 'httpOnly + SameSite=Lax + Secure على https' },
+      { key: 'secrets', label: 'بلا أسرار في الواجهة', ok: true, detail: 'التوكن والمفاتيح لا تُرسل للمتصفح أبدًا' },
+    ],
+    counts: {
+      audit: db.countAudit?.() ?? 0,
+      siteUsers: siteUsers.count(),
+      sessions: siteUsers.list().reduce((sum, m) => sum + (m.visits || 0), 0),
+    },
+    banned: siteUsers.list().filter((m) => m.status === 'banned').length,
+    viewOnly: siteUsers.list().filter((m) => m.status === 'viewonly').length,
+    https: security.isHttps(config),
+    auditBySeverity: {
+      danger: db.listAudit?.({ severity: 'danger', limit: 1 })?.total ?? 0,
+      warn: db.listAudit?.({ severity: 'warn', limit: 1 })?.total ?? 0,
+    },
+  });
 });
 
 module.exports = router;

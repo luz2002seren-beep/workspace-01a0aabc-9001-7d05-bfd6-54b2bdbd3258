@@ -18,6 +18,8 @@ const session = require('express-session');
 
 const config = require('../config');
 const db = require('../database');
+const security = require('../lib/security');
+const audit = require('../lib/audit');
 
 let server = null;
 /** مرجع مخزن الجلسات (يُستخدم لقطع جلسات عضو عند الحظر/الطرد) */
@@ -61,9 +63,45 @@ async function countUserSessions(userId) {
 function createApp() {
   const app = express();
 
+  app.disable('x-powered-by');
   app.set('trust proxy', 1);
-  app.use(express.json({ limit: '1mb' }));
-  app.use(express.urlencoded({ extended: true }));
+
+  /* ------------------------------ دفاعات الموقع ------------------------------ */
+  // ١) رؤوس أمان على كل رد (CSP · منع التأطير · HSTS · nosniff…)
+  app.use(security.securityHeaders(config));
+
+  // ٢) رفض الطلبات الغريبة الحجم قبل ما توصل للمعالجة
+  app.use(express.json({ limit: '256kb' }));
+  app.use(express.urlencoded({ extended: false, limit: '64kb' }));
+
+  // ٣) منع الطلبات من مواقع ثانية (CSRF) — طبقة ثانية مع SameSite=Lax
+  app.use(security.csrfGuard());
+
+  // ٤) حد عام لكل IP: ٣٠٠ طلب في الدقيقة للتصفّح العادي
+  app.use(
+    security.rateLimit({
+      windowMs: 60_000,
+      max: 300,
+      skip: (req) => req.path === '/healthz' || req.path.startsWith('/assets'),
+    }),
+  );
+
+  // ٥) حد أقسى على كتابة الواجهة البرمجية: ٩٠ طلبًا في الدقيقة
+  app.use(
+    '/api',
+    security.rateLimit({
+      windowMs: 60_000,
+      max: 90,
+      keyFn: (req) => `api:${security.clientIp(req)}`,
+      skip: (req) => ['GET', 'HEAD', 'OPTIONS'].includes(req.method),
+    }),
+  );
+
+  // ٦) حدّ خاص لمسارات الدخول (منع التخمين والقصف)
+  app.use(
+    '/auth',
+    security.rateLimit({ windowMs: 60_000, max: 30, keyFn: (req) => `auth:${security.clientIp(req)}` }),
+  );
 
   // جلسات محفوظة على القرص (تبقى بعد إعادة التشغيل) — داخل نفس مجلد قاعدة البيانات/الـVolume
   const { FileSessionStore } = require('./sessionStore');
@@ -126,6 +164,22 @@ function createApp() {
     });
   });
 
+  /* سجل النشاط: تقليم دوري حتى لا يكبر بلا حد (آخر ٥٠٠٠ حدث) */
+  try {
+    const removed = db.pruneAudit?.(5000) || 0;
+    if (removed) console.log(`[حماية] تقليم سجل النشاط: ${removed} حدث قديم.`);
+    const timer = setInterval(() => {
+      try {
+        db.pruneAudit?.(5000);
+      } catch {
+        /* تجاهل */
+      }
+    }, 6 * 60 * 60 * 1000);
+    timer.unref?.();
+  } catch (err) {
+    console.error('[تنبيه] تعذّر تجهيز سجل النشاط:', err.message);
+  }
+
   // بيانات تجريبية عند تفعيل وضع المعاينة
   if (config.web.demoData) {
     require('./demo').seed();
@@ -168,14 +222,22 @@ function createApp() {
         <a class="btn btn-ghost" href="/dashboard">لوحة التحكم</a>
       </div>
     </section>`;
-    res.status(404).send(layout({ title: 'صفحة غير موجودة', body }));
+    res.status(404).send(layout({ title: 'صفحة غير موجودة', body, req }));
   });
 
   // معالج الأخطاء
   app.use((err, req, res, _next) => {
   console.error('[خطأ] خطأ في لوحة التحكم:', err);
-    if (req.path.startsWith('/api/')) return res.status(500).json({ error: 'server_error', message: err.message });
-    return res.status(500).send('خطأ داخلي في الخادم');
+    /* أخطاء الطلب (4xx) نوضّحها للمستخدم · أخطاء الخادم (5xx) ما نسرّب تفاصيلها */
+    const status = Number(err.status || err.statusCode) || 500;
+    if (req.path.startsWith('/api/')) {
+      if (status >= 500) {
+        audit.record(req, { action: 'security.blocked', detail: `خطأ خادم في ${req.method} ${req.path}`, severity: 'warn' });
+        return res.status(500).json({ error: 'server_error', message: 'صار خطأ داخلي — جرّب مرة ثانية.' });
+      }
+      return res.status(status).json({ error: err.code || 'request_error', message: err.message });
+    }
+    return res.status(status >= 500 ? 500 : status).send(status >= 500 ? 'خطأ داخلي في الخادم' : err.message);
   });
 
   return app;

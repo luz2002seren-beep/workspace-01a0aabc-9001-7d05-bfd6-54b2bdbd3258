@@ -30,7 +30,8 @@ const emptyStore = () => ({
   xpPeriods: {},
   stats: {},
   reminders: [],
-  counters: { cases: 0, tickets: 0, reminders: 0 },
+  audit: [],       // سجل النشاط (تدقيق) — آخر ٥٠٠٠ حدث
+  counters: { cases: 0, tickets: 0, reminders: 0, audit: 0 },
 });
 
 /** كتابة مؤجّلة (debounced) لتقليل عمليات القرص */
@@ -435,6 +436,57 @@ module.exports = {
     const index = store.reminders.findIndex((r) => r.id === Number(id));
     if (index > -1) store.reminders.splice(index, 1);
     scheduleSave();
+  },
+
+  /* ------------------------------ سجل النشاط (تدقيق) ------------------------------ */
+
+  addAudit(entry = {}) {
+    const row = {
+      id: (store.counters.audit = (store.counters.audit || 0) + 1),
+      guildId: entry.guildId ?? null,
+      actorId: entry.actorId ? String(entry.actorId) : null,
+      actorName: entry.actorName ? String(entry.actorName).slice(0, 80) : null,
+      action: String(entry.action || 'unknown').slice(0, 60),
+      target: entry.target ? String(entry.target).slice(0, 120) : null,
+      detail: entry.detail ? String(entry.detail).slice(0, 600) : null,
+      ipHash: entry.ipHash ? String(entry.ipHash).slice(0, 32) : null,
+      severity: ['info', 'warn', 'danger'].includes(entry.severity) ? entry.severity : 'info',
+      at: Number(entry.at) || now(),
+    };
+    store.audit.push(row);
+    if (store.audit.length > 5000) store.audit.splice(0, store.audit.length - 5000);
+    scheduleSave();
+    return row;
+  },
+
+  listAudit({ guildId = undefined, action = null, severity = null, limit = 50, offset = 0 } = {}) {
+    let rows = store.audit;
+    if (guildId === null) rows = rows.filter((r) => r.guildId === null);
+    else if (guildId !== undefined) rows = rows.filter((r) => r.guildId === guildId);
+    if (action) rows = rows.filter((r) => String(r.action).startsWith(action));
+    if (severity) rows = rows.filter((r) => r.severity === severity);
+    const sorted = [...rows].sort((a, b) => b.at - a.at || b.id - a.id);
+    return {
+      items: sorted.slice(Math.max(0, offset), Math.max(0, offset) + Math.min(500, Math.max(1, limit))),
+      total: sorted.length,
+    };
+  },
+
+  countAudit({ guildId = undefined } = {}) {
+    if (guildId === undefined) return store.audit.length;
+    if (guildId === null) return store.audit.filter((r) => r.guildId === null).length;
+    return store.audit.filter((r) => r.guildId === guildId).length;
+  },
+
+  /** تقليم السجل: يبقي أحدث «keep» حدث فقط (حدّ أدنى ١٠٠). */
+  pruneAudit(keep = 5000) {
+    const limitRows = Math.max(100, Number(keep) || 5000);
+    const removed = Math.max(0, store.audit.length - limitRows);
+    if (removed) {
+      store.audit.splice(0, removed);
+      scheduleSave();
+    }
+    return removed;
   },
 
   /* ------------------------------ لوحة التحكم ------------------------------ */

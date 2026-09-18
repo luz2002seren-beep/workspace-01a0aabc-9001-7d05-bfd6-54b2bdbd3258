@@ -110,3 +110,21 @@ CREATE TABLE IF NOT EXISTS reminders (
   remind_at  INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_reminders_time ON reminders (remind_at);
+
+-- ============================ سجل النشاط (تدقيق) ============================
+-- كل حدث مهم يُسجَّل هنا: من عمل شو ومتى ومن أي جهاز
+CREATE TABLE IF NOT EXISTS audit_log (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  guild_id      TEXT,              -- NULL = حدث على مستوى الموقع كامل
+  actor_id      TEXT,              -- من عمل الحدث (Discord ID)
+  actor_name    TEXT,
+  action        TEXT NOT NULL,     -- login · logout · settings.save · member.ban …
+  target        TEXT,              -- الهدف (عضو/سيرفر/إعداد)
+  detail        TEXT,              -- وصف مختصر (JSON أو نص)
+  ip_hash       TEXT,              -- بصمة الجهاز (مُجزّأة — بلا عنوان صريح)
+  severity      TEXT NOT NULL DEFAULT 'info',  -- info | warn | danger
+  created_at    INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_audit_guild   ON audit_log(guild_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_action  ON audit_log(action);
