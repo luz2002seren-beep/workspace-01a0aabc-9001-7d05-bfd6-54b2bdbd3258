@@ -50,8 +50,25 @@ const AR_TRIGGERS = {
   timeout: ['اسكت', 'كتم'],
   warn: ['تحذير', 'انذار'],
   purge: ['مسح', 'نظف'],
-  lock: ['اقفل', 'سكر'],
+  lock: ['قفل', 'اقفل', 'سكر', 'قفلو', 'فتح', 'افتح'],
   slowmode: ['بطيء'],
+};
+
+/**
+ * اختصار ← الأمر الفرعي المقصود.
+ *   «قفل» / «اقفل» / «سكر»  → lock channel  (يقفل الروم اللي تكتب فيه)
+ *   «فتح» / «افتح»          → lock unlock   (يفتح الروم)
+ * فالعضو يكتب كلمة وحدة بلا أي رمز وبلا خيارات، والأمر يتصرّف صح.
+ */
+const SUB_TRIGGERS = {
+  lock: {
+    قفل: 'channel',
+    اقفل: 'channel',
+    سكر: 'channel',
+    قفلو: 'channel',
+    فتح: 'unlock',
+    افتح: 'unlock',
+  },
 };
 
 /** قواعد الأمر (خيارات تعديل الأمر): رومات · رتب · أنواع الردود */
@@ -556,6 +573,12 @@ async function handleMessage(client, message) {
     sub = args[0].toLowerCase();
     args = args.slice(1);
   }
+  /* ولا كتب أمرًا فرعيًا؟ نستنتجه من نفس الاختصار: «قفل» ← channel · «فتح» ← unlock */
+  if (!sub && subNames.length) {
+    const used = aliasKey(parts.slice(0, usedWords).join(' '));
+    const mapped = SUB_TRIGGERS[name]?.[used];
+    if (mapped && subNames.includes(mapped)) sub = mapped;
+  }
   args._subName = sub;
 
   /*
@@ -965,6 +988,7 @@ function setCommandEnabled(guildId, commandName, enabled) {
 module.exports = {
   PREFIX_KEY,
   aliasKey,
+  SUB_TRIGGERS,
   prettyAlias,
   AR_TRIGGERS,
   RULE_LISTS,

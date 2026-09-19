@@ -1866,7 +1866,7 @@ console.log('[نجاح] كل الاختبارات نجحت!');
 
     // ١) الاختصارات بأي لغة (Unicode) — البنية
     const t45 = read45('src/systems/textCommands.js');
-    for (const needle of ['AR_TRIGGERS', 'aliasKey', '\\p{L}', 'فك الحظر', 'حظر', 'توب']) {
+    for (const needle of ['AR_TRIGGERS', 'aliasKey', 'SUB_TRIGGERS', '\\p{L}', 'فك الحظر', 'حظر', 'توب', 'قفل', 'فتح']) {
       assert.ok(t45.includes(needle), `نظام الاختصارات ينقصه ${needle}`);
     }
 
@@ -1879,7 +1879,7 @@ console.log('[نجاح] كل الاختبارات نجحت!');
     // ٣) المسارات واللوحة
     assert.ok(read45('src/web/routes/api.js').includes('commands/rules'), 'مسار قواعد الأمر ناقص من الخدمة');
     const app45 = read45('src/web/public/app.js');
-    for (const needle of ['commands/rules', 'cmd-rules', 'قواعد الأمر', 'حذف الرد بعد ٥ ثوانٍ', 'اختصار بأي لغة', 'الاختصارات بأي لغة']) {
+    for (const needle of ['commands/rules', 'cmd-rules', 'قواعد الأمر', 'حذف الرد بعد ٥ ثوانٍ', 'اختصار بأي لغة', 'الاختصارات بأي لغة', 'قفل الروم بكلمة وحدة']) {
       assert.ok(app45.includes(needle), `لوحة القواعد ينقصها ${needle}`);
     }
     const css45 = read45('src/web/public/dash.css');
@@ -1891,7 +1891,7 @@ console.log('[نجاح] كل الاختبارات نجحت!');
     // ٤) الاختبار العملي: ١٠ مجموعات + مجموعة القواعد الجديدة
     const { execFileSync } = require('node:child_process');
     const out45 = execFileSync('node', [path45.join(root45, 'text-commands-test.js')], { cwd: root45, encoding: 'utf8' });
-    for (const needle of ['٤) الاختصارات بأي لغة', '٤ب) قواعد الأمر', '١٠) التصويت']) {
+    for (const needle of ['٤) الاختصارات بأي لغة', '٤ب) قواعد الأمر', '٤ج) قفل/فتح الروم', '١٠) التصويت']) {
       assert.ok(out45.includes(needle), `اختبار الأوامر ينقصه: ${needle}`);
     }
     assert.ok(out45.includes('🎉'), 'اختبار الأوامر ما نجح');

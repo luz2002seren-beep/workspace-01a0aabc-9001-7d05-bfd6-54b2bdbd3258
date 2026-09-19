@@ -157,6 +157,10 @@ async function run() {
   register('kick', [{ name: 'العضو', type: 'user', required: true }], { permissions: ['kick'] });
   register('help', []);
   register('unban', [{ name: 'العضو', type: 'text', required: true }]);
+  register('lock', [
+    { sub: 'channel', options: [{ name: 'القناة', type: 'text' }, { name: 'السبب', type: 'text' }] },
+    { sub: 'unlock', options: [{ name: 'القناة', type: 'text' }] },
+  ]);
 
   const client = { commands, user: { id: '1' } };
 
@@ -335,6 +339,33 @@ async function run() {
   assert.strictEqual(text.setRules(GUILD, 'nope', {}).ok, false, 'أمر غير موجود انقبل');
   assert.strictEqual(text.setRules(GUILD, 'ban', { disabledRoles: ['abc'] }).ok, false, 'معرّف غلط انقبل');
   console.log('٤ب) قواعد الأمر: رومات مفعّلة/معطّلة · رتب مفعّلة/معطّلة · حذف رسالة الأمر — كله صح ✅');
+
+  /* ----------------------- ٤ج) قفل وفتح الروم بكلمة وحدة ----------------------- */
+  calls.length = 0;
+  await doIt('قفل');
+  assert.strictEqual(calls.at(-1)?.name, 'lock', '«قفل» ما نفّذ أمر القفل');
+  assert.strictEqual(calls.at(-1)?.sub, 'channel', '«قفل» ما قفل الروم (الأمر الفرعي غلط)');
+
+  calls.length = 0;
+  await doIt('فتح');
+  assert.strictEqual(calls.at(-1)?.name, 'lock', '«فتح» ما نفّذ أمر الفتح');
+  assert.strictEqual(calls.at(-1)?.sub, 'unlock', '«فتح» ما فتح الروم (الأمر الفرعي غلط)');
+
+  calls.length = 0;
+  await doIt('اقفل');
+  assert.strictEqual(calls.at(-1)?.sub, 'channel', '«اقفل» ما قفل الروم');
+  calls.length = 0;
+  await doIt('افتح');
+  assert.strictEqual(calls.at(-1)?.sub, 'unlock', '«افتح» ما فتح الروم');
+  calls.length = 0;
+  await doIt('سكر');
+  assert.strictEqual(calls.at(-1)?.sub, 'channel', '«سكر» ما قفل الروم');
+
+  /* والأمر الفرعي المكتوب صريحًا يبقى شغّال: lock unlock يفتح */
+  calls.length = 0;
+  await doIt('lock unlock');
+  assert.strictEqual(calls.at(-1)?.sub, 'unlock', 'الأمر الفرعي الصريح ما اشتغل');
+  console.log('٤ج) قفل/فتح الروم بكلمة وحدة: «قفل» تقفل · «فتح» تفتح · اقفل/افتح/سكر كذلك ✅');
 
   /* ----------------------- ٥) الإيقاف والإعدادات ----------------------- */
   const turnedOff = text.setOptions(GUILD, { enabled: false });
