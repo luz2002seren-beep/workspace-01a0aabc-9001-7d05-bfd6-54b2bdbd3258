@@ -1196,10 +1196,11 @@ const SECTIONS = {
               const repaint = () => {
                 chips.innerHTML = '';
                 if (!current.length) chips.appendChild(el('span', { class: 'cmd-none', text: 'بلا اختصار' }));
-                current.forEach((alias) => {
+                (item.aliasLabels || current).forEach((alias, index) => {
+                  const raw = current[index] || alias;
                   const chip = el('button', { class: 'cmd-chip', title: 'شيل الاختصار', html: `${esc(alias)} ${ic('close', 12)}` });
                   chip.addEventListener('click', () => {
-                    current = current.filter((a) => a !== alias);
+                    current = current.filter((a) => a !== raw);
                     save();
                   });
                   chips.appendChild(chip);

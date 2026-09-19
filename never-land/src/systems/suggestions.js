@@ -282,7 +282,8 @@ function cardAliases(name, guildId = '') {
   try {
     const text = require('./textCommands');
     const cfg = text.configFor ? text.configFor(guildId || '') : null;
-    return [...new Set(cfg?.aliases?.[name] || [])].slice(0, 14);
+    const list = [...new Set(cfg?.aliases?.[name] || [])].slice(0, 14);
+    return list.map((a) => (text.prettyAlias ? text.prettyAlias(a) : a));
   } catch {
     return [];
   }

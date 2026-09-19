@@ -212,6 +212,15 @@ function aliasKey(value) {
   return normalizeAlias(value) || String(value || '').trim().toLowerCase();
 }
 
+/** شكل العرض: «فك الحظر» بدل «فكالحظر» — من الكلمات الافتراضية المعروفة */
+function prettyAlias(alias) {
+  const key = aliasKey(alias);
+  for (const words of Object.values(AR_TRIGGERS)) {
+    for (const word of words) if (aliasKey(word) === key) return word;
+  }
+  return String(alias || '');
+}
+
 /** كل الاختصارات مع أسماء الأوامر ومستخدِميها */
 function aliasIndex(guildId) {
   const config = configFor(guildId);
@@ -850,6 +859,7 @@ function adminSnapshot(guildId, commandNames = [], { staffViewer = true } = {}) 
       examples: meta.examples,
       subs: meta.subs || null,
       aliases,
+      aliasLabels: aliases.map(prettyAlias),
       suggested,
       conflict,
       rules: rulesFor(guildId, name),
@@ -939,6 +949,7 @@ function setCommandEnabled(guildId, commandName, enabled) {
 module.exports = {
   PREFIX_KEY,
   aliasKey,
+  prettyAlias,
   AR_TRIGGERS,
   RULE_LISTS,
   RULE_FLAGS,
