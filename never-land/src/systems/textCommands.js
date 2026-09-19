@@ -116,12 +116,22 @@ function configFor(guildId) {
   const raw = db.getGuild(guildId).settings;
   const saved = raw?.[PREFIX_KEY] || {};
 
-  const aliases = { ...base.aliases };
-  for (const [name, list] of Object.entries(saved.aliases || {})) {
-    if (!catalog.COMMANDS[name]) continue;
-    aliases[name] = Array.isArray(list)
-      ? list.map((a) => normalizeAlias(a)).filter(Boolean)
-      : aliases[name];
+  /* المحذوف بنفسه من اللوحة: ما نرجّعه */
+  const removedKeys = new Set(
+    (Array.isArray(saved.removed) ? saved.removed : []).map((a) => aliasKey(a)).filter(Boolean),
+  );
+
+  const aliases = {};
+  for (const [name, baseList] of Object.entries(base.aliases)) {
+    const savedList = saved.aliases?.[name];
+    const list = Array.isArray(savedList) ? savedList.map((a) => String(a).trim()).filter(Boolean) : [...baseList];
+    const merged = [...list];
+    for (const word of baseList) {
+      const key = aliasKey(word);
+      if (!key || removedKeys.has(key)) continue;
+      if (!merged.some((a) => aliasKey(a) === key)) merged.push(word);
+    }
+    aliases[name] = merged.slice(0, 12);
   }
 
   return {
@@ -916,8 +926,14 @@ function setAliases(guildId, commandName, aliases) {
   if (Object.keys(takenBy).length) return { ok: false, error: 'alias_taken', takenBy };
 
   const next = { ...current.aliases, [commandName]: clean };
-  db.updateGuildSettings(guildId, { [PREFIX_KEY]: { aliases: next } });
-  return { ok: true, aliases: clean };
+  const saved = db.getGuild(guildId).settings?.[PREFIX_KEY] || {};
+  const prevRemoved = Array.isArray(saved.removed) ? saved.removed : [];
+  const baseWords = defaultsFor().aliases[commandName] || [];
+  const cleanKeys = new Set(clean.map(aliasKey));
+  const removed = [...new Set([...prevRemoved, ...baseWords.filter((w) => !cleanKeys.has(aliasKey(w)))])]
+    .filter((w) => !cleanKeys.has(aliasKey(w)));
+  db.updateGuildSettings(guildId, { [PREFIX_KEY]: { aliases: next, removed } });
+  return { ok: true, aliases: clean, removed };
 }
 
 /** تشغيل/إيقاف النظام أو تغيير حد الاستخدام */

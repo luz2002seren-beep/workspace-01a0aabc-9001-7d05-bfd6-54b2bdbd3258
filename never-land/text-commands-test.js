@@ -276,6 +276,17 @@ async function run() {
   assert.strictEqual(calls[0]?.name, 'ban', 'اسم الأمر نفسه ما اشتغل بعد حذف الاختصار');
   console.log('٤) الاختصارات بأي لغة: عربي افتراضي (حظر · توب · فك الحظر) · إضافة تركي/عربي · منع التعارض · حذف — كله صح ✅');
 
+  /* سيرفر محفوظ من قبل باختصارات إنجليزية: الاختصارات العربية تنضم له، وإذا شالها ما ترجع */
+  const LEGACY = '100000000000008888';
+  db.updateGuildSettings(LEGACY, { textCommands: { aliases: { help: ['h'] } } });
+  assert.deepStrictEqual(text.configFor(LEGACY).aliases.help, ['h', 'مساعدة'], 'الاختصار العربي ما انضم للمحفوظ القديم');
+  assert.deepStrictEqual(text.configFor(LEGACY).aliases.ban, ['b', 'حظر', 'باند'], 'اختصارات الحظر ما انضمت للمحفوظ القديم');
+  text.setAliases(LEGACY, 'help', ['h']);
+  assert.deepStrictEqual(text.configFor(LEGACY).aliases.help, ['h'], 'الاختصار اللي شاله صاحب السيرفر رجع من حاله');
+  text.setAliases(LEGACY, 'help', ['h', 'مساعدة']);
+  assert.deepStrictEqual(text.configFor(LEGACY).aliases.help, ['h', 'مساعدة'], 'الاختصار اللي رجّعه صاحب السيرفر ما رجع');
+  console.log('   والاختصارات العربية تنضم للسيرفرات المحفوظة من قبل، والمحذوف يبقى محذوف ✅');
+
   /* ----------------------- ٤ب) قواعد الأمر ----------------------- */
   /* رومات: قناة معطّلة = ما يشتغل · قناة مفعّلة = بس فيها */
   const savedRules = text.setRules(GUILD, 'ban', { disabledChannels: ['900000000000000001'] });
