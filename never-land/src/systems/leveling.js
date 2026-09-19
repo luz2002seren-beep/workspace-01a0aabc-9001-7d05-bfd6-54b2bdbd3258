@@ -580,7 +580,7 @@ function leaderboardEmbed(guildId, rowsOrOptions = [], lang = 'ar', pageArg = 1,
       color: 0x5865f2,
       title,
       description: ar ? 'ما في بيانات لهذه الفترة بعد — خلّوا الأعضاء يتفاعلون!' : 'No data for this period yet.',
-      footer: `Never Land${board.source !== 'all' ? ` • ${ar ? 'المصدر' : 'Source'}: ${sourceMeta.label}` : ''}`,
+      footer: board.source !== 'all' ? `${ar ? 'المصدر' : 'Source'}: ${sourceMeta.label}` : undefined,
     });
   }
 
@@ -617,7 +617,7 @@ function leaderboardEmbed(guildId, rowsOrOptions = [], lang = 'ar', pageArg = 1,
         inline: false,
       },
     ],
-    footer: `Never Land • ${ar ? 'صفحة' : 'Page'} ${page} • ${ar ? 'K كتابي · V صوتي · I تفاعل' : 'K text · V voice · I interactions'}`,
+    footer: `${ar ? 'صفحة' : 'Page'} ${page} • ${ar ? 'K كتابي · V صوتي · I تفاعل' : 'K text · V voice · I interactions'}`,
   });
 }
 
@@ -657,8 +657,7 @@ function sourcesEmbed(guildId, lang = 'ar') {
         inline: false,
       })),
     ],
-    footer: 'Never Land',
-  });
+      });
 }
 
 module.exports = {

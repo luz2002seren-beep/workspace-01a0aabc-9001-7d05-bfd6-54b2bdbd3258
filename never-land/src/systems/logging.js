@@ -153,7 +153,7 @@ async function send(client, guild, eventKey, data = {}) {
       fields: data.fields,
       thumbnail: data.thumbnail,
       image: data.image,
-      footer: data.footer || `Never Land • ${meta.label}`,
+      footer: data.footer || meta.label,
     });
 
     return await channel.send({ embeds: [embed], files: data.files, components: data.components });

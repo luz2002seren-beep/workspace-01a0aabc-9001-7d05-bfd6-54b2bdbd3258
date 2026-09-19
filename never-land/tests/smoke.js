@@ -1899,6 +1899,36 @@ console.log('[نجاح] كل الاختبارات نجحت!');
   console.log('  [تم] اختصارات بأي لغة (عربي افتراضي) + قواعد لكل أمر: رتب مفعّلة/معطّلة · رومات مفعّلة/معطّلة · وأنواع الردود (حذف رسالة الأمر · حذف الرد مع الرسالة · حذف الرد بعد ٥ ثوانٍ)');
   }
 
+
+ console.log('[اختبار] 46: الردود بلا تذييل «Never Land • لوحة تحكم وبوت متكامل»');
+  {
+    const fs46 = require('node:fs');
+    const path46 = require('node:path');
+    const root46 = path46.join(__dirname, '..');
+    const read46 = (rel) => fs46.readFileSync(path46.join(root46, rel), 'utf8');
+    const embeds46 = read46('src/lib/embeds.js');
+    assert.ok(!embeds46.includes('لوحة تحكم وبوت متكامل'), 'التذييل الافتراضي لسا موجود في embeds.js');
+    assert.ok(embeds46.includes('if (footer) embed.setFooter'), 'التذييل ما صار اختياريًا');
+    for (const rel of ['src/commands/general/help.js', 'src/commands/general/botinfo.js', 'src/commands/general/userinfo.js',
+      'src/commands/config/settings.js', 'src/commands/config/logs.js', 'src/commands/config/tickets.js',
+      'src/systems/applications.js', 'src/systems/leveling.js', 'src/systems/logging.js', 'src/systems/tickets.js', 'src/systems/setupWizard.js']) {
+      assert.ok(!/footer[^\n]*Never Land/.test(read46(rel)), `لسا في تذييل باسم المشروع في ${rel}`);
+    }
+    const { execFileSync } = require('node:child_process');
+    const out46 = execFileSync('node', ['-e', [
+      "const e=require('./src/lib/embeds');",
+      "if(e.success('عنوان','وصف').data.footer) throw new Error('تذييل افتراضي لسا موجود');",
+      "if(e.info('عنوان','وصف').data.footer) throw new Error('تذييل افتراضي لسا موجود');",
+      "if(e.error('عنوان','وصف').data.footer) throw new Error('تذييل افتراضي لسا موجود');",
+      "const wanted = JSON.stringify(e.base({title:'x',footer:'نص مطلوب'}).data.footer) === JSON.stringify({text:'نص مطلوب'});",
+      "if(!wanted) throw new Error('التذييل المطلوب ما ظهر');",
+      "console.log('OK');",
+    ].join('')], { cwd: root46, encoding: 'utf8' });
+    assert.ok(out46.includes('OK'), 'الفحص العملي للتذييل فشل');
+
+  console.log('  [تم] كل الردود بلا تذييل «Never Land • لوحة تحكم وبوت متكامل» — والتذييل صار بس لما ينطلب صراحةً');
+  }
+
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');
 
   process.exit(0);

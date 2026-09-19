@@ -54,7 +54,7 @@ function mainPanel(settings) {
       '',
       'لإعدادات أعمق (رسائل مخصّصة، كلمات ممنوعة، مكافآت...) استخدم لوحة التحكم الويب `/dashboard`.',
     ].join('\n'),
-    footer: 'Never Land • اختر قسمًا للبدء',
+    footer: 'اختر قسمًا للبدء',
   });
 
   const row1 = new ActionRowBuilder().addComponents(
@@ -295,8 +295,7 @@ function fullSettingsEmbed(settings) {
       { name: 'قناة الترحيب', value: settings.welcome.channelId ? `<#${settings.welcome.channelId}>` : '—', inline: true },
       { name: 'الرتب التلقائية', value: (settings.autorole.roleIds || []).map((r) => `<@&${r}>`).join(' ') || '—', inline: false },
     ],
-    footer: 'Never Land',
-  });
+      });
 }
 
 module.exports = { mainPanel, modulePanel, channelPanel, handleSelect, handleButton, fullSettingsEmbed, MODULES };

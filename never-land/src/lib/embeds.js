@@ -30,7 +30,8 @@ function base({ color = config.bot.colors.primary, title, description, footer, t
   if (image) embed.setImage(image);
   if (author) embed.setAuthor(author);
   if (fields?.length) embed.addFields(fields);
-  embed.setFooter({ text: footer || 'Never Land • لوحة تحكم وبوت متكامل' });
+  /* بلا أي تذييل افتراضي — الردود تطلع نضيفة، والتذييل بس إذا انطلب صراحةً */
+  if (footer) embed.setFooter({ text: footer });
   return embed;
 }
 
@@ -55,7 +56,7 @@ function settingsEmbed(title, rows = [], lang = 'ar') {
   return base({
     title: `⚙️ ${title}`,
     fields,
-    footer: lang === 'ar' ? 'Never Land • عدّل هذه القيم من لوحة التحكم' : 'Never Land • Edit these from the dashboard',
+    footer: lang === 'ar' ? 'عدّل هذه القيم من لوحة التحكم' : 'Edit these from the dashboard',
   });
 }
 

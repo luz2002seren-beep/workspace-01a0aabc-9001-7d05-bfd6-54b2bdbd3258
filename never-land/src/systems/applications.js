@@ -138,7 +138,7 @@ function buildFormMessage(settings, ticket, { resend = false } = {}) {
     color: 0x9b59b6,
     title: cfg.formTitle,
     description: `${cfg.formIntro}\n\n**الخانات المطلوبة:**\n${questions}`,
-    footer: `Never Land • طلب تقديم إدارة #${ticket.id}`,
+    footer: `طلب تقديم إدارة #${ticket.id}`,
   });
 
   const row = new ActionRowBuilder().addComponents(
@@ -240,7 +240,7 @@ function buildReviewPayload(client, settings, ticket, applicant, answers) {
       `**تاريخ التقديم:** <t:${Math.floor(Date.now() / 1000)}:F>`,
     thumbnail: applicant?.displayAvatarURL?.() || undefined,
     fields: answers.map((a) => ({ name: a.label, value: a.value, inline: false })),
-    footer: `Never Land • ${cfg.formTitle} • اضغط ✅ للقبول أو ❌ للرفض`,
+    footer: `${cfg.formTitle} • اضغط ✅ للقبول أو ❌ للرفض`,
   });
 
   const row = new ActionRowBuilder().addComponents(
@@ -364,7 +364,7 @@ async function reviewApplication(client, interaction, ticket, decision, opts = {
                 { name: 'رقم الملف', value: `#${number}`, inline: true },
                 { name: 'المسؤول', value: `${interaction.user}`, inline: true },
               ],
-              footer: 'Never Land • نظام تقديم الإدارة',
+              footer: 'نظام تقديم الإدارة',
             }),
           ],
         })
@@ -381,7 +381,7 @@ async function reviewApplication(client, interaction, ticket, decision, opts = {
           { name: 'السيرفر', value: guild.name, inline: true },
           { name: 'رقم الملف', value: `#${number}`, inline: true },
         ],
-        footer: 'Never Land • تقديم الإدارة',
+        footer: 'تقديم الإدارة',
       });
       result.dmSent = await applicantUser.send({ embeds: [dmEmbed] }).then(() => true).catch(() => false);
     }
@@ -400,7 +400,7 @@ async function reviewApplication(client, interaction, ticket, decision, opts = {
                 { name: 'المسؤول', value: `${interaction.user}`, inline: true },
                 ...(opts.reason ? [{ name: 'السبب', value: truncate(opts.reason, 1000), inline: false }] : []),
               ],
-              footer: 'Never Land • نظام تقديم الإدارة',
+              footer: 'نظام تقديم الإدارة',
             }),
           ],
         })
@@ -416,7 +416,7 @@ async function reviewApplication(client, interaction, ticket, decision, opts = {
           { name: 'السيرفر', value: guild.name, inline: true },
           ...(opts.reason ? [{ name: 'سبب الرفض', value: truncate(opts.reason, 1000), inline: false }] : []),
         ],
-        footer: 'Never Land • تقديم الإدارة',
+        footer: 'تقديم الإدارة',
       });
       result.dmSent = await applicantUser.send({ embeds: [dmEmbed] }).then(() => true).catch(() => false);
     }

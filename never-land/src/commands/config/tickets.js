@@ -244,7 +244,7 @@ module.exports = {
                 inline: false,
               },
             ],
-            footer: 'Never Land • عدّل النصوص والخانات من لوحة التحكم',
+            footer: 'عدّل النصوص والخانات من لوحة التحكم',
           }),
         ],
         flags: 64,

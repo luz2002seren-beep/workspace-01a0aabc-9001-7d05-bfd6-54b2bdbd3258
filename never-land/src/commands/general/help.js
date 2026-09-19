@@ -81,7 +81,7 @@ function buildCategoryEmbed(client, categoryId, lang, member = null) {
     color: 0x5865f2,
     title: `${category.emoji} ${category.label} — ${commands.length} أمر`,
     description: lines.join('\n\n').slice(0, 4000) || 'لا توجد أوامر في هذا القسم.',
-    footer: config.web.siteName,
+    
   });
 }
 

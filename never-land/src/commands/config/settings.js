@@ -64,8 +64,7 @@ module.exports = {
             inline: false,
           },
         ],
-        footer: 'Never Land',
-      });
+              });
 
       /* بلا زر رابط: رابط الموقع يطلع بكلمة «نيفر» في الشات */
       return interaction.reply({ embeds: [embed], flags: 64 });

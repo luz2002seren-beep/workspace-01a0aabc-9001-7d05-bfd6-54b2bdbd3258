@@ -91,7 +91,7 @@ function buildPanelPayloads(settings, guild, client = null) {
       value: type.description || '—',
       inline: true,
     })),
-    footer: cfg.panelFooter || 'Never Land • نظام التذاكر',
+    footer: cfg.panelFooter || 'نظام التذاكر',
   });
 
   const components = cfg.panelMode === 'select' ? [buildTypeSelect(types)] : buildTypeButtons(types);
@@ -216,7 +216,7 @@ async function createTicket(client, guild, user, typeId) {
             { name: 'النوع', value: type.label, inline: true },
             { name: 'الحالة', value: '🟢 مفتوحة', inline: true },
           ],
-          footer: `Never Land • تذكرة #${ticket.id}`,
+          footer: `تذكرة #${ticket.id}`,
         }),
       ],
       components: [ticketControls(ticket.id)],

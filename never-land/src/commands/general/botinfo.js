@@ -38,7 +38,7 @@ module.exports = {
         { name: 'الرتبة العليا', value: `\`${interaction.guild?.members.me?.roles.highest.name ?? '—'}\``, inline: true },
         { name: 'لوحة التحكم', value: 'اكتب **نيفر** في الشات — لأعضاء الموقع المسجّلين', inline: false },
       ],
-      footer: 'Never Land • بُني بـ discord.js v14',
+      footer: 'بُني بـ discord.js v14',
     });
 
     await interaction.reply({ embeds: [embed] });

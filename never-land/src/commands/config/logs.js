@@ -201,7 +201,7 @@ module.exports = {
               { name: 'الأحداث المُفعّلة', value: `${activeCount} / ${Object.keys(logging.EVENT_META).length}`, inline: true },
               ...fields,
             ],
-            footer: 'Never Land • استخدم /logs events لتعديل الأحداث',
+            footer: 'استخدم /logs events لتعديل الأحداث',
           }),
         ],
         flags: 64,

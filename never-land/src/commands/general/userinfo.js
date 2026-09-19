@@ -62,7 +62,7 @@ module.exports = {
       thumbnail: user.displayAvatarURL({ size: 512, dynamic: true }),
       image: member?.bannerURL?.({ size: 1024 }) || undefined,
       fields,
-      footer: `Never Land • ${interaction.guild.name}`,
+      footer: `${interaction.guild.name}`,
     });
 
     await interaction.editReply({ embeds: [embed] });
