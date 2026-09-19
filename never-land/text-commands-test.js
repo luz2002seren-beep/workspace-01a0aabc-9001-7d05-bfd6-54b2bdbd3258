@@ -160,6 +160,8 @@ async function run() {
   register('lock', [
     { sub: 'channel', options: [{ name: 'القناة', type: 'text' }, { name: 'السبب', type: 'text' }] },
     { sub: 'unlock', options: [{ name: 'القناة', type: 'text' }] },
+    { sub: 'hide', options: [{ name: 'القناة', type: 'text' }, { name: 'السبب', type: 'text' }] },
+    { sub: 'show', options: [{ name: 'القناة', type: 'text' }] },
   ]);
 
   const client = { commands, user: { id: '1' } };
@@ -361,11 +363,33 @@ async function run() {
   await doIt('سكر');
   assert.strictEqual(calls.at(-1)?.sub, 'channel', '«سكر» ما قفل الروم');
 
+  /* إخفاء وإظهار الروم */
+  calls.length = 0;
+  await doIt('اخفاء');
+  assert.strictEqual(calls.at(-1)?.name, 'lock', '«اخفاء» ما نفّذ أمر القفل');
+  assert.strictEqual(calls.at(-1)?.sub, 'hide', '«اخفاء» ما خفّى الروم');
+  calls.length = 0;
+  await doIt('اظهار');
+  assert.strictEqual(calls.at(-1)?.sub, 'show', '«اظهار» ما أظهر الروم');
+  calls.length = 0;
+  await doIt('اخفي');
+  assert.strictEqual(calls.at(-1)?.sub, 'hide', '«اخفي» ما خفّى الروم');
+
   /* والأمر الفرعي المكتوب صريحًا يبقى شغّال: lock unlock يفتح */
   calls.length = 0;
   await doIt('lock unlock');
   assert.strictEqual(calls.at(-1)?.sub, 'unlock', 'الأمر الفرعي الصريح ما اشتغل');
-  console.log('٤ج) قفل/فتح الروم بكلمة وحدة: «قفل» تقفل · «فتح» تفتح · اقفل/افتح/سكر كذلك ✅');
+
+  /* «مسح» لحالها: تنظيف ١٠٠ رسالة بلا ما تكتب عددًا */
+  calls.length = 0;
+  await doIt('مسح');
+  assert.strictEqual(calls.at(-1)?.name, 'purge', '«مسح» ما نفّذ التنظيف');
+  assert.strictEqual(calls.at(-1)?.sub, 'messages', '«مسح» ما اختار أمر التنظيف الفرعي');
+  assert.strictEqual(calls.at(-1)?.raw.count, 100, '«مسح» ما افترض ١٠٠ رسالة');
+  calls.length = 0;
+  await doIt('مسح 20');
+  assert.strictEqual(calls.at(-1)?.raw.count, 20, '«مسح 20» ما أخذ الرقم المكتوب');
+  console.log('٤ج) كلمة وحدة تكفي: قفل · فتح · اخفاء · اظهار · مسح (١٠٠ رسالة افتراضيًا) ✅');
 
   /* ----------------------- ٥) الإيقاف والإعدادات ----------------------- */
   const turnedOff = text.setOptions(GUILD, { enabled: false });

@@ -50,7 +50,7 @@ const AR_TRIGGERS = {
   timeout: ['اسكت', 'كتم'],
   warn: ['تحذير', 'انذار'],
   purge: ['مسح', 'نظف'],
-  lock: ['قفل', 'اقفل', 'سكر', 'قفلو', 'فتح', 'افتح'],
+  lock: ['قفل', 'اقفل', 'سكر', 'قفلو', 'فتح', 'افتح', 'اخفاء', 'اخفي', 'اظهار', 'اظهر'],
   slowmode: ['بطيء'],
 };
 
@@ -68,8 +68,29 @@ const SUB_TRIGGERS = {
     قفلو: 'channel',
     فتح: 'unlock',
     افتح: 'unlock',
+    اخفاء: 'hide',
+    اخفي: 'hide',
+    خفي: 'hide',
+    اخفيه: 'hide',
+    اظهار: 'show',
+    اظهر: 'show',
+    اظهرو: 'show',
+  },
+  /* «مسح» لحالها تنظّف ١٠٠ رسالة — زي أمر التنظيف في البوتات المعروفة */
+  purge: {
+    مسح: { sub: 'messages', defaults: { العدد: 100 } },
+    نظف: { sub: 'messages', defaults: { العدد: 100 } },
+    نظفلي: { sub: 'messages', defaults: { العدد: 100 } },
+    كلير: { sub: 'messages', defaults: { العدد: 100 } },
   },
 };
+
+/** الأمر الفرعي + القيم الافتراضية لاختصار معيّن (يدعم الشكل القديم: نص مباشر) */
+function subTriggerFor(name, alias) {
+  const mapped = SUB_TRIGGERS[name]?.[alias];
+  if (!mapped) return null;
+  return typeof mapped === 'string' ? { sub: mapped, defaults: {} } : mapped;
+}
 
 /** قواعد الأمر (خيارات تعديل الأمر): رومات · رتب · أنواع الردود */
 const RULE_LISTS = ['enabledRoles', 'disabledRoles', 'enabledChannels', 'disabledChannels'];
@@ -573,11 +594,20 @@ async function handleMessage(client, message) {
     sub = args[0].toLowerCase();
     args = args.slice(1);
   }
-  /* ولا كتب أمرًا فرعيًا؟ نستنتجه من نفس الاختصار: «قفل» ← channel · «فتح» ← unlock */
+  /* ولا كتب أمرًا فرعيًا؟ نستنتجه من نفس الاختصار: «قفل» ← channel · «مسح» ← messages */
+  let subDefaults = {};
   if (!sub && subNames.length) {
     const used = aliasKey(parts.slice(0, usedWords).join(' '));
-    const mapped = SUB_TRIGGERS[name]?.[used];
-    if (mapped && subNames.includes(mapped)) sub = mapped;
+    const mapped = subTriggerFor(name, used);
+    if (mapped && subNames.includes(mapped.sub)) {
+      sub = mapped.sub;
+      subDefaults = mapped.defaults || {};
+    }
+  }
+  /* لو كتب الأمر الفرعي صريحًا وله قيم افتراضية، نطبّقها كذلك */
+  if (sub && subNames.length) {
+    const used = aliasKey(parts.slice(0, usedWords).join(' '));
+    subDefaults = subTriggerFor(name, used)?.defaults || {};
   }
   args._subName = sub;
 
@@ -663,7 +693,7 @@ async function handleMessage(client, message) {
     return true;
   }
 
-  const fake = makeFakeInteraction(client, message, command, args, sub);
+  const fake = makeFakeInteraction(client, message, command, args, sub, subDefaults);
   try {
     await command.run(client, fake, 'ar');
 
@@ -738,7 +768,7 @@ function subMap(command) {
  * واجهة تفاعل وهمية: نفس الدوال التي تستعملها الأوامر (reply / editReply / deferReply / options)
  * لكن مبنية على رسالة الشات.
  */
-function makeFakeInteraction(client, message, command, args, sub) {
+function makeFakeInteraction(client, message, command, args, sub, subDefaults = {}) {
   const json = command.data.toJSON();
   const optionTypes = {};
   const walk = (options, prefix = '') => {
@@ -805,6 +835,11 @@ function makeFakeInteraction(client, message, command, args, sub) {
   };
 
   bindArguments(interaction, message.guild, message, args, defs);
+
+  /* قيم افتراضية للاختصارات المختصرة: «مسح» ← ١٠٠ رسالة (بدل ما يطلب رقمًا) */
+  for (const [optionName, value] of Object.entries(subDefaults || {})) {
+    if (!store.has(optionName)) store.set(optionName, { int: Number(value), raw: String(value), string: String(value) });
+  }
   return interaction;
 }
 

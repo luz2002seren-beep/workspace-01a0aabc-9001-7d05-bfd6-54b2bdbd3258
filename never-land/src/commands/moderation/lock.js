@@ -30,7 +30,20 @@ module.exports = {
         .setDescription('قفل كل القنوات النصية (حالة طوارئ)')
         .addStringOption((o) => o.setName('السبب').setDescription('السبب').setRequired(false)),
     )
-    .addSubcommand((sub) => sub.setName('unlockall').setDescription('فتح كل القنوات النصية')),
+    .addSubcommand((sub) => sub.setName('unlockall').setDescription('فتح كل القنوات النصية'))
+    .addSubcommand((sub) =>
+      sub
+        .setName('hide')
+        .setDescription('إخفاء قناة عن الأعضاء (@everyone)')
+        .addChannelOption((o) => o.setName('القناة').setDescription('القناة').setRequired(false))
+        .addStringOption((o) => o.setName('السبب').setDescription('السبب').setRequired(false)),
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('show')
+        .setDescription('إظهار قناة مخفية من جديد')
+        .addChannelOption((o) => o.setName('القناة').setDescription('القناة').setRequired(false)),
+    ),
 
   async run(client, interaction, lang) {
     await interaction.deferReply();
@@ -60,6 +73,29 @@ module.exports = {
       const channel = interaction.options.getChannel('القناة') || interaction.channel;
       await applyLock(channel, false);
       return interaction.editReply({ embeds: [embeds.success('فتح القناة', t(lang, 'mod.channelUnlocked', { channel: `${channel}` }))] });
+    }
+
+    /* إخفاء الروم: @everyone ما يشوفه — وإظهاره: يرجعلهم */
+    const applyHidden = async (channel, hidden) => {
+      await channel.permissionOverwrites
+        .edit(
+          interaction.guild.roles.everyone,
+          { ViewChannel: hidden ? false : null },
+          { reason: `${hidden ? 'إخفاء' : 'إظهار'} بواسطة ${interaction.user.tag} | ${reason}` },
+        )
+        .catch(() => {});
+    };
+
+    if (sub === 'hide') {
+      const channel = interaction.options.getChannel('القناة') || interaction.channel;
+      await applyHidden(channel, true);
+      return interaction.editReply({ embeds: [embeds.success('إخفاء القناة', `تم إخفاء ${channel} عن الأعضاء.`)] });
+    }
+
+    if (sub === 'show') {
+      const channel = interaction.options.getChannel('القناة') || interaction.channel;
+      await applyHidden(channel, false);
+      return interaction.editReply({ embeds: [embeds.success('إظهار القناة', `تم إظهار ${channel} من جديد للأعضاء.`)] });
     }
 
     if (sub === 'all') {
