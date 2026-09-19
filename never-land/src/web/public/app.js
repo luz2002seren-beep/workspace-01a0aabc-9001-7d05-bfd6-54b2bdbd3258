@@ -1235,7 +1235,7 @@ const SECTIONS = {
                 const value = String(addInput.value || '').trim().replace(/\s+/g, '');
                 if (!value) return;
                 if (current.includes(value)) { toast('الاختصار مضاف من قبل', true); return; }
-                if (current.length >= 5) { toast('الحد الأقصى ٥ اختصارات للأمر', true); return; }
+                if (current.length >= 12) { toast('الحد الأقصى ١٢ اختصارًا للأمر', true); return; }
                 current = [...current, value];
                 addInput.value = '';
                 save();

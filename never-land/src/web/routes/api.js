@@ -419,6 +419,7 @@ router.post('/guilds/:guildId/commands/aliases', async (req, res) => {
       unknown_command: 'هذا الأمر غير موجود.',
       invalid_alias: 'الاختصار لازم يكون كلمة وحدة بأي لغة (عربي أو إنجليزي…) بلا مسافات أو رموز.',
       alias_taken: 'الاختصار محجوز لأمر ثاني.',
+      too_many: `الحد الأقصى ${textCommands.MAX_ALIASES} اختصارًا للأمر.`,
     };
     return res.status(400).json({
       error: result.error,

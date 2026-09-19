@@ -52,6 +52,18 @@ const AR_TRIGGERS = {
   purge: ['مسح', 'نظف'],
   lock: ['قفل', 'اقفل', 'سكر', 'قفلو', 'فتح', 'افتح', 'اخفاء', 'اخفي', 'اظهار', 'اظهر'],
   slowmode: ['بطيء'],
+  /* أوامر الإدارة والضبط — كلمات عربية جاهزة كذلك */
+  member: ['عضو'],
+  settings: ['اعدادات', 'ضبط'],
+  welcome: ['ترحيب'],
+  autorole: ['رتبتلقائي'],
+  autoreply: ['ردود'],
+  autoline: ['فاصل'],
+  autoreact: ['تفاعلات'],
+  automod: ['حماية'],
+  logs: ['سجلات', 'لوق'],
+  tickets: ['تذاكر'],
+  setup: ['اعداد', 'تهيئة'],
 };
 
 /**
@@ -93,6 +105,9 @@ function subTriggerFor(name, alias) {
 }
 
 /** قواعد الأمر (خيارات تعديل الأمر): رومات · رتب · أنواع الردود */
+/** سقف الاختصارات لكل أمر — رقم واحد يستعمله الحفظ والدمج واللوحة (كان ٥ بالحفظ و١٢ بالدمج) */
+const MAX_ALIASES = 12;
+
 const RULE_LISTS = ['enabledRoles', 'disabledRoles', 'enabledChannels', 'disabledChannels'];
 const RULE_FLAGS = ['autoDeleteInvocation', 'autoDeleteWithMessage', 'autoDeleteReplyAfter5s'];
 
@@ -169,7 +184,7 @@ function configFor(guildId) {
       if (!key || removedKeys.has(key)) continue;
       if (!merged.some((a) => aliasKey(a) === key)) merged.push(word);
     }
-    aliases[name] = merged.slice(0, 12);
+    aliases[name] = merged.slice(0, MAX_ALIASES);
   }
 
   return {
@@ -846,6 +861,34 @@ function makeFakeInteraction(client, message, command, args, sub, subDefaults = 
 /** قواعد الأمر الجارية لكل رسالة (تستخدمها replyToMessage) */
 const pendingRules = new WeakMap();
 
+/**
+ * «حذف الرد لما يحذف العضو رسالته» — بمستمع **واحد** لكل البوت (messageId ← ردّه).
+ * قبل: مستمع لكل استعمال أمر، ومع كثرة الاستعمال يقترب من سقف Node.
+ */
+const deleteWithMessage = new Map();
+const DELETE_LINK_MAX = 5000;
+let deleteWatcherReady = false;
+
+function watchDeletes(client) {
+  if (deleteWatcherReady || !client?.on) return;
+  deleteWatcherReady = true;
+  client.on('messageDelete', (deleted) => {
+    const link = deleteWithMessage.get(deleted?.id);
+    if (!link) return;
+    deleteWithMessage.delete(deleted.id);
+    const channel = client.channels?.cache?.get?.(link.channelId);
+    channel?.messages?.delete?.(link.replyId)?.catch?.(() => {});
+  });
+}
+
+function rememberReply(message, sent) {
+  if (deleteWithMessage.size > DELETE_LINK_MAX) {
+    const first = deleteWithMessage.keys().next().value;
+    if (first) deleteWithMessage.delete(first);
+  }
+  deleteWithMessage.set(message.id, { replyId: sent.id, channelId: message.channel?.id });
+}
+
 function replyToMessage(message, payload) {
   const safe = { ...(payload || {}) };
   delete safe.flags; // أوامر السلاش قد ترسل ردًا خاصًا — في الشات نرد عادي
@@ -861,20 +904,11 @@ function replyToMessage(message, payload) {
       timer.unref?.();
     }
 
-    /* حذف الرد لما يحذف العضو رسالته الأصلية */
-    if (rules.autoDeleteWithMessage && sent?.delete) {
+    /* حذف الرد لما يحذف العضو رسالته الأصلية — بمستمع واحد لكل البوت */
+    if (rules.autoDeleteWithMessage && sent?.id) {
       try {
-        const client = message.client;
-        if (client?.on) {
-          const onDelete = (deleted) => {
-            if (deleted?.id !== message.id) return;
-            sent.delete().catch(() => {});
-            client.off?.('messageDelete', onDelete);
-          };
-          client.on('messageDelete', onDelete);
-          const stop = setTimeout(() => client.off?.('messageDelete', onDelete), 600000);
-          stop.unref?.();
-        }
+        watchDeletes(message.client);
+        rememberReply(message, sent);
       } catch { /* ما نوقف الأمر */ }
     }
     return sent;
@@ -967,13 +1001,14 @@ function setAliases(guildId, commandName, aliases) {
   const raw = [].concat(aliases || []).map((a) => String(a || '').trim()).filter(Boolean);
   const invalid = raw.filter((a) => !normalizeAlias(a));
   if (invalid.length) return { ok: false, error: 'invalid_alias', invalid };
+  if (raw.length > MAX_ALIASES) return { ok: false, error: 'too_many', max: MAX_ALIASES };
   const seen = new Set();
   const clean = raw.filter((a) => {
     const key = aliasKey(a);
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
-  }).slice(0, 5);
+  });
 
   const current = configFor(guildId);
   /* منع التعارض مع أوامر ثانية */
@@ -1024,6 +1059,7 @@ function setCommandEnabled(guildId, commandName, enabled) {
 
 module.exports = {
   PREFIX_KEY,
+  MAX_ALIASES,
   aliasKey,
   SUB_TRIGGERS,
   prettyAlias,
