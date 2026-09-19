@@ -1122,6 +1122,11 @@ const SECTIONS = {
 
           statusBox.appendChild(el('div', {
             class: 'cmd-rule',
+            html: `${ic('check', 15)} <span><b>ردود الأوامر ما تختفي:</b> الرد يبقى في الشات — ما في أي حذف تلقائي. وإذا بدك الرد يروح لحاله، شغّل خيار «حذف الرد بعد ٥ ثوانٍ» من زر «قواعد» تبع الأمر نفسه.</span>`,
+          }));
+
+          statusBox.appendChild(el('div', {
+            class: 'cmd-rule',
             html: `${ic('lock', 15)} <span><b>كلمة وحدة تكفي:</b> <b>«قفل»</b> يقفل الروم · <b>«فتح»</b> يفتحه · <b>«اخفاء»</b> يخفي الروم عن الأعضاء · <b>«اظهار»</b> يرجّعه · <b>«مسح»</b> ينظّف ١٠٠ رسالة. بلا أي رمز وبلا خيارات (كذلك: اقفل · سكر · افتح · اخفي · اظهر · نظف).</span>`,
           }));
 
@@ -1307,7 +1312,7 @@ const SECTIONS = {
               [
                 ['autoDeleteInvocation', 'حذف رسالة الأمر فورًا'],
                 ['autoDeleteWithMessage', 'حذف الرد لما يحذف العضو رسالته'],
-                ['autoDeleteReplyAfter5s', 'حذف الرد بعد ٥ ثوانٍ'],
+                ['autoDeleteReplyAfter5s', 'حذف الرد بعد ٥ ثوانٍ (افتراضيًا الرد يبقى)'],
               ].forEach(([key, label]) => {
                 const flag = el('label', { class: 'rule-flag' });
                 const input = el('input', { type: 'checkbox' });

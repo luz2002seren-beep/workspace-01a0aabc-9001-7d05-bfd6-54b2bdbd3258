@@ -852,12 +852,14 @@ function replyToMessage(message, payload) {
   delete safe.ephemeral;
 
   const rules = pendingRules.get(message) || {};
-  /* أنواع الردود: ٥ ثوانٍ (لو مختار) وإلا التنظيف الافتراضي بعد دقيقتين */
-  const lifetime = rules.autoDeleteReplyAfter5s ? 5000 : 120000;
+  /* ردود الأوامر ما تختفي أبدًا — الحذف بس لو شغّلت خيار «حذف الرد بعد ٥ ثوانٍ» من قواعد الأمر */
+  const lifetime = rules.autoDeleteReplyAfter5s ? 5000 : 0;
 
   return message.reply({ allowedMentions: { repliedUser: false }, ...safe }).then((sent) => {
-    const timer = setTimeout(() => sent?.delete?.().catch?.(() => {}), lifetime);
-    timer.unref?.();
+    if (lifetime > 0) {
+      const timer = setTimeout(() => sent?.delete?.().catch?.(() => {}), lifetime);
+      timer.unref?.();
+    }
 
     /* حذف الرد لما يحذف العضو رسالته الأصلية */
     if (rules.autoDeleteWithMessage && sent?.delete) {

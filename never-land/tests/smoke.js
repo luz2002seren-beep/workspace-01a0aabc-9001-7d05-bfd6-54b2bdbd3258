@@ -1909,6 +1909,13 @@ console.log('[نجاح] كل الاختبارات نجحت!');
     const embeds46 = read46('src/lib/embeds.js');
     assert.ok(!embeds46.includes('لوحة تحكم وبوت متكامل'), 'التذييل الافتراضي لسا موجود في embeds.js');
     assert.ok(embeds46.includes('if (footer) embed.setFooter'), 'التذييل ما صار اختياريًا');
+
+    // ردود الأوامر ما تختفي: بلا حذف تلقائي افتراضي
+    const text46 = read46('src/systems/textCommands.js');
+    assert.ok(!text46.includes('120000'), 'لسا في حذف تلقائي بعد دقيقتين لردود الأوامر');
+    assert.ok(text46.includes('autoDeleteReplyAfter5s ? 5000 : 0'), 'الحذف التلقائي ما صار اختياريًا');
+    assert.ok(text46.includes('if (lifetime > 0)'), 'الحذف ما صار مشروطًا بالخيار');
+    assert.ok(read46('src/web/public/app.js').includes('ردود الأوامر ما تختفي'), 'ما شرحنا باللوحة إن الرد ما يختفي');
     for (const rel of ['src/commands/general/help.js', 'src/commands/general/botinfo.js', 'src/commands/general/userinfo.js',
       'src/commands/config/settings.js', 'src/commands/config/logs.js', 'src/commands/config/tickets.js',
       'src/systems/applications.js', 'src/systems/leveling.js', 'src/systems/logging.js', 'src/systems/tickets.js', 'src/systems/setupWizard.js']) {
