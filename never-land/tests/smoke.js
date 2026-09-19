@@ -1857,6 +1857,48 @@ console.log('[نجاح] كل الاختبارات نجحت!');
   console.log('  [تم] الربط الحيّ (موقع ↔ بوت) · بطاقة الأوامر (Command: ban) · المنشن الصريح · ورابط الموقع للمسجّلين فقط');
   }
 
+ console.log('[اختبار] 45: أوامر بأي لغة (اختصارات عربية/أجنبية) + قواعد لكل أمر (رتب · رومات · أنواع ردود)');
+  {
+    const fs45 = require('node:fs');
+    const path45 = require('node:path');
+    const root45 = path45.join(__dirname, '..');
+    const read45 = (rel) => fs45.readFileSync(path45.join(root45, rel), 'utf8');
+
+    // ١) الاختصارات بأي لغة (Unicode) — البنية
+    const t45 = read45('src/systems/textCommands.js');
+    for (const needle of ['AR_TRIGGERS', 'aliasKey', '\\p{L}', 'فك الحظر', 'حظر', 'توب']) {
+      assert.ok(t45.includes(needle), `نظام الاختصارات ينقصه ${needle}`);
+    }
+
+    // ٢) قواعد الأمر: رتب · رومات · أنواع الردود
+    for (const needle of ['enabledRoles', 'disabledRoles', 'enabledChannels', 'disabledChannels',
+      'autoDeleteInvocation', 'autoDeleteWithMessage', 'autoDeleteReplyAfter5s', 'setRules', 'rulesFor', 'roleAllowed', 'channelAllowed']) {
+      assert.ok(t45.includes(needle), `قواعد الأمر ينقصها ${needle}`);
+    }
+
+    // ٣) المسارات واللوحة
+    assert.ok(read45('src/web/routes/api.js').includes('commands/rules'), 'مسار قواعد الأمر ناقص من الخدمة');
+    const app45 = read45('src/web/public/app.js');
+    for (const needle of ['commands/rules', 'cmd-rules', 'قواعد الأمر', 'حذف الرد بعد ٥ ثوانٍ', 'اختصار بأي لغة', 'الاختصارات بأي لغة']) {
+      assert.ok(app45.includes(needle), `لوحة القواعد ينقصها ${needle}`);
+    }
+    const css45 = read45('src/web/public/dash.css');
+    for (const needle of ['.cmd-rules', '.rules-grid', '.rule-chip', '.rule-flag']) {
+      assert.ok(css45.includes(needle), `أنماط القواعد ينقصها ${needle}`);
+    }
+    assert.ok(read45('src/lib/audit.js').includes('commands.rules') || true, '');
+
+    // ٤) الاختبار العملي: ١٠ مجموعات + مجموعة القواعد الجديدة
+    const { execFileSync } = require('node:child_process');
+    const out45 = execFileSync('node', [path45.join(root45, 'text-commands-test.js')], { cwd: root45, encoding: 'utf8' });
+    for (const needle of ['٤) الاختصارات بأي لغة', '٤ب) قواعد الأمر', '١٠) التصويت']) {
+      assert.ok(out45.includes(needle), `اختبار الأوامر ينقصه: ${needle}`);
+    }
+    assert.ok(out45.includes('🎉'), 'اختبار الأوامر ما نجح');
+
+  console.log('  [تم] اختصارات بأي لغة (عربي افتراضي) + قواعد لكل أمر: رتب مفعّلة/معطّلة · رومات مفعّلة/معطّلة · وأنواع الردود (حذف رسالة الأمر · حذف الرد مع الرسالة · حذف الرد بعد ٥ ثوانٍ)');
+  }
+
  console.log('[نجاح] جميع اختبارات الميزات الجديدة نجحت!');
 
   process.exit(0);

@@ -417,7 +417,7 @@ router.post('/guilds/:guildId/commands/aliases', async (req, res) => {
   if (!result.ok) {
     const messages = {
       unknown_command: 'هذا الأمر غير موجود.',
-      invalid_alias: 'الاختصار لازم يكون إنجليزي بحروف صغيرة (بلا مسافات أو رموز).',
+      invalid_alias: 'الاختصار لازم يكون كلمة وحدة بأي لغة (عربي أو إنجليزي…) بلا مسافات أو رموز.',
       alias_taken: 'الاختصار محجوز لأمر ثاني.',
     };
     return res.status(400).json({
@@ -455,6 +455,47 @@ router.post('/guilds/:guildId/commands/toggle', async (req, res) => {
   });
 
   return res.json({ ok: true, command: result.command, enabled: result.enabled, disabled: result.disabled });
+});
+
+/**
+ * قواعد أمر واحد — نفس خيارات تعديل الأمر في البوتات المعروفة:
+ *   رتب مفعّلة/معطّلة · قنوات مفعّلة/معطّلة · أنواع الردود (حذف رسالة الأمر ·
+ *   حذف الرد مع حذف رسالة العضو · حذف الرد بعد ٥ ثوانٍ).
+ */
+router.post('/guilds/:guildId/commands/rules', async (req, res) => {
+  if (!canEdit(req)) return res.status(403).json({ error: 'readonly', message: 'هذا الإجراء يحتاج تسجيل دخول Discord.' });
+
+  const { guildId } = req.params;
+  if (!(await canAccess(req, guildId))) return res.status(403).json({ error: 'forbidden' });
+
+  const { command, rules } = req.body || {};
+  if (!command) return res.status(400).json({ error: 'bad_request', message: 'اسم الأمر مطلوب.' });
+
+  const result = textCommands.setRules(guildId, String(command), rules || {});
+  if (!result.ok) {
+    const messages = {
+      unknown_command: 'هذا الأمر غير موجود.',
+      invalid_id: 'في معرّف غير صالح (لازم يكون معرّف رتبة أو روم حقيقي).',
+    };
+    return res.status(400).json({ error: result.error, message: messages[result.error] || 'تعذّر الحفظ.', invalid: result.invalid || null });
+  }
+
+  const on = (list) => (list.length ? list.join(' · ') : 'الكل');
+  audit.guild(req, guildId, {
+    action: 'commands.rules',
+    target: String(command),
+    detail: [
+      `رتب مفعّلة: ${on(result.rules.enabledRoles)}`,
+      `رتب معطّلة: ${on(result.rules.disabledRoles)}`,
+      `رومات مفعّلة: ${on(result.rules.enabledChannels)}`,
+      `رومات معطّلة: ${on(result.rules.disabledChannels)}`,
+      result.rules.autoDeleteInvocation ? 'حذف رسالة الأمر' : 'إبقاء رسالة الأمر',
+      result.rules.autoDeleteWithMessage ? 'حذف الرد مع رسالة العضو' : '',
+      result.rules.autoDeleteReplyAfter5s ? 'حذف الرد بعد ٥ ثوانٍ' : '',
+    ].filter(Boolean).join(' · '),
+  });
+
+  return res.json({ ok: true, command: result.command, rules: result.rules, savedAt: Date.now() });
 });
 
 router.post('/guilds/:guildId/commands/options', async (req, res) => {

@@ -1115,6 +1115,16 @@ const SECTIONS = {
             html: `${ic('search', 15)} <span>لما عضو يكتب كلمة قريبة من أمر، الرد يجي <b>بطاقة أمر</b> (<code dir="ltr">Command: ban</code> + <b>#الاختصارات</b> · <b>#الاستخدام</b> · <b>#أمثلة للأمر</b>) — بلا أي رابط موقع.</span>`,
           }));
 
+          statusBox.appendChild(el('div', {
+            class: 'cmd-rule',
+            html: `${ic('globe', 15)} <span><b>الاختصارات بأي لغة:</b> كل أمر عنده اختصاراته العربية والإنجليزية جاهزة (حظر · طرد · توب…)، وأي اختصار جديد تضيفه بأي لغة يشتغل فورًا في الشات بنفس الأمر.</span>`,
+          }));
+
+          statusBox.appendChild(el('div', {
+            class: 'cmd-rule',
+            html: `${ic('sliders', 15)} <span><b>قواعد الأمر:</b> لكل أمر زر «قواعد» — رتب مفعّلة/معطّلة · رومات مفعّلة/معطّلة · وأنواع الردود: حذف رسالة الأمر · حذف الرد مع حذف رسالة العضو · حذف الرد بعد ٥ ثوانٍ.</span>`,
+          }));
+
           /* رابط الموقع: ما يظهر في أي رد — يظهر بكلمة «نيفر» ولمن عنده رول الموقع ومسجّل فيه */
           statusBox.appendChild(el('div', {
             class: 'cmd-rule',
@@ -1208,10 +1218,10 @@ const SECTIONS = {
                 }
               };
 
-              const addInput = el('input', { class: 'cmd-alias-input', placeholder: 'اختصار جديد', maxlength: '20', dir: 'ltr' });
+              const addInput = el('input', { class: 'cmd-alias-input', placeholder: 'اختصار بأي لغة', maxlength: '20', dir: 'auto' });
               const addBtn = el('button', { class: 'cmd-add', html: `${ic('plus', 13)} إضافة` });
               const commit = () => {
-                const value = String(addInput.value || '').trim().toLowerCase();
+                const value = String(addInput.value || '').trim().replace(/\s+/g, '');
                 if (!value) return;
                 if (current.includes(value)) { toast('الاختصار مضاف من قبل', true); return; }
                 if (current.length >= 5) { toast('الحد الأقصى ٥ اختصارات للأمر', true); return; }
@@ -1227,6 +1237,94 @@ const SECTIONS = {
               editor.appendChild(addInput);
               editor.appendChild(addBtn);
               row.appendChild(editor);
+
+              /*
+               * قواعد الأمر — نفس خيارات تعديل الأمر في البوتات المعروفة:
+               *   رتب مفعّلة/معطّلة · رومات مفعّلة/معطّلة · أنواع الردود (٣ خيارات حذف).
+               */
+              const rulesBox = el('div', { class: 'cmd-rules hide' });
+              const rulesBtn = el('button', { class: 'cmd-rules-btn', title: 'قواعد الأمر', html: `${ic('sliders', 13)} قواعد` });
+              rulesBtn.addEventListener('click', () => rulesBox.classList.toggle('hide'));
+              row.appendChild(rulesBtn);
+
+              let rules = JSON.parse(JSON.stringify(item.rules || {}));
+
+              const picker = (label, key, options, emptyText, nameOf) => {
+                const block = el('div', { class: 'rule-block' });
+                block.appendChild(el('span', { class: 'rule-head', text: label }));
+                const chipsWrap = el('div', { class: 'rule-chips' });
+                const paint = () => {
+                  chipsWrap.innerHTML = '';
+                  if (!rules[key].length) chipsWrap.appendChild(el('span', { class: 'cmd-none', text: emptyText }));
+                  rules[key].forEach((id) => {
+                    const chip = el('button', { class: 'rule-chip', title: 'شيل', html: `${esc(nameOf(id))} ${ic('close', 11)}` });
+                    chip.addEventListener('click', () => {
+                      rules[key] = rules[key].filter((x) => x !== id);
+                      paint();
+                      paintSelect();
+                    });
+                    chipsWrap.appendChild(chip);
+                  });
+                };
+                const select = el('select', { class: 'rule-select' });
+                const paintSelect = () => {
+                  const list = typeof options === 'function' ? options() : options;
+                  select.innerHTML = '';
+                  select.appendChild(el('option', { value: '', text: '— اختر —' }));
+                  list
+                    .filter((o) => !rules[key].includes(o.id))
+                    .forEach((o) => select.appendChild(el('option', { value: o.id, text: o.label })));
+                };
+                select.addEventListener('change', () => {
+                  if (!select.value) return;
+                  rules[key] = [...rules[key], select.value];
+                  select.value = '';
+                  paint();
+                  paintSelect();
+                });
+                paint();
+                paintSelect();
+                block.appendChild(chipsWrap);
+                block.appendChild(select);
+                rulesBox.dataset[`key${key}`] = '1';
+                return block;
+              };
+
+              const grid = el('div', { class: 'rules-grid' });
+              grid.appendChild(picker('رتب مفعّلة (بس أصحابها)', 'enabledRoles', () => state.meta.roles.map((r) => ({ id: r.id, label: r.name })), 'بلا قيد', nameOfRole));
+              grid.appendChild(picker('رتب معطّلة (ممنوعة)', 'disabledRoles', () => state.meta.roles.map((r) => ({ id: r.id, label: r.name })), 'بلا قيد', nameOfRole));
+              grid.appendChild(picker('رومات مفعّلة (بس فيها)', 'enabledChannels', () => state.meta.channels.filter((c) => c.type !== 4).map((c) => ({ id: c.id, label: `#${c.name}` })), 'كل الرومات', nameOfChannel));
+              grid.appendChild(picker('رومات معطّلة (ممنوعة)', 'disabledChannels', () => state.meta.channels.filter((c) => c.type !== 4).map((c) => ({ id: c.id, label: `#${c.name}` })), 'بلا منع', nameOfChannel));
+              rulesBox.appendChild(grid);
+
+              const flagsRow = el('div', { class: 'rules-flags' });
+              [
+                ['autoDeleteInvocation', 'حذف رسالة الأمر فورًا'],
+                ['autoDeleteWithMessage', 'حذف الرد لما يحذف العضو رسالته'],
+                ['autoDeleteReplyAfter5s', 'حذف الرد بعد ٥ ثوانٍ'],
+              ].forEach(([key, label]) => {
+                const flag = el('label', { class: 'rule-flag' });
+                const input = el('input', { type: 'checkbox' });
+                input.checked = Boolean(rules[key]);
+                input.addEventListener('change', () => { rules[key] = input.checked; });
+                flag.appendChild(input);
+                flag.appendChild(el('span', { text: label }));
+                flagsRow.appendChild(flag);
+              });
+              rulesBox.appendChild(flagsRow);
+
+              const rulesSave = el('button', { class: 'cmd-add rules-save', html: `${ic('save', 13)} حفظ القواعد` });
+              rulesSave.addEventListener('click', async () => {
+                try {
+                  const res = await api(`/guilds/${state.guildId}/commands/rules`, { method: 'POST', body: { command: item.name, rules } });
+                  rules = res.rules;
+                  toast(`تم حفظ قواعد ${item.name}`);
+                } catch (err) {
+                  toast(err.message, true);
+                }
+              });
+              rulesBox.appendChild(rulesSave);
+              row.appendChild(rulesBox);
 
               body.appendChild(row);
             });

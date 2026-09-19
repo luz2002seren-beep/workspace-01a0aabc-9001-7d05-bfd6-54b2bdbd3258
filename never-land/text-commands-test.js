@@ -69,6 +69,16 @@ async function run() {
     reply: async (payload) => { replies.push(payload); return { delete: async () => {} }; },
   });
 
+  /** أداة اختبار بخيارات: قناة مخصّصة · رتب · تتبّع حذف رسالة الأمر */
+  const doItWith = async (content, opts = {}) => {
+    const author = { ...plainMember, roles: { cache: new Map((opts.roles || []).map((r) => [r, {}])) } };
+    const msg = makeMessage(content, author);
+    msg.delete = async () => { msg._deleted = true; };
+    if (opts.channelId) msg.channel = { ...channel, id: opts.channelId };
+    const handled = await text.handleMessage(client, msg);
+    return { handled, deleted: Boolean(msg._deleted) };
+  };
+
   const commands = new Map();
   const register = (name, defs = [], options = {}) => {
     let builder = new SlashCommandBuilder().setName(name).setDescription(`أمر ${name}`);
@@ -146,6 +156,7 @@ async function run() {
   ]);
   register('kick', [{ name: 'العضو', type: 'user', required: true }], { permissions: ['kick'] });
   register('help', []);
+  register('unban', [{ name: 'العضو', type: 'text', required: true }]);
 
   const client = { commands, user: { id: '1' } };
 
@@ -213,13 +224,38 @@ async function run() {
   assert.strictEqual(await text.handleMessage(client, botMessage), false, 'البوت نفّذ أمرًا');
   console.log(`٣) الكلمات العربية والبوتات: ما تنفّذ شي · والأوامر المطفية من الموقع تتوقف ✅ (ملاحظة: كلمة إنجليزية شائعة مثل top قد تلمس الأمر${triggeredByPlainWord ? ' — والمفتاح لكل أمر يوقفها' : ''})`);
 
-  /* ----------------------- ٤) الاختصارات ----------------------- */
-  const added = text.setAliases(GUILD, 'ban', ['bn', 'حظر']);
-  assert.strictEqual(added.ok, false, 'اختصار عربي انقبل!');
-  assert.deepStrictEqual(added.invalid, ['حظر'], 'الاختصار العربي ما انرفض صح');
+  /* ----------------------- ٤) الاختصارات (بأي لغة) ----------------------- */
+  /* الافتراضي: اختصارات إنجليزية + عربية جاهزة لكل أمر */
+  assert.strictEqual(text.resolveCommand(GUILD, 'حظر'), 'ban', 'الاختصار العربي «حظر» ما انعرف');
+  assert.strictEqual(text.resolveCommand(GUILD, 'توب'), 'top', 'الاختصار العربي «توب» ما انعرف');
+  assert.strictEqual(text.resolveCommand(GUILD, 'فكالحظر'), 'unban', 'اختصار الكلمتين «فك الحظر» ما انعرف');
+  assert.strictEqual(text.resolveCommand(GUILD, 'مدير'), null, 'كلمة عشوائية انحسبت اختصارًا');
 
-  const okAdd = text.setAliases(GUILD, 'ban', ['bn']);
-  assert.strictEqual(okAdd.ok, true, 'إضافة اختصار إنجليزي فشلت');
+  calls.length = 0;
+  await doIt('حظر <@111111111111111111> باند');
+  assert.strictEqual(calls[0]?.name, 'ban', 'الاختصار العربي الافتراضي «حظر» ما نفّذ الحظر');
+
+  calls.length = 0;
+  await doIt('فك الحظر <@111111111111111111>');
+  assert.strictEqual(calls[0]?.name, 'unban', 'اختصار الكلمتين ما نفّذ الأمر');
+
+  /* إضافة اختصار بأي لغة من اللوحة */
+  const arAdd = text.setAliases(GUILD, 'top', ['المتصدرين', 'yasakla']);
+  assert.strictEqual(arAdd.ok, true, 'اختصار بأي لغة ما انقبل');
+  assert.strictEqual(text.resolveCommand(GUILD, 'yasakla'), 'top', 'اختصار تركي ما اشتغل');
+
+  /* اختصار محجوز لأمر ثاني (عربي افتراضي عند kick) → مرفوض */
+  const clash = text.setAliases(GUILD, 'ban', ['طرد']);
+  assert.strictEqual(clash.ok, false, 'اختصار عربي محجوز انقبل!');
+  assert.strictEqual(clash.takenBy['طرد'], 'kick', 'التعارض العربي ما انكشف صح');
+
+  /* رمز غلط → مرفوض */
+  const badAlias = text.setAliases(GUILD, 'ban', ['!!!']);
+  assert.strictEqual(badAlias.ok, false, 'اختصار غير صالح انقبل!');
+
+  /* إضافة/حذف اختصار إنجليزي (كما قبل) */
+  const okAdd = text.setAliases(GUILD, 'ban', ['bn', 'حظر']);
+  assert.strictEqual(okAdd.ok, true, 'إضافة الاختصار فشلت');
 
   calls.length = 0;
   await doIt('bn <@111111111111111111>');
@@ -238,7 +274,56 @@ async function run() {
   calls.length = 0;
   await doIt('ban <@111111111111111111>');
   assert.strictEqual(calls[0]?.name, 'ban', 'اسم الأمر نفسه ما اشتغل بعد حذف الاختصار');
-  console.log('٤) الاختصارات: إضافة · منع التعارض · رفض العربي · حذف — كله صح ✅');
+  console.log('٤) الاختصارات بأي لغة: عربي افتراضي (حظر · توب · فك الحظر) · إضافة تركي/عربي · منع التعارض · حذف — كله صح ✅');
+
+  /* ----------------------- ٤ب) قواعد الأمر ----------------------- */
+  /* رومات: قناة معطّلة = ما يشتغل · قناة مفعّلة = بس فيها */
+  const savedRules = text.setRules(GUILD, 'ban', { disabledChannels: ['900000000000000001'] });
+  assert.strictEqual(savedRules.ok, true, 'حفظ قواعد الأمر فشل');
+  assert.deepStrictEqual(text.rulesFor(GUILD, 'ban').disabledChannels, ['900000000000000001'], 'القناة المعطّلة ما انحفظت');
+
+  calls.length = 0;
+  await doItWith('ban <@111111111111111111>', { channelId: '900000000000000001' });
+  assert.strictEqual(calls.length, 0, 'الأمر اشتغل في روم معطّل!');
+
+  text.setRules(GUILD, 'ban', { disabledChannels: [], enabledChannels: ['900000000000000002'] });
+  calls.length = 0;
+  await doItWith('ban <@111111111111111111>', { channelId: '900000000000000003' });
+  assert.strictEqual(calls.length, 0, 'الأمر اشتغل في روم مو من القائمة المفعّلة!');
+
+  calls.length = 0;
+  await doItWith('ban <@111111111111111111>', { channelId: '900000000000000002' });
+  assert.strictEqual(calls[0]?.name, 'ban', 'الأمر ما اشتغل في الروم المفعّل');
+  text.setRules(GUILD, 'ban', { enabledChannels: [] });
+
+  /* رتب: معطّلة = ممنوع · مفعّلة = بس أصحابها */
+  const roleId = '900000000000000009';
+  text.setRules(GUILD, 'ban', { disabledRoles: [roleId] });
+  calls.length = 0;
+  await doItWith('ban <@111111111111111111>', { roles: [roleId] });
+  assert.strictEqual(calls.length, 0, 'الأمر اشتغل لعضو عنده رتبة معطّلة!');
+
+  text.setRules(GUILD, 'ban', { disabledRoles: [], enabledRoles: [roleId] });
+  calls.length = 0;
+  await doIt('ban <@111111111111111111>');
+  assert.strictEqual(calls.length, 0, 'الأمر اشتغل لعضو مو من الرتب المفعّلة!');
+
+  calls.length = 0;
+  await doItWith('ban <@111111111111111111>', { roles: [roleId] });
+  assert.strictEqual(calls[0]?.name, 'ban', 'الأمر ما اشتغل لصاحب الرتبة المفعّلة');
+
+  /* أنواع الردود: رسالة الأمر تنحذف فورًا لو الخيار شغّال */
+  text.setRules(GUILD, 'ban', { enabledRoles: [], autoDeleteInvocation: true });
+  const rules = text.rulesFor(GUILD, 'ban');
+  assert.strictEqual(rules.autoDeleteInvocation, true, 'خيار حذف رسالة الأمر ما انحفظ');
+  assert.strictEqual(text.rulesFor(GUILD, 'ban').autoDeleteWithMessage, false, 'خيار غلط انشغل لحاله');
+  const delResult = await doItWith('ban <@111111111111111111>');
+  assert.strictEqual(delResult.deleted, true, 'رسالة الأمر ما انحذفت مع الخيار');
+  text.setRules(GUILD, 'ban', { autoDeleteInvocation: false });
+
+  assert.strictEqual(text.setRules(GUILD, 'nope', {}).ok, false, 'أمر غير موجود انقبل');
+  assert.strictEqual(text.setRules(GUILD, 'ban', { disabledRoles: ['abc'] }).ok, false, 'معرّف غلط انقبل');
+  console.log('٤ب) قواعد الأمر: رومات مفعّلة/معطّلة · رتب مفعّلة/معطّلة · حذف رسالة الأمر — كله صح ✅');
 
   /* ----------------------- ٥) الإيقاف والإعدادات ----------------------- */
   const turnedOff = text.setOptions(GUILD, { enabled: false });

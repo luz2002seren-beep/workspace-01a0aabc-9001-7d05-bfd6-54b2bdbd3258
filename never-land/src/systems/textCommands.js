@@ -3,7 +3,10 @@
 /**
  * systems/textCommands.js
  * -------------------------------------------------------------
- * أوامر شات بلا بريفيكست (بانجليزي) + اختصارات قابلة للتعديل من الموقع.
+ * أوامر شات بلا بريفيكست + اختصارات بأي لغة + قواعد لكل أمر.
+ *
+ * اللغات: كل أمر عنده اختصاراته الإنجليزية والعربية افتراضيًا،
+ * وصاحب السيرفر يضيف اختصارًا بأي لغة (عربي · تركي · إسباني · روسي…) من اللوحة.
  *
  * كيف تشتغل:
  *   ١) صاحب السيرفر يحدّد من اللوحة: تشغيل/إيقاف + اختصار لكل أمر
@@ -25,13 +28,57 @@ const { t } = require('../lib/i18n');
 /** الأمر: شغّال بلا بريفيكست؟ وما هي اختصاراته؟ */
 const PREFIX_KEY = 'textCommands';
 
+/**
+ * اختصارات عربية افتراضية لكل أمر — تُعرض في اللوحة وتُعدَّل منها (تزيد/تشيل).
+ * أوامر الإدارة: الكلمات الشائعة المعروفة فقط حتى ما يصير إزعاج بالشات،
+ * وأي كلمة ثانية بأي لغة تُضاف من قسم «اختصارات الأوامر».
+ */
+const AR_TRIGGERS = {
+  help: ['مساعدة'],
+  ping: ['بينغ'],
+  botinfo: ['البوت'],
+  serverinfo: ['السيرفر'],
+  userinfo: ['معلوماتي'],
+  avatar: ['افتار', 'صورتي'],
+  top: ['توب', 'المتصدرين'],
+  leveling: ['لفل'],
+  poll: ['تصويت'],
+  remind: ['تذكير'],
+  ban: ['حظر', 'باند'],
+  unban: ['فك الحظر'],
+  kick: ['طرد', 'كيك'],
+  timeout: ['اسكت', 'كتم'],
+  warn: ['تحذير', 'انذار'],
+  purge: ['مسح', 'نظف'],
+  lock: ['اقفل', 'سكر'],
+  slowmode: ['بطيء'],
+};
+
+/** قواعد الأمر (خيارات تعديل الأمر): رومات · رتب · أنواع الردود */
+const RULE_LISTS = ['enabledRoles', 'disabledRoles', 'enabledChannels', 'disabledChannels'];
+const RULE_FLAGS = ['autoDeleteInvocation', 'autoDeleteWithMessage', 'autoDeleteReplyAfter5s'];
+
+function emptyRules() {
+  return {
+    enabledRoles: [],
+    disabledRoles: [],
+    enabledChannels: [],
+    disabledChannels: [],
+    autoDeleteInvocation: false,
+    autoDeleteWithMessage: false,
+    autoDeleteReplyAfter5s: false,
+  };
+}
+
 /** الإعدادات الافتراضية: تشغيل + الاختصارات المقترحة من الكتالوج */
 function defaultsFor() {
   const aliases = {};
   for (const [name, meta] of Object.entries(catalog.COMMANDS)) {
-    aliases[name] = Array.isArray(meta.aliases) ? [...meta.aliases] : [];
+    const list = Array.isArray(meta.aliases) ? [...meta.aliases] : [];
+    for (const word of AR_TRIGGERS[name] || []) if (!list.includes(word)) list.push(word);
+    aliases[name] = list;
   }
-  return { enabled: true, aliases, cooldownSeconds: 3, disabled: [], suggest: true };
+  return { enabled: true, aliases, cooldownSeconds: 3, disabled: [], suggest: true, perCommand: {} };
 }
 
 /**
@@ -85,13 +132,84 @@ function configFor(guildId) {
     disabled: Array.isArray(saved.disabled) ? saved.disabled.filter((n) => catalog.COMMANDS[n]) : base.disabled,
     /* اقتراح الأوامر المشابهة: لو كتب عضو كلمة تشبه أمرًا (طير · اسكت · bann) يردّ عليه بالبدائل */
     suggest: saved.suggest === undefined ? base.suggest : Boolean(saved.suggest),
+    /* قواعد كل أمر: رومات ممنوعة/مسموحة · رتب · أنواع الردود */
+    perCommand: saved.perCommand && typeof saved.perCommand === 'object' ? saved.perCommand : {},
   };
 }
 
-/** تنظيف الاختصار: إنجليزي فقط، بلا مسافات، بحروف صغيرة، بحد أقصى ٢٠ حرفًا */
+/** قواعد أمر واحد بعد الدمج مع الافتراضي (بلا كتابة) */
+function rulesFor(guildId, commandName) {
+  const saved = configFor(guildId).perCommand?.[commandName] || {};
+  const rules = emptyRules();
+  for (const key of RULE_LISTS) {
+    rules[key] = Array.isArray(saved[key])
+      ? saved[key].map((x) => String(x)).filter((x) => /^[0-9]{5,25}$/.test(x)).slice(0, 25)
+      : [];
+  }
+  for (const key of RULE_FLAGS) rules[key] = Boolean(saved[key]);
+  return rules;
+}
+
+/** هل الروم يسمح؟ (قنوات مفعّلة = قائمة بيضاء · معطّلة = قائمة سوداء) */
+function channelAllowed(rules, channelId) {
+  const id = String(channelId || '');
+  if (!id) return true;
+  if (rules.enabledChannels.length && !rules.enabledChannels.includes(id)) return false;
+  if (rules.disabledChannels.includes(id)) return false;
+  return true;
+}
+
+/** هل الرتب تسمح؟ (رتب معطّلة ← منع · رتب مفعّلة ← بس أصحابها) */
+function roleAllowed(rules, member = {}) {
+  if (!rules.enabledRoles.length && !rules.disabledRoles.length) return true;
+  let ids = [];
+  try { ids = [...(member.roles?.cache?.keys?.() || [])].map(String); } catch { ids = []; }
+  if (rules.disabledRoles.some((r) => ids.includes(r))) return false;
+  if (rules.enabledRoles.length && !rules.enabledRoles.some((r) => ids.includes(r))) return false;
+  return true;
+}
+
+/** تعديل قواعد أمر (من اللوحة): رتب · رومات · أنواع الردود */
+function setRules(guildId, commandName, patch = {}) {
+  if (!catalog.COMMANDS[commandName]) return { ok: false, error: 'unknown_command' };
+
+  const current = rulesFor(guildId, commandName);
+  const next = emptyRules();
+  for (const key of RULE_LISTS) {
+    const list = patch[key] === undefined ? current[key] : [].concat(patch[key] || []);
+    const ids = [...new Set(list.map((x) => String(x || '').trim()).filter(Boolean))];
+    const invalid = ids.filter((id) => !/^[0-9]{5,25}$/.test(id));
+    if (invalid.length) return { ok: false, error: 'invalid_id', invalid };
+    next[key] = ids.slice(0, 25);
+  }
+  for (const key of RULE_FLAGS) {
+    next[key] = patch[key] === undefined ? current[key] : Boolean(patch[key]);
+  }
+
+  const saved = db.getGuild(guildId).settings?.[PREFIX_KEY]?.perCommand || {};
+  db.updateGuildSettings(guildId, { [PREFIX_KEY]: { perCommand: { ...saved, [commandName]: next } } });
+  return { ok: true, command: commandName, rules: rulesFor(guildId, commandName) };
+}
+
+/**
+ * تنظيف الاختصار: أي لغة (عربي · إنجليزي · تركي · روسي…)، بلا مسافات، بحد أقصى ٢٠ حرفًا.
+ *   • المسافات تُشال: «فك الحظر» تُخزَّن «فكالحظر» وتُكتب في الشات ككلمتين.
+ *   • الرموز في الأول (# / !) تُشال.
+ */
 function normalizeAlias(value) {
-  const clean = String(value || '').trim().toLowerCase().replace(/\s+/g, '').slice(0, 20);
-  return /^[a-z][a-z0-9_-]*$/.test(clean) ? clean : '';
+  const clean = String(value || '')
+    .trim()
+    .replace(/^[#/!.,]+/, '')
+    .replace(/\s+/g, '')
+    .toLowerCase()
+    .slice(0, 20);
+  if (!clean) return '';
+  return /^[\p{L}][\p{L}\p{N}_-]*$/u.test(clean) ? clean : '';
+}
+
+/** مفتاح المطابقة: شكل الاختصار منظّفًا (بلا مسافات وبرموز موحّدة) */
+function aliasKey(value) {
+  return normalizeAlias(value) || String(value || '').trim().toLowerCase();
 }
 
 /** كل الاختصارات مع أسماء الأوامر ومستخدِميها */
@@ -100,7 +218,8 @@ function aliasIndex(guildId) {
   const map = new Map();
   for (const [name, list] of Object.entries(config.aliases)) {
     for (const alias of list) {
-      if (!map.has(alias)) map.set(alias, name);
+      const key = aliasKey(alias);
+      if (key && !map.has(key)) map.set(key, name);
     }
   }
   return { config, map };
@@ -398,7 +517,13 @@ async function handleMessage(client, message) {
   if (!content) return false;
 
   const parts = content.split(/\s+/);
-  const name = resolveCommand(guildId, parts[0]);
+  /* الاختصار إما كلمة وحدة أو كلمتين (مثل: «فك الحظر») — نجرّب الاثنين */
+  let name = resolveCommand(guildId, parts[0]);
+  let usedWords = 1;
+  if (!name && parts.length > 1) {
+    const two = resolveCommand(guildId, `${parts[0]}${parts[1]}`);
+    if (two) { name = two; usedWords = 2; }
+  }
   if (!name) return false;
 
   const command = client.commands.get(name) || client.commands.get(Object.keys(client.commands).find((k) => k.toLowerCase() === name.toLowerCase()));
@@ -407,12 +532,35 @@ async function handleMessage(client, message) {
   /* الأمر الفرعي: الكلمة الثانية إن كان الأمر يقبل أوامر فرعية */
   const subNames = Object.keys(command.data.toJSON().options?.length ? subMap(command) : {});
   let sub = null;
-  let args = parts.slice(1);
+  let args = parts.slice(usedWords);
   if (subNames.length && args.length && subNames.includes(args[0].toLowerCase())) {
     sub = args[0].toLowerCase();
     args = args.slice(1);
   }
   args._subName = sub;
+
+  /*
+   * قواعد الأمر (نفس خيارات تعديل الأمر في البوتات المعروفة):
+   *   • قنوات مفعّلة/معطّلة: الأمر يشتغل (أو ما يشتغل) إلا في رومات محددة.
+   *   • رتب مفعّلة/معطّلة: مين يقدر يستعمل الأمر.
+   *   • أنواع الردود: حذف رسالة الأمر · حذف الرد مع حذف رسالة العضو · حذف الرد بعد ٥ ثوانٍ.
+   */
+  const rules = rulesFor(guildId, name);
+  if (!channelAllowed(rules, message.channel?.id)) return false;
+
+  const isGuildOwner = Boolean(message.guild?.ownerId) && String(message.guild.ownerId) === String(message.author.id);
+  const bypassRules = isGuildOwner || require('../config').bot.developerIds.includes(message.author.id);
+  if (!bypassRules && !roleAllowed(rules, message.member)) {
+    await message.reply({
+      content: 'هذا الأمر مو متاح لك — فيه قيود رتب من إعدادات السيرفر.',
+      allowedMentions: { repliedUser: false },
+    }).catch(() => {});
+    return true;
+  }
+
+  /* نحفظ القواعد للرد حتى تُطبَّق أنواع الحذف المختارة */
+  pendingRules.set(message, rules);
+  if (rules.autoDeleteInvocation) message.delete?.().catch?.(() => {});
 
   /* الصلاحيات: نفس شرط السلاش */
   const isDev = require('../config').bot.developerIds.includes(message.author.id);
@@ -618,14 +766,38 @@ function makeFakeInteraction(client, message, command, args, sub) {
   return interaction;
 }
 
+/** قواعد الأمر الجارية لكل رسالة (تستخدمها replyToMessage) */
+const pendingRules = new WeakMap();
+
 function replyToMessage(message, payload) {
   const safe = { ...(payload || {}) };
   delete safe.flags; // أوامر السلاش قد ترسل ردًا خاصًا — في الشات نرد عادي
   delete safe.ephemeral;
+
+  const rules = pendingRules.get(message) || {};
+  /* أنواع الردود: ٥ ثوانٍ (لو مختار) وإلا التنظيف الافتراضي بعد دقيقتين */
+  const lifetime = rules.autoDeleteReplyAfter5s ? 5000 : 120000;
+
   return message.reply({ allowedMentions: { repliedUser: false }, ...safe }).then((sent) => {
-    /* حذف تلقائي لردود الأوامر بعد دقيقتين حتى لا يمتلئ الشات */
-    const timer = setTimeout(() => sent.delete().catch(() => {}), 120000);
+    const timer = setTimeout(() => sent?.delete?.().catch?.(() => {}), lifetime);
     timer.unref?.();
+
+    /* حذف الرد لما يحذف العضو رسالته الأصلية */
+    if (rules.autoDeleteWithMessage && sent?.delete) {
+      try {
+        const client = message.client;
+        if (client?.on) {
+          const onDelete = (deleted) => {
+            if (deleted?.id !== message.id) return;
+            sent.delete().catch(() => {});
+            client.off?.('messageDelete', onDelete);
+          };
+          client.on('messageDelete', onDelete);
+          const stop = setTimeout(() => client.off?.('messageDelete', onDelete), 600000);
+          stop.unref?.();
+        }
+      } catch { /* ما نوقف الأمر */ }
+    }
     return sent;
   }).catch(() => null);
 }
@@ -637,12 +809,16 @@ function adminSnapshot(guildId, commandNames = [], { staffViewer = true } = {}) 
   const config = configFor(guildId);
   const used = new Map();
   for (const [name, list] of Object.entries(config.aliases)) {
-    for (const alias of list) if (!used.has(alias)) used.set(alias, name);
+    for (const alias of list) {
+      const key = aliasKey(alias);
+      if (key && !used.has(key)) used.set(key, name);
+    }
   }
 
   /* كل الأسماء والاختصارات المستعملة — نبني عليها الاقتراحات خطوة بخطوة حتى لا تتعارض */
   const reserved = new Set(Object.keys(catalog.COMMANDS).map((n) => n.toLowerCase()));
   for (const alias of used.keys()) reserved.add(alias);
+  for (const alias of used.keys()) reserved.add(aliasKey(alias));
 
   /*
    * غير الإداري ما يشوف أوامر الإدارة إطلاقًا في اللوحة — لا في الاختصارات ولا في المكتبة،
@@ -653,7 +829,7 @@ function adminSnapshot(guildId, commandNames = [], { staffViewer = true } = {}) 
 
   const items = entries.map(([name, meta]) => {
     const aliases = config.aliases[name] || [];
-    const conflict = aliases.filter((a) => used.get(a) && used.get(a) !== name);
+    const conflict = aliases.filter((a) => used.get(aliasKey(a)) && used.get(aliasKey(a)) !== name);
     const suggested = suggestAlias(name, reserved);
     reserved.add(suggested);
     const audience = catalog.audienceOf(name, meta);
@@ -676,6 +852,7 @@ function adminSnapshot(guildId, commandNames = [], { staffViewer = true } = {}) 
       aliases,
       suggested,
       conflict,
+      rules: rulesFor(guildId, name),
     };
   });
 
@@ -707,16 +884,24 @@ function adminSnapshot(guildId, commandNames = [], { staffViewer = true } = {}) 
 function setAliases(guildId, commandName, aliases) {
   if (!catalog.COMMANDS[commandName]) return { ok: false, error: 'unknown_command' };
 
-  const clean = [...new Set([].concat(aliases || []).map(normalizeAlias).filter(Boolean))].slice(0, 5);
-  const invalid = [].concat(aliases || []).map((a) => String(a || '').trim()).filter((a) => a && !normalizeAlias(a));
+  const raw = [].concat(aliases || []).map((a) => String(a || '').trim()).filter(Boolean);
+  const invalid = raw.filter((a) => !normalizeAlias(a));
   if (invalid.length) return { ok: false, error: 'invalid_alias', invalid };
+  const seen = new Set();
+  const clean = raw.filter((a) => {
+    const key = aliasKey(a);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 5);
 
   const current = configFor(guildId);
   /* منع التعارض مع أوامر ثانية */
   const takenBy = {};
+  const newKeys = new Set(clean.map(aliasKey));
   for (const [name, list] of Object.entries(current.aliases)) {
     if (name === commandName) continue;
-    for (const alias of list) if (clean.includes(alias)) takenBy[alias] = name;
+    for (const alias of list) if (newKeys.has(aliasKey(alias))) takenBy[alias] = name;
   }
   if (Object.keys(takenBy).length) return { ok: false, error: 'alias_taken', takenBy };
 
@@ -753,6 +938,15 @@ function setCommandEnabled(guildId, commandName, enabled) {
 
 module.exports = {
   PREFIX_KEY,
+  aliasKey,
+  AR_TRIGGERS,
+  RULE_LISTS,
+  RULE_FLAGS,
+  emptyRules,
+  rulesFor,
+  setRules,
+  channelAllowed,
+  roleAllowed,
   setCommandEnabled,
   setOptions,
   defaultsFor,

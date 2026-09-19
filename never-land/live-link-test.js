@@ -104,9 +104,9 @@ async function run() {
   assert.ok(!cardData.footer, 'البطاقة فيها تذييل — المطلوب وقت الرسالة فقط');
   assert.ok(!/أوامر مشابهة/.test(JSON.stringify(cardData)), 'لسا في سطر «أوامر مشابهة» في البطاقة');
 
-  /* الاختصارات المعروضة = المزبّطة من الموقع، لا كلمات جاهزة */
-  assert.strictEqual(cardData.fields[0].value, '#b', 'الاختصارات الافتراضية غير مطابقة للموقع');
-  assert.ok(!cardData.fields[0].value.includes('طير'), 'اختصار عربي جاهز ظهر بالبطاقة');
+  /* الاختصارات المعروضة = الموجودة في اللوحة (إنجليزي + عربي افتراضي)، وبأي لغة يضيفها صاحب السيرفر */
+  assert.strictEqual(cardData.fields[0].value, '#b، #حظر، #باند', 'اختصارات البطاقة غير مطابقة للوحة');
+  assert.ok(!cardData.fields[0].value.includes('طير'), 'اختصار جاهز غير موجود في اللوحة ظهر بالبطاقة');
   assert.ok(textCommands.setAliases(GUILD, 'ban', ['b', 'banned']).ok, 'ما قدرنا نضيف اختصارًا من الموقع');
   const cardAfter = suggestions.card('ban', { guildId: GUILD }).data;
   console.log('   بعد إضافة اختصار من الموقع:', cardAfter.fields[0].value);
