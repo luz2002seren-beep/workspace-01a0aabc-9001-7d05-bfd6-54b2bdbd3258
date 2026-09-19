@@ -88,6 +88,10 @@ const client = { user: { id: 'bot-1' } };
   assert.ok(autoreply.matchRule(contains, 'يا شباب مرحبا فيكم'), 'مطابقة «تحتوي» فشلت');
   assert.ok(autoreply.matchRule(contains, 'مرحبا'), 'مطابقة كلمة واحدة فشلت');
   assert.ok(!autoreply.matchRule(contains, 'بيحب التعاون'), 'مطابقة خاطئة (نص فيه الحروف بس مش الكلمة)');
+  /* كلمة كاملة: الكلمة الملتصقة داخل كلمة أطول ما تُحسب */
+  assert.ok(!autoreply.matchRule(contains, 'هياهاياهايي'), '«هاي» انحسبت داخل كلمة أطول');
+  assert.ok(!autoreply.matchRule(contains, 'مرحبااااا'), 'كلمة ملتصقة انحسبت مطابقة');
+  assert.ok(autoreply.matchRule(contains, 'يا جماعة مرحبا فيكم'), 'الكلمة بوسط الجملة ما اشتغلت');
   const exact = { triggers: ['help'], match: 'exact', reply: 'x' };
   assert.ok(autoreply.matchRule(exact, 'help'), 'مطابقة تامة فشلت');
   assert.ok(!autoreply.matchRule(exact, 'help me please'), 'مطابقة تامة قبلت نصًا زائدًا');

@@ -1611,7 +1611,7 @@ const SECTIONS = {
       const rules = Array.isArray(cfg.rules) ? cfg.rules : [];
 
       const MODES = [
-        { value: 'contains', label: 'تحتوي على الكلمة' },
+        { value: 'contains', label: 'تحتوي على الكلمة (كلمة كاملة)' },
         { value: 'exact', label: 'الرسالة نفسها بالضبط' },
         { value: 'starts', label: 'تبدأ بالكلمة' },
       ];

@@ -26,7 +26,7 @@ const replyCooldown = new Map();
 
 /** أنواع المطابقة المدعومة */
 const MATCH_MODES = {
-  contains: 'تحتوي على الكلمة',
+  contains: 'تحتوي على الكلمة (كلمة كاملة)',
   exact: 'الرسالة نفسها بالضبط',
   starts: 'تبدأ بالكلمة',
 };
@@ -37,6 +37,39 @@ function ruleTriggers(rule) {
   const raw = rule.triggers ?? rule.trigger ?? rule.words ?? rule.word ?? [];
   const list = Array.isArray(raw) ? raw : String(raw).split(/[,،|]/);
   return list.map((t) => String(t).trim()).filter(Boolean);
+}
+
+/**
+ * كلمات الرسالة بعد التطبيع العربي (بلا تشكيل، وموحّدة).
+ * التقسيم بحروف أي لغة — عربي · إنجليزي · تركي… مو مسافات إنجليزية فقط.
+ */
+function wordTokens(raw) {
+  return String(raw || '')
+    .split(/[^\p{L}\p{N}\p{M}]+/u)
+    .map((token) => normalizeArabic(token))
+    .filter(Boolean);
+}
+
+/**
+ * مطابقة **كلمات كاملة**: «هاي» تنطبق على «هاي كيفك» — وما تنطبق على «هياهاياهايي».
+ * والعبارة المركّبة («السلام عليكم») لازم تكون كلماتها ورا بعض.
+ */
+function hasWholeWords(content, trigger) {
+  const hay = wordTokens(content);
+  const needle = wordTokens(trigger);
+  if (!needle.length || hay.length < needle.length) return false;
+  for (let i = 0; i + needle.length <= hay.length; i += 1) {
+    if (needle.every((w, k) => hay[i + k] === w)) return true;
+  }
+  return false;
+}
+
+/** «تبدأ بالكلمة»: الكلمات من أول الرسالة وما تكون ملتصقة بكلمة أطول */
+function startsWithWholeWords(content, trigger) {
+  const hay = wordTokens(content);
+  const needle = wordTokens(trigger);
+  if (!needle.length || hay.length < needle.length) return false;
+  return needle.every((w, k) => hay[k] === w);
 }
 
 /** هل الرسالة تطابق القاعدة؟ (المقارنة بعد التطبيع العربي) */
@@ -52,8 +85,9 @@ function matchRule(rule, content) {
     const needle = normalizeArabic(trigger);
     if (!needle) return false;
     if (mode === 'exact') return text === needle;
-    if (mode === 'starts') return text.startsWith(needle);
-    return text.includes(needle);
+    if (mode === 'starts') return startsWithWholeWords(content, trigger);
+    /* «تحتوي على الكلمة»: كلمة كاملة فقط — مو داخل كلمة أطول */
+    return hasWholeWords(content, trigger);
   });
 }
 
@@ -229,6 +263,9 @@ function starterRule() {
 }
 
 module.exports = {
+  wordTokens,
+  hasWholeWords,
+  startsWithWholeWords,
   handleMessage,
   starterRule,
   preview,

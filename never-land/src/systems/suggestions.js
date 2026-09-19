@@ -6,11 +6,12 @@
  * «هل تقصد؟» — لو كتب عضو كلمة تشبه أمرًا (عربي أو إنجليزي مكتوب غلط)
  * يردّ عليه البوت برسالة فيها الأوامر المشابهة وطريقة كتابتها.
  *
- *   طير      → kick · ban · timeout
+ *   طير      → ban · kick · timeout
  *   اسكت     → timeout
  *   مسح      → purge
- *   rank     → leveling · top
- *   bann     → ban
+ *
+ * القاعدة الأهم: **مطابقة تامة فقط**. بلا تقريب ولا غلطات كتابة:
+ * كلمة قريبة («بانا» · «حياهاي») ما تُعتبر أمرًا ولا يطلع لها أي رد.
  *
  * قواعد مهمة:
  *   • الرد على العضو العادي يعرض أوامر الأعضاء فقط — أوامر الإدارة ما تنكشف له.
@@ -198,59 +199,17 @@ function similar(text, { staff = false, limit = 5 } = {}) {
     if (!prev || score > prev.score) scored.set(name, { score, why });
   };
 
-  /* ١) مطابقة عربية صريحة (كلمة أو كلمتين) */
+  /*
+   * مطابقة تامة فقط — بلا أي تقريب:
+   *   «حظر» · «باند» · «طير» ← تشتغل (كلمات معروفة حرفيًا)
+   *   «بانا» · «حياهاي» · «باندد» ← ما تشتغل أبدًا وما يتعامل معها كأمر
+   * والكلمة القريبة من اسم أمر إنجليزي كذلك ما تُحسب — لازم الكلمة نفسها.
+   */
   const twoWords = words.slice(0, 2).join(' ');
   for (const [key, names] of Object.entries(HINTS)) {
     const keyNorm = normalize(key);
     const exact = normalize(words[0]) === keyNorm || normalize(twoWords) === keyNorm;
-    if (exact) names.forEach((n, i) => consider(n, 100 - i, 'عربي'));
-  }
-
-  /* ٢) مشابهة عربية (حرف زيادة أو ناقص) */
-  if (!scored.size) {
-    for (const [key, names] of Object.entries(HINTS)) {
-      const keyNorm = normalize(key);
-      const word = normalize(words[0]);
-      if (word.length < 3 || keyNorm.length < 3) continue;
-      if (word.includes(keyNorm) || keyNorm.includes(word)) {
-        names.forEach((n, i) => consider(n, 60 - i, 'قريب'));
-      }
-    }
-  }
-
-  /* ٣) اسم أمر إنجليزي مباشر أو قريب منه (غلطة كتابة) */
-  const first = words[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
-  if (first.length >= 3) {
-    for (const name of available) {
-      const lower = name.toLowerCase();
-      if (lower === first) continue; // هذا أمر صحيح — ما يحتاج اقتراح
-      if (lower.startsWith(first) || first.startsWith(lower)) {
-        consider(name, 70, 'اسم قريب');
-        continue;
-      }
-      const maxDistance = lower.length >= 5 ? 2 : 1;
-      if (Math.abs(lower.length - first.length) <= maxDistance && distance(lower, first) <= maxDistance) {
-        consider(name, 55, 'غلطة كتابة');
-      }
-    }
-
-    /* الاختصارات المتاحة كمان (alias → اسم الأمر) */
-    try {
-      const text = require('./textCommands');
-      const { config } = text.aliasIndex ? text.aliasIndex('') : { config: null };
-      if (config) {
-        for (const [name, aliases] of Object.entries(config.aliases)) {
-          for (const alias of aliases) {
-            if (!available.has(name)) continue;
-            if (alias === first) continue;
-            const maxDistance = alias.length >= 5 ? 1 : 0;
-            if (maxDistance && Math.abs(alias.length - first.length) <= maxDistance && distance(alias, first) <= maxDistance) {
-              consider(name, 40, 'اختصار قريب');
-            }
-          }
-        }
-      }
-    } catch { /* الاختصارات اختيارية */ }
+    if (exact) names.forEach((n, i) => consider(n, 100 - i, 'كلمة معروفة'));
   }
 
   if (!scored.size) return null;
@@ -310,15 +269,13 @@ function card(name, { guildId = '', word = '', note = '' } = {}) {
   const examples = (meta.examples || []).map(asSlash);
 
   const fields = [];
-  if (aliases.length) fields.push({ name: '#الاختصارات', value: aliases.map((a) => `#${a}`).join('، ') });
+  /* بلا أي رمز قبل الاختصار: الأوامر تُكتب مباشرة بلا بريفيكست */
+  if (aliases.length) fields.push({ name: '#الاختصارات', value: aliases.join('، ') });
   if (usage.length) fields.push({ name: '#الاستخدام', value: usage.map((u) => `\`${u}\``).join('\n') });
   if (examples.length) fields.push({ name: '#أمثلة للأمر', value: examples.map((e) => `\`${e}\``).join('\n') });
 
-  /* الوصف: اسم الأمر بالعربي فقط — وبس لو كتبها غلط نزيد سطر يوضّح الصح */
+  /* الوصف: اسم الأمر بالعربي فقط — بلا أي سطر زيادة */
   const lines = [meta.label || ''];
-  if (word && String(word).trim().toLowerCase() !== name) {
-    lines.push(`كتبت **${word}** — أقرب أمر: **${name}**`);
-  }
   if (note) lines.push(note);
 
   const embed = embeds.base({
@@ -339,11 +296,7 @@ function card(name, { guildId = '', word = '', note = '' } = {}) {
 async function reply(message, result) {
   if (!result?.matches?.length) return null;
   const top = result.matches[0];
-  const isTypo = Boolean(top.why) && top.why !== 'عربي';
-  const embed = card(top.name, {
-    guildId: message.guild?.id || '',
-    word: isTypo ? result.word : '',
-  });
+  const embed = card(top.name, { guildId: message.guild?.id || '' });
   await message.reply({ embeds: [embed], allowedMentions: { repliedUser: false } }).catch(() => null);
 }
 

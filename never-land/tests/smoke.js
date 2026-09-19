@@ -1822,7 +1822,7 @@ console.log('[نجاح] كل الاختبارات نجحت!');
 
     // ٢) بطاقة الأمر (نفس شكل بوتات الأوامر)
     const sug44 = read44('src/systems/suggestions.js');
-    for (const needle of ["'طير'", "'اسكت'", 'HINTS', 'COOLDOWN_MS', 'هل تقصد', 'Command: ', '#الاختصارات', '#الاستخدام', '#أمثلة للأمر']) {
+    for (const needle of ["'طير'", "'اسكت'", 'HINTS', 'COOLDOWN_MS', 'هل تقصد', 'Command: ', '#الاختصارات', '#الاستخدام', '#أمثلة للأمر', 'مطابقة تامة']) {
       assert.ok(sug44.includes(needle), `نظام الاقتراحات ينقصه ${needle}`);
     }
 

@@ -58,8 +58,18 @@ function containsWord(content, word, { wholeWord = false } = {}) {
   const needle = normalizeArabic(word);
   if (!haystack || !needle) return false;
   if (!wholeWord) return haystack.includes(needle);
-  /* كلمة كاملة: حدود الكلمة في النص المطبَّع (اللي صار كله حروف بلا فراغات) */
-  return new RegExp(`(^|[^\\p{L}\\p{N}])${needle}($|[^\\p{L}\\p{N}])`, 'u').test(String(content || ''));
+  /* كلمة كاملة: نقسّم لنصوص مطبَّعة ثم نقارن كلمة بكلمة (بلا التقاط كلمة داخل كلمة أطول) */
+  const tokens = (value) => String(value || '')
+    .split(/[^\p{L}\p{N}\p{M}]+/u)
+    .map((token) => normalizeArabic(token))
+    .filter(Boolean);
+  const hay = tokens(content);
+  const need = tokens(word);
+  if (!need.length || hay.length < need.length) return false;
+  for (let i = 0; i + need.length <= hay.length; i += 1) {
+    if (need.every((w, k) => hay[i + k] === w)) return true;
+  }
+  return false;
 }
 
 module.exports = { normalizeArabic, similarity, containsWord };

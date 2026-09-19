@@ -103,14 +103,16 @@ async function run() {
   assert.ok(!/https?:/.test(JSON.stringify(cardData)), 'البطاقة فيها رابط موقع');
   assert.ok(!cardData.footer, 'البطاقة فيها تذييل — المطلوب وقت الرسالة فقط');
   assert.ok(!/أوامر مشابهة/.test(JSON.stringify(cardData)), 'لسا في سطر «أوامر مشابهة» في البطاقة');
+  assert.ok(!cardData.fields[0].value.includes('#'), 'لسا في هاشتاق قبل الاختصار — الأوامر بلا بريفيكست');
 
   /* الاختصارات المعروضة = الموجودة في اللوحة (إنجليزي + عربي افتراضي)، وبأي لغة يضيفها صاحب السيرفر */
-  assert.strictEqual(cardData.fields[0].value, '#b، #حظر، #باند', 'اختصارات البطاقة غير مطابقة للوحة');
+  assert.strictEqual(cardData.fields[0].value, 'b، حظر، باند', 'اختصارات البطاقة غير مطابقة للوحة');
+  assert.ok(!cardData.fields[0].value.includes('#b'), 'لسا في هاشتاق قبل الاختصار — الأوامر بلا بريفيكست');
   assert.ok(!cardData.fields[0].value.includes('طير'), 'اختصار جاهز غير موجود في اللوحة ظهر بالبطاقة');
   assert.ok(textCommands.setAliases(GUILD, 'ban', ['b', 'banned']).ok, 'ما قدرنا نضيف اختصارًا من الموقع');
   const cardAfter = suggestions.card('ban', { guildId: GUILD }).data;
   console.log('   بعد إضافة اختصار من الموقع:', cardAfter.fields[0].value);
-  assert.strictEqual(cardAfter.fields[0].value, '#b، #banned', 'اختصار الموقع ما ظهر في البطاقة');
+  assert.strictEqual(cardAfter.fields[0].value, 'b، banned', 'اختصار الموقع ما ظهر في البطاقة');
   assert.ok(!memberView || memberView.matches.every((m) => m.audience === 'member'), 'أوامر الإدارة انكشفت لعضو عادي');
 
   const cases = [
@@ -126,11 +128,17 @@ async function run() {
     assert.ok(r && r.matches.some((m) => m.name === expected), `«${word}» ما اقترح ${expected}`);
   }
 
-  /* غلطات إنجليزية */
-  for (const [typo, expected] of [['bann', 'ban'], ['kik', 'kick'], ['rank', 'leveling'], ['hlep', 'help']]) {
-    const r = suggestions.similar(typo, { staff: true });
-    console.log(`   «${typo}» →`, r ? r.matches.map((m) => m.name).join(' · ') : 'بلا اقتراح');
-    assert.ok(r && r.matches.some((m) => m.name === expected), `«${typo}» ما اقترح ${expected}`);
+  /* مطابقة تامة فقط: الكلمة القريبة ما تُعتبر أمرًا */
+  for (const near of ['بانا', 'باندد', 'حياهاي', 'هياهاياهايي', 'bann', 'kik', 'hlep', 'طيره']) {
+    const r = suggestions.similar(near, { staff: true });
+    console.log(`   «${near}» (كلمة قريبة) →`, r ? `اقترح ${r.matches.map((m) => m.name).join(' · ')} ✘` : 'بلا رد ✔');
+    assert.strictEqual(r, null, `كلمة قريبة «${near}» انحسبت أمرًا`);
+  }
+  /* والكلمات المعروفة حرفيًا تشتغل */
+  for (const [exact, expected] of [['rank', 'leveling'], ['توب', 'top'], ['باند', 'ban']]) {
+    const r = suggestions.similar(exact, { staff: true });
+    console.log(`   «${exact}» (كلمة معروفة) →`, r ? r.matches.map((m) => m.name).join(' · ') : 'بلا اقتراح ✘');
+    assert.ok(r && r.matches.some((m) => m.name === expected), `«${exact}» ما اقترح ${expected}`);
   }
 
   /* الكلام العادي ما يتعطّل */
